@@ -1,39 +1,42 @@
 
 
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>pycalphad.io.tdb &mdash; pycalphad 0.8+6.g22a5544 documentation</title>
+  <title>pycalphad.io.tdb &mdash; pycalphad 0.8+51.gbe404461 documentation</title>
   
-
-  
-  
-  
-  
-
-  
-  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
-  
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../../_static/language_data.js"></script>
-        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    
-    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
-
-    
 
   
   <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" /> 
 </head>
@@ -62,7 +65,7 @@
             
             
               <div class="version">
-                0.8+6.g22a5544
+                0.8+51.gbe404461
               </div>
             
           
@@ -79,6 +82,7 @@
           
         </div>
 
+        
         <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
           
             
@@ -97,6 +101,7 @@
             
           
         </div>
+        
       </div>
     </nav>
 
@@ -131,11 +136,13 @@
 
 
 
+
+
 <div role="navigation" aria-label="breadcrumbs navigation">
 
   <ul class="wy-breadcrumbs">
     
-      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
         
           <li><a href="../../index.html">Module code</a> &raquo;</li>
         
@@ -160,25 +167,25 @@
 <span class="sd">Thermo-Calc TDB format.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">pyparsing</span> <span class="k">import</span> <span class="n">CaselessKeyword</span><span class="p">,</span> <span class="n">CharsNotIn</span><span class="p">,</span> <span class="n">Group</span>
-<span class="kn">from</span> <span class="nn">pyparsing</span> <span class="k">import</span> <span class="n">LineEnd</span><span class="p">,</span> <span class="n">MatchFirst</span><span class="p">,</span> <span class="n">OneOrMore</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Regex</span><span class="p">,</span> <span class="n">SkipTo</span>
-<span class="kn">from</span> <span class="nn">pyparsing</span> <span class="k">import</span> <span class="n">ZeroOrMore</span><span class="p">,</span> <span class="n">Suppress</span><span class="p">,</span> <span class="n">White</span><span class="p">,</span> <span class="n">Word</span><span class="p">,</span> <span class="n">alphanums</span><span class="p">,</span> <span class="n">alphas</span><span class="p">,</span> <span class="n">nums</span>
-<span class="kn">from</span> <span class="nn">pyparsing</span> <span class="k">import</span> <span class="n">delimitedList</span><span class="p">,</span> <span class="n">ParseException</span>
+<span class="kn">from</span> <span class="nn">pyparsing</span> <span class="kn">import</span> <span class="n">CaselessKeyword</span><span class="p">,</span> <span class="n">CharsNotIn</span><span class="p">,</span> <span class="n">Group</span>
+<span class="kn">from</span> <span class="nn">pyparsing</span> <span class="kn">import</span> <span class="n">LineEnd</span><span class="p">,</span> <span class="n">MatchFirst</span><span class="p">,</span> <span class="n">OneOrMore</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Regex</span><span class="p">,</span> <span class="n">SkipTo</span>
+<span class="kn">from</span> <span class="nn">pyparsing</span> <span class="kn">import</span> <span class="n">ZeroOrMore</span><span class="p">,</span> <span class="n">Suppress</span><span class="p">,</span> <span class="n">White</span><span class="p">,</span> <span class="n">Word</span><span class="p">,</span> <span class="n">alphanums</span><span class="p">,</span> <span class="n">alphas</span><span class="p">,</span> <span class="n">nums</span>
+<span class="kn">from</span> <span class="nn">pyparsing</span> <span class="kn">import</span> <span class="n">delimitedList</span><span class="p">,</span> <span class="n">ParseException</span>
 <span class="kn">import</span> <span class="nn">re</span>
-<span class="kn">from</span> <span class="nn">sympy</span> <span class="k">import</span> <span class="n">sympify</span><span class="p">,</span> <span class="n">And</span><span class="p">,</span> <span class="n">Or</span><span class="p">,</span> <span class="n">Not</span><span class="p">,</span> <span class="n">Intersection</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">EmptySet</span><span class="p">,</span> <span class="n">Interval</span><span class="p">,</span> <span class="n">Piecewise</span>
-<span class="kn">from</span> <span class="nn">sympy</span> <span class="k">import</span> <span class="n">Symbol</span><span class="p">,</span> <span class="n">GreaterThan</span><span class="p">,</span> <span class="n">StrictGreaterThan</span><span class="p">,</span> <span class="n">LessThan</span><span class="p">,</span> <span class="n">StrictLessThan</span><span class="p">,</span> <span class="n">Complement</span><span class="p">,</span> <span class="n">S</span>
-<span class="kn">from</span> <span class="nn">sympy</span> <span class="k">import</span> <span class="n">Mul</span><span class="p">,</span> <span class="n">Pow</span><span class="p">,</span> <span class="n">Rational</span>
-<span class="kn">from</span> <span class="nn">sympy.abc</span> <span class="k">import</span> <span class="n">_clash</span>
-<span class="kn">from</span> <span class="nn">sympy.printing.str</span> <span class="k">import</span> <span class="n">StrPrinter</span>
-<span class="kn">from</span> <span class="nn">sympy.core.mul</span> <span class="k">import</span> <span class="n">_keep_coeff</span>
-<span class="kn">from</span> <span class="nn">sympy.printing.precedence</span> <span class="k">import</span> <span class="n">precedence</span>
-<span class="kn">from</span> <span class="nn">pycalphad</span> <span class="k">import</span> <span class="n">Database</span>
-<span class="kn">from</span> <span class="nn">pycalphad.io.database</span> <span class="k">import</span> <span class="n">DatabaseExportError</span>
-<span class="kn">from</span> <span class="nn">pycalphad.io.grammar</span> <span class="k">import</span> <span class="n">float_number</span><span class="p">,</span> <span class="n">chemical_formula</span>
-<span class="kn">from</span> <span class="nn">pycalphad.variables</span> <span class="k">import</span> <span class="n">Species</span>
+<span class="kn">from</span> <span class="nn">sympy</span> <span class="kn">import</span> <span class="n">sympify</span><span class="p">,</span> <span class="n">And</span><span class="p">,</span> <span class="n">Or</span><span class="p">,</span> <span class="n">Not</span><span class="p">,</span> <span class="n">Intersection</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">EmptySet</span><span class="p">,</span> <span class="n">Interval</span><span class="p">,</span> <span class="n">Piecewise</span>
+<span class="kn">from</span> <span class="nn">sympy</span> <span class="kn">import</span> <span class="n">Symbol</span><span class="p">,</span> <span class="n">GreaterThan</span><span class="p">,</span> <span class="n">StrictGreaterThan</span><span class="p">,</span> <span class="n">LessThan</span><span class="p">,</span> <span class="n">StrictLessThan</span><span class="p">,</span> <span class="n">Complement</span><span class="p">,</span> <span class="n">S</span>
+<span class="kn">from</span> <span class="nn">sympy</span> <span class="kn">import</span> <span class="n">Mul</span><span class="p">,</span> <span class="n">Pow</span><span class="p">,</span> <span class="n">Rational</span>
+<span class="kn">from</span> <span class="nn">sympy.abc</span> <span class="kn">import</span> <span class="n">_clash</span>
+<span class="kn">from</span> <span class="nn">sympy.printing.str</span> <span class="kn">import</span> <span class="n">StrPrinter</span>
+<span class="kn">from</span> <span class="nn">sympy.core.mul</span> <span class="kn">import</span> <span class="n">_keep_coeff</span>
+<span class="kn">from</span> <span class="nn">sympy.printing.precedence</span> <span class="kn">import</span> <span class="n">precedence</span>
+<span class="kn">from</span> <span class="nn">pycalphad</span> <span class="kn">import</span> <span class="n">Database</span>
+<span class="kn">from</span> <span class="nn">pycalphad.io.database</span> <span class="kn">import</span> <span class="n">DatabaseExportError</span>
+<span class="kn">from</span> <span class="nn">pycalphad.io.grammar</span> <span class="kn">import</span> <span class="n">float_number</span><span class="p">,</span> <span class="n">chemical_formula</span>
+<span class="kn">from</span> <span class="nn">pycalphad.variables</span> <span class="kn">import</span> <span class="n">Species</span>
 <span class="kn">import</span> <span class="nn">pycalphad.variables</span> <span class="k">as</span> <span class="nn">v</span>
-<span class="kn">from</span> <span class="nn">pycalphad.io.tdb_keywords</span> <span class="k">import</span> <span class="n">expand_keyword</span><span class="p">,</span> <span class="n">TDB_PARAM_TYPES</span>
-<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">defaultdict</span><span class="p">,</span> <span class="n">namedtuple</span>
+<span class="kn">from</span> <span class="nn">pycalphad.io.tdb_keywords</span> <span class="kn">import</span> <span class="n">expand_keyword</span><span class="p">,</span> <span class="n">TDB_PARAM_TYPES</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span><span class="p">,</span> <span class="n">namedtuple</span>
 <span class="kn">import</span> <span class="nn">ast</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">inspect</span>
@@ -188,11 +195,13 @@
 <span class="kn">import</span> <span class="nn">datetime</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
 <span class="kn">import</span> <span class="nn">hashlib</span>
-<span class="kn">from</span> <span class="nn">copy</span> <span class="k">import</span> <span class="n">deepcopy</span>
+<span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">deepcopy</span>
 
-<span class="n">_AST_WHITELIST</span> <span class="o">=</span> <span class="p">[</span><span class="n">ast</span><span class="o">.</span><span class="n">Add</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">BinOp</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">Call</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">Div</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">Expression</span><span class="p">,</span>
-                  <span class="n">ast</span><span class="o">.</span><span class="n">Load</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">Mult</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">Name</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">Num</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">Pow</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">Sub</span><span class="p">,</span>
-                  <span class="n">ast</span><span class="o">.</span><span class="n">UAdd</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">UnaryOp</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">USub</span><span class="p">]</span>
+<span class="c1"># ast.Num is deprecated in Python 3.8 in favor of as ast.Constant</span>
+<span class="c1"># Both are whitelisted for compatability across versions</span>
+<span class="n">_AST_WHITELIST</span> <span class="o">=</span> <span class="p">[</span><span class="n">ast</span><span class="o">.</span><span class="n">Add</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">BinOp</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">Call</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">Constant</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">Div</span><span class="p">,</span>
+                  <span class="n">ast</span><span class="o">.</span><span class="n">Expression</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">Load</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">Mult</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">Name</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">Num</span><span class="p">,</span>
+                  <span class="n">ast</span><span class="o">.</span><span class="n">Pow</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">Sub</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">UAdd</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">UnaryOp</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">USub</span><span class="p">]</span>
 
 <span class="c1"># Avoid symbol names clashing with objects in sympy (gh-233)</span>
 <span class="n">clashing_namespace</span> <span class="o">=</span> <span class="p">{}</span>
@@ -248,12 +257,9 @@
 <span class="sd">    Source: Florian Brucker on StackOverflow</span>
 <span class="sd">    http://stackoverflow.com/questions/10177276/pyparsing-setparseaction-function-is-getting-no-arguments</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
-        <span class="n">func_items</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">func</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
-        <span class="n">func_args</span> <span class="o">=</span> <span class="p">[</span><span class="n">name</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">func_items</span>
-                     <span class="k">if</span> <span class="n">param</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="n">param</span><span class="o">.</span><span class="n">POSITIONAL_OR_KEYWORD</span><span class="p">]</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">func_args</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getargspec</span><span class="p">(</span><span class="n">func</span><span class="p">)</span><span class="o">.</span><span class="n">args</span>
+    <span class="n">func_items</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">func</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+    <span class="n">func_args</span> <span class="o">=</span> <span class="p">[</span><span class="n">name</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">func_items</span>
+                 <span class="k">if</span> <span class="n">param</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="n">param</span><span class="o">.</span><span class="n">POSITIONAL_OR_KEYWORD</span><span class="p">]</span>
     <span class="n">num_args</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">func_args</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">num_args</span> <span class="o">&gt;</span> <span class="mi">3</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Input function must take at most 3 parameters.&#39;</span><span class="p">)</span>
@@ -365,8 +371,8 @@
         <span class="o">+</span> <span class="n">Suppress</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="n">ZeroOrMore</span><span class="p">(</span><span class="n">Suppress</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">))</span> <span class="o">+</span> <span class="n">Optional</span><span class="p">(</span><span class="n">float_number</span><span class="p">)</span> <span class="o">+</span> \
         <span class="n">Suppress</span><span class="p">(</span><span class="n">Word</span><span class="p">(</span><span class="s1">&#39;YNyn&#39;</span><span class="p">,</span> <span class="n">exact</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">|</span> <span class="n">White</span><span class="p">()))</span>
     <span class="c1"># ELEMENT</span>
-    <span class="n">cmd_element</span> <span class="o">=</span> <span class="n">TCCommand</span><span class="p">(</span><span class="s1">&#39;ELEMENT&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="n">Word</span><span class="p">(</span><span class="n">alphas</span><span class="o">+</span><span class="s1">&#39;/-&#39;</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">Optional</span><span class="p">(</span><span class="n">Suppress</span><span class="p">(</span><span class="n">ref_phase_name</span><span class="p">))</span> <span class="o">+</span> \
-        <span class="n">Optional</span><span class="p">(</span><span class="n">Suppress</span><span class="p">(</span><span class="n">OneOrMore</span><span class="p">(</span><span class="n">float_number</span><span class="p">)))</span> <span class="o">+</span> <span class="n">LineEnd</span><span class="p">()</span>
+    <span class="n">cmd_element</span> <span class="o">=</span> <span class="n">TCCommand</span><span class="p">(</span><span class="s1">&#39;ELEMENT&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="n">Word</span><span class="p">(</span><span class="n">alphas</span><span class="o">+</span><span class="s1">&#39;/-&#39;</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">ref_phase_name</span> <span class="o">+</span> \
+        <span class="n">float_number</span> <span class="o">+</span> <span class="n">float_number</span> <span class="o">+</span> <span class="n">float_number</span> <span class="o">+</span> <span class="n">LineEnd</span><span class="p">()</span>
     <span class="c1"># SPECIES</span>
     <span class="n">cmd_species</span> <span class="o">=</span> <span class="n">TCCommand</span><span class="p">(</span><span class="s1">&#39;SPECIES&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="n">species_name</span> <span class="o">+</span> <span class="n">chemical_formula</span> <span class="o">+</span> <span class="n">LineEnd</span><span class="p">()</span>
     <span class="c1"># TYPE_DEFINITION</span>
@@ -396,7 +402,8 @@
     <span class="c1"># PHASE</span>
     <span class="n">cmd_phase</span> <span class="o">=</span> <span class="n">TCCommand</span><span class="p">(</span><span class="s1">&#39;PHASE&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="n">symbol_name</span> <span class="o">+</span> \
         <span class="n">Suppress</span><span class="p">(</span><span class="n">White</span><span class="p">())</span> <span class="o">+</span> <span class="n">CharsNotIn</span><span class="p">(</span><span class="s1">&#39; !&#39;</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">Suppress</span><span class="p">(</span><span class="n">White</span><span class="p">())</span> <span class="o">+</span> \
-        <span class="n">Suppress</span><span class="p">(</span><span class="n">int_number</span><span class="p">)</span> <span class="o">+</span> <span class="n">Group</span><span class="p">(</span><span class="n">OneOrMore</span><span class="p">(</span><span class="n">float_number</span><span class="p">))</span> <span class="o">+</span> <span class="n">LineEnd</span><span class="p">()</span>
+        <span class="n">Suppress</span><span class="p">(</span><span class="n">int_number</span><span class="p">)</span> <span class="o">+</span> <span class="n">Group</span><span class="p">(</span><span class="n">OneOrMore</span><span class="p">(</span><span class="n">float_number</span><span class="p">))</span> <span class="o">+</span> \
+        <span class="n">Suppress</span><span class="p">(</span><span class="n">SkipTo</span><span class="p">(</span><span class="n">LineEnd</span><span class="p">()))</span>
     <span class="c1"># CONSTITUENT</span>
     <span class="n">cmd_constituent</span> <span class="o">=</span> <span class="n">TCCommand</span><span class="p">(</span><span class="s1">&#39;CONSTITUENT&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="n">symbol_name</span> <span class="o">+</span> \
         <span class="n">Suppress</span><span class="p">(</span><span class="n">White</span><span class="p">())</span> <span class="o">+</span> <span class="n">Suppress</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="n">constituent_array</span> <span class="o">+</span> \
@@ -429,37 +436,56 @@
 
 <span class="k">def</span> <span class="nf">_process_typedef</span><span class="p">(</span><span class="n">targetdb</span><span class="p">,</span> <span class="n">typechar</span><span class="p">,</span> <span class="n">line</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Process the TYPE_DEFINITION command.</span>
+<span class="sd">    Process a TYPE_DEFINITION command.</span>
+
+<span class="sd">    Assumes all phases are entered into the database already and that the</span>
+<span class="sd">    database defines _typechar_map, which defines a map of typechar to the</span>
+<span class="sd">    phases that use it. Any phases that in the typechar dict for this will have</span>
+<span class="sd">    the model_hints updated based on this type definition, regardless of which</span>
+<span class="sd">    phase names may be defined in this TYPE_DEF line.</span>
+
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">matching_phases</span> <span class="o">=</span> <span class="n">targetdb</span><span class="o">.</span><span class="n">_typechar_map</span><span class="p">[</span><span class="n">typechar</span><span class="p">]</span>
+    <span class="k">del</span> <span class="n">targetdb</span><span class="o">.</span><span class="n">_typechar_map</span><span class="p">[</span><span class="n">typechar</span><span class="p">]</span>
     <span class="c1"># GES A_P_D BCC_A2 MAGNETIC  -1    0.4</span>
     <span class="n">tokens</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">4</span><span class="p">:</span>
         <span class="k">return</span>
     <span class="n">keyword</span> <span class="o">=</span> <span class="n">expand_keyword</span><span class="p">([</span><span class="s1">&#39;DISORDERED_PART&#39;</span><span class="p">,</span> <span class="s1">&#39;MAGNETIC&#39;</span><span class="p">],</span> <span class="n">tokens</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">keyword</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unknown keyword: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">3</span><span class="p">]))</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unknown type definition keyword: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">3</span><span class="p">]))</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">matching_phases</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The type definition character `</span><span class="si">{</span><span class="n">typechar</span><span class="si">}</span><span class="s2">` in `TYPE_DEFINITION </span><span class="si">{</span><span class="n">typechar</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">line</span><span class="si">}</span><span class="s2">` is not used by any phase.&quot;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">keyword</span> <span class="o">==</span> <span class="s1">&#39;MAGNETIC&#39;</span><span class="p">:</span>
-        <span class="c1"># magnetic model (IHJ model assumed by default)</span>
-        <span class="n">targetdb</span><span class="o">.</span><span class="n">tdbtypedefs</span><span class="p">[</span><span class="n">typechar</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s1">&#39;ihj_magnetic&#39;</span><span class="p">:[</span><span class="nb">float</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">4</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">5</span><span class="p">])]</span>
+        <span class="c1"># Magnetic model, both IHJ and Xiong models use these model hints when</span>
+        <span class="c1"># constructing Model instances, despite being prefixed `ihj_magnetic_`</span>
+        <span class="n">model_hints</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;ihj_magnetic_afm_factor&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">4</span><span class="p">]),</span>
+            <span class="s1">&#39;ihj_magnetic_structure_factor&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
         <span class="p">}</span>
+        <span class="k">for</span> <span class="n">phase_name</span> <span class="ow">in</span> <span class="n">matching_phases</span><span class="p">:</span>
+            <span class="n">targetdb</span><span class="o">.</span><span class="n">phases</span><span class="p">[</span><span class="n">phase_name</span><span class="p">]</span><span class="o">.</span><span class="n">model_hints</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">model_hints</span><span class="p">)</span>
+
     <span class="c1"># GES A_P_D L12_FCC DIS_PART FCC_A1</span>
     <span class="k">if</span> <span class="n">keyword</span> <span class="o">==</span> <span class="s1">&#39;DISORDERED_PART&#39;</span><span class="p">:</span>
-        <span class="c1"># order-disorder model</span>
-        <span class="n">targetdb</span><span class="o">.</span><span class="n">tdbtypedefs</span><span class="p">[</span><span class="n">typechar</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s1">&#39;disordered_phase&#39;</span><span class="p">:</span> <span class="n">tokens</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">(),</span>
-            <span class="s1">&#39;ordered_phase&#39;</span><span class="p">:</span> <span class="n">tokens</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+        <span class="c1"># order-disorder model: since we need to add model_hints to both the</span>
+        <span class="c1"># ordered and disorderd phase, we special case to update the phase</span>
+        <span class="c1"># names defined by the TYPE_DEF, rather than the updating the phases</span>
+        <span class="c1"># with matching typechars.</span>
+        <span class="n">ordered_phase</span> <span class="o">=</span> <span class="n">tokens</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+        <span class="n">disordered_phase</span> <span class="o">=</span> <span class="n">tokens</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+        <span class="n">hint</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;ordered_phase&#39;</span><span class="p">:</span> <span class="n">ordered_phase</span><span class="p">,</span>
+            <span class="s1">&#39;disordered_phase&#39;</span><span class="p">:</span> <span class="n">disordered_phase</span><span class="p">,</span>
         <span class="p">}</span>
-        <span class="k">if</span> <span class="n">tokens</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">targetdb</span><span class="o">.</span><span class="n">phases</span><span class="p">:</span>
-            <span class="c1"># Since TDB files do not enforce any kind of ordering</span>
-            <span class="c1"># on the specification of ordered and disordered phases,</span>
-            <span class="c1"># we need to handle the case of when either phase is specified</span>
-            <span class="c1"># first. In this case, we imagine the ordered phase is</span>
-            <span class="c1"># specified first. If the disordered phase is specified</span>
-            <span class="c1"># first, we will have to catch it in _process_phase().</span>
-            <span class="n">targetdb</span><span class="o">.</span><span class="n">phases</span><span class="p">[</span><span class="n">tokens</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()]</span><span class="o">.</span><span class="n">model_hints</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
-                <span class="n">targetdb</span><span class="o">.</span><span class="n">tdbtypedefs</span><span class="p">[</span><span class="n">typechar</span><span class="p">]</span>
-            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">ordered_phase</span> <span class="ow">in</span> <span class="n">targetdb</span><span class="o">.</span><span class="n">phases</span><span class="p">:</span>
+            <span class="n">targetdb</span><span class="o">.</span><span class="n">phases</span><span class="p">[</span><span class="n">ordered_phase</span><span class="p">]</span><span class="o">.</span><span class="n">model_hints</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">hint</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The </span><span class="si">{</span><span class="n">ordered_phase</span><span class="si">}</span><span class="s2"> phase is not in the database, but is defined by: `TYPE_DEFINTION </span><span class="si">{</span><span class="n">typechar</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">line</span><span class="si">}</span><span class="s2">`&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">disordered_phase</span> <span class="ow">in</span> <span class="n">targetdb</span><span class="o">.</span><span class="n">phases</span><span class="p">:</span>
+            <span class="n">targetdb</span><span class="o">.</span><span class="n">phases</span><span class="p">[</span><span class="n">disordered_phase</span><span class="p">]</span><span class="o">.</span><span class="n">model_hints</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">hint</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The </span><span class="si">{</span><span class="n">disordered_phase</span><span class="si">}</span><span class="s2"> phase is not in the database, but is defined by: `TYPE_DEFINTION </span><span class="si">{</span><span class="n">typechar</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">line</span><span class="si">}</span><span class="s2">`&quot;</span><span class="p">)</span>
 
 
 <span class="n">phase_options</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;ionic_liquid_2SL&#39;</span><span class="p">:</span> <span class="s1">&#39;Y&#39;</span><span class="p">,</span>
@@ -486,22 +512,11 @@
     <span class="k">for</span> <span class="n">option</span> <span class="ow">in</span> <span class="n">inv_phase_options</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
         <span class="k">if</span> <span class="n">option</span> <span class="ow">in</span> <span class="n">options</span><span class="p">:</span>
             <span class="n">model_hints</span><span class="p">[</span><span class="n">inv_phase_options</span><span class="p">[</span><span class="n">option</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="k">for</span> <span class="n">typedef</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">typedefs</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">typedef</span> <span class="ow">in</span> <span class="n">targetdb</span><span class="o">.</span><span class="n">tdbtypedefs</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-            <span class="k">if</span> <span class="s1">&#39;ihj_magnetic&#39;</span> <span class="ow">in</span> <span class="n">targetdb</span><span class="o">.</span><span class="n">tdbtypedefs</span><span class="p">[</span><span class="n">typedef</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-                <span class="n">model_hints</span><span class="p">[</span><span class="s1">&#39;ihj_magnetic_afm_factor&#39;</span><span class="p">]</span> <span class="o">=</span> \
-                    <span class="n">targetdb</span><span class="o">.</span><span class="n">tdbtypedefs</span><span class="p">[</span><span class="n">typedef</span><span class="p">][</span><span class="s1">&#39;ihj_magnetic&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-                <span class="n">model_hints</span><span class="p">[</span><span class="s1">&#39;ihj_magnetic_structure_factor&#39;</span><span class="p">]</span> <span class="o">=</span> \
-                    <span class="n">targetdb</span><span class="o">.</span><span class="n">tdbtypedefs</span><span class="p">[</span><span class="n">typedef</span><span class="p">][</span><span class="s1">&#39;ihj_magnetic&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
-            <span class="k">if</span> <span class="s1">&#39;ordered_phase&#39;</span> <span class="ow">in</span> <span class="n">targetdb</span><span class="o">.</span><span class="n">tdbtypedefs</span><span class="p">[</span><span class="n">typedef</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-                <span class="n">model_hints</span><span class="p">[</span><span class="s1">&#39;ordered_phase&#39;</span><span class="p">]</span> <span class="o">=</span> \
-                    <span class="n">targetdb</span><span class="o">.</span><span class="n">tdbtypedefs</span><span class="p">[</span><span class="n">typedef</span><span class="p">][</span><span class="s1">&#39;ordered_phase&#39;</span><span class="p">]</span>
-                <span class="n">model_hints</span><span class="p">[</span><span class="s1">&#39;disordered_phase&#39;</span><span class="p">]</span> <span class="o">=</span> \
-                    <span class="n">targetdb</span><span class="o">.</span><span class="n">tdbtypedefs</span><span class="p">[</span><span class="n">typedef</span><span class="p">][</span><span class="s1">&#39;disordered_phase&#39;</span><span class="p">]</span>
-                <span class="k">if</span> <span class="n">model_hints</span><span class="p">[</span><span class="s1">&#39;disordered_phase&#39;</span><span class="p">]</span> <span class="ow">in</span> <span class="n">targetdb</span><span class="o">.</span><span class="n">phases</span><span class="p">:</span>
-                    <span class="n">targetdb</span><span class="o">.</span><span class="n">phases</span><span class="p">[</span><span class="n">model_hints</span><span class="p">[</span><span class="s1">&#39;disordered_phase&#39;</span><span class="p">]]</span>\
-                        <span class="o">.</span><span class="n">model_hints</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;ordered_phase&#39;</span><span class="p">:</span> <span class="n">model_hints</span><span class="p">[</span><span class="s1">&#39;ordered_phase&#39;</span><span class="p">],</span>
-                                             <span class="s1">&#39;disordered_phase&#39;</span><span class="p">:</span> <span class="n">model_hints</span><span class="p">[</span><span class="s1">&#39;disordered_phase&#39;</span><span class="p">]})</span>
+
+    <span class="k">for</span> <span class="n">typedef_char</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">typedefs</span><span class="p">):</span>
+        <span class="n">targetdb</span><span class="o">.</span><span class="n">_typechar_map</span><span class="p">[</span><span class="n">typedef_char</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">phase_name</span><span class="p">)</span>
+
+    <span class="c1"># Model hints are updated later based on the type definitions</span>
     <span class="n">targetdb</span><span class="o">.</span><span class="n">add_phase</span><span class="p">(</span><span class="n">phase_name</span><span class="p">,</span> <span class="n">model_hints</span><span class="p">,</span> <span class="n">subls</span><span class="p">)</span>
 
 <span class="k">def</span> <span class="nf">_process_parameter</span><span class="p">(</span><span class="n">targetdb</span><span class="p">,</span> <span class="n">param_type</span><span class="p">,</span> <span class="n">phase_name</span><span class="p">,</span> <span class="n">diffusing_species</span><span class="p">,</span>
@@ -513,7 +528,7 @@
     <span class="n">targetdb</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span><span class="n">param_type</span><span class="p">,</span> <span class="n">phase_name</span><span class="o">.</span><span class="n">upper</span><span class="p">(),</span>
                            <span class="p">[[</span><span class="n">c</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">lx</span><span class="p">)]</span>
                             <span class="k">for</span> <span class="n">lx</span> <span class="ow">in</span> <span class="n">constituent_array</span><span class="o">.</span><span class="n">asList</span><span class="p">()],</span>
-                           <span class="n">param_order</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">diffusing_species</span><span class="p">)</span>
+                           <span class="n">param_order</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">diffusing_species</span><span class="p">,</span> <span class="n">force_insert</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
 <span class="k">def</span> <span class="nf">_unimplemented</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span> <span class="c1">#pylint: disable=W0613</span>
     <span class="sd">&quot;&quot;&quot;</span>
@@ -527,15 +542,23 @@
     <span class="n">constituents</span> <span class="o">=</span> <span class="p">{</span><span class="n">sp_comp</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span> <span class="n">sp_comp</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">sp_comp</span><span class="p">),</span> <span class="mi">2</span><span class="p">)}</span>
     <span class="n">db</span><span class="o">.</span><span class="n">species</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Species</span><span class="p">(</span><span class="n">sp_name</span><span class="p">,</span> <span class="n">constituents</span><span class="p">,</span> <span class="n">charge</span><span class="o">=</span><span class="n">charge</span><span class="p">))</span>
 
+<span class="k">def</span> <span class="nf">_process_reference_state</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">el</span><span class="p">,</span> <span class="n">refphase</span><span class="p">,</span> <span class="n">mass</span><span class="p">,</span> <span class="n">H298</span><span class="p">,</span> <span class="n">S298</span><span class="p">):</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">refstates</span><span class="p">[</span><span class="n">el</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;phase&#39;</span><span class="p">:</span> <span class="n">refphase</span><span class="p">,</span>
+        <span class="s1">&#39;mass&#39;</span><span class="p">:</span> <span class="n">mass</span><span class="p">,</span>
+        <span class="s1">&#39;H298&#39;</span><span class="p">:</span> <span class="n">H298</span><span class="p">,</span>
+        <span class="s1">&#39;S298&#39;</span><span class="p">:</span> <span class="n">S298</span><span class="p">,</span>
+    <span class="p">}</span>
+
 <span class="k">def</span> <span class="nf">_setitem_raise_duplicates</span><span class="p">(</span><span class="n">dictionary</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">dictionary</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;TDB contains duplicate FUNCTION </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
     <span class="n">dictionary</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
 
 <span class="n">_TDB_PROCESSOR</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s1">&#39;ELEMENT&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">db</span><span class="p">,</span> <span class="n">el</span><span class="p">:</span> <span class="p">(</span><span class="n">db</span><span class="o">.</span><span class="n">elements</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">el</span><span class="p">),</span> <span class="n">_process_species</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">el</span><span class="p">,</span> <span class="p">[</span><span class="n">el</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="mi">0</span><span class="p">)),</span>
+    <span class="s1">&#39;ELEMENT&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">db</span><span class="p">,</span> <span class="n">el</span><span class="p">,</span> <span class="n">ref_phase</span><span class="p">,</span> <span class="n">mass</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">s</span><span class="p">:</span> <span class="p">(</span><span class="n">db</span><span class="o">.</span><span class="n">elements</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">el</span><span class="p">),</span> <span class="n">_process_reference_state</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">el</span><span class="p">,</span> <span class="n">ref_phase</span><span class="p">,</span> <span class="n">mass</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">s</span><span class="p">),</span> <span class="n">_process_species</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">el</span><span class="p">,</span> <span class="p">[</span><span class="n">el</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="mi">0</span><span class="p">)),</span>
     <span class="s1">&#39;SPECIES&#39;</span><span class="p">:</span> <span class="n">_process_species</span><span class="p">,</span>
-    <span class="s1">&#39;TYPE_DEFINITION&#39;</span><span class="p">:</span> <span class="n">_process_typedef</span><span class="p">,</span>
+    <span class="s1">&#39;TYPE_DEFINITION&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">db</span><span class="p">,</span> <span class="n">typechar</span><span class="p">,</span> <span class="n">line</span><span class="p">:</span> <span class="n">db</span><span class="o">.</span><span class="n">_typedefs_queue</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">typechar</span><span class="p">,</span> <span class="n">line</span><span class="p">)),</span>
     <span class="s1">&#39;FUNCTION&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">db</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">sym</span><span class="p">:</span> <span class="n">_setitem_raise_duplicates</span><span class="p">(</span><span class="n">db</span><span class="o">.</span><span class="n">symbols</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">sym</span><span class="p">),</span>
     <span class="s1">&#39;DEFINE_SYSTEM_DEFAULT&#39;</span><span class="p">:</span> <span class="n">_unimplemented</span><span class="p">,</span>
     <span class="s1">&#39;ASSESSED_SYSTEMS&#39;</span><span class="p">:</span> <span class="n">_unimplemented</span><span class="p">,</span>
@@ -605,7 +628,7 @@
         <span class="c1"># Need to verify that each cond&#39;s highlim equals the next cond&#39;s lowlim</span>
         <span class="c1"># to_interval() is used instead of sympy.Relational.as_set() for performance reasons</span>
         <span class="n">intervals</span> <span class="o">=</span> <span class="p">[</span><span class="n">to_interval</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">cond</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">filtered_args</span><span class="p">]</span>
-        <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">intervals</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">and</span> <span class="n">Intersection</span><span class="p">(</span><span class="o">*</span><span class="n">intervals</span><span class="p">)</span> <span class="o">!=</span> <span class="n">EmptySet</span><span class="p">():</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">intervals</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">Intersection</span><span class="p">(</span><span class="o">*</span><span class="n">intervals</span><span class="p">)</span> <span class="ow">is</span> <span class="n">EmptySet</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Overlapping intervals cannot be represented: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">intervals</span><span class="p">))</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">Union</span><span class="p">(</span><span class="o">*</span><span class="n">intervals</span><span class="p">),</span> <span class="n">Interval</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Piecewise intervals must be continuous&#39;</span><span class="p">)</span>
@@ -861,7 +884,7 @@
     <span class="n">output</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
     <span class="c1"># Comment header block</span>
     <span class="c1"># Import here to prevent circular imports</span>
-    <span class="kn">from</span> <span class="nn">pycalphad</span> <span class="k">import</span> <span class="n">__version__</span>
+    <span class="kn">from</span> <span class="nn">pycalphad</span> <span class="kn">import</span> <span class="n">__version__</span>
     <span class="n">output</span> <span class="o">+=</span> <span class="p">(</span><span class="s2">&quot;$&quot;</span> <span class="o">*</span> <span class="n">maxlen</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
     <span class="n">output</span> <span class="o">+=</span> <span class="s2">&quot;$ Date: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">writetime</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M&quot;</span><span class="p">))</span>
     <span class="n">output</span> <span class="o">+=</span> <span class="s2">&quot;$ Components: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">dbf</span><span class="o">.</span><span class="n">elements</span><span class="p">)))</span>
@@ -869,7 +892,12 @@
     <span class="n">output</span> <span class="o">+=</span> <span class="s2">&quot;$ Generated by </span><span class="si">{}</span><span class="s2"> (pycalphad </span><span class="si">{}</span><span class="s2">)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">getpass</span><span class="o">.</span><span class="n">getuser</span><span class="p">(),</span> <span class="n">__version__</span><span class="p">)</span>
     <span class="n">output</span> <span class="o">+=</span> <span class="p">(</span><span class="s2">&quot;$&quot;</span> <span class="o">*</span> <span class="n">maxlen</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">&quot;</span>
     <span class="k">for</span> <span class="n">element</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">dbf</span><span class="o">.</span><span class="n">elements</span><span class="p">):</span>
-        <span class="n">output</span> <span class="o">+=</span> <span class="s2">&quot;ELEMENT </span><span class="si">{0}</span><span class="s2"> BLANK 0 0 0 !</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">element</span><span class="o">.</span><span class="n">upper</span><span class="p">())</span>
+        <span class="n">ref</span> <span class="o">=</span> <span class="n">dbf</span><span class="o">.</span><span class="n">refstates</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">element</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="n">refphase</span> <span class="o">=</span> <span class="n">ref</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;phase&#39;</span><span class="p">,</span> <span class="s1">&#39;BLANK&#39;</span><span class="p">)</span>
+        <span class="n">mass</span> <span class="o">=</span> <span class="n">ref</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;mass&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+        <span class="n">H298</span> <span class="o">=</span> <span class="n">ref</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;H298&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+        <span class="n">S298</span> <span class="o">=</span> <span class="n">ref</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;S298&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+        <span class="n">output</span> <span class="o">+=</span> <span class="s2">&quot;ELEMENT </span><span class="si">{0}</span><span class="s2"> </span><span class="si">{1}</span><span class="s2"> </span><span class="si">{2}</span><span class="s2"> </span><span class="si">{3}</span><span class="s2"> </span><span class="si">{4}</span><span class="s2"> !</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">element</span><span class="o">.</span><span class="n">upper</span><span class="p">(),</span> <span class="n">refphase</span><span class="p">,</span> <span class="n">mass</span><span class="p">,</span> <span class="n">H298</span><span class="p">,</span> <span class="n">S298</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">dbf</span><span class="o">.</span><span class="n">elements</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">output</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
     <span class="k">for</span> <span class="n">species</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">dbf</span><span class="o">.</span><span class="n">species</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="n">s</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
@@ -1072,9 +1100,12 @@
     <span class="c1"># Now split by the command delimeter</span>
     <span class="n">commands</span> <span class="o">=</span> <span class="n">lines</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;!&#39;</span><span class="p">)</span>
 
-    <span class="c1"># Temporary storage while we process type definitions</span>
-    <span class="n">dbf</span><span class="o">.</span><span class="n">tdbtypedefs</span> <span class="o">=</span> <span class="p">{}</span>
-    
+    <span class="c1"># Temporarily track which typedef characters were used by which phase</span>
+    <span class="c1"># before we process the type definitions</span>
+    <span class="c1"># Map {typedef character: [phases using that typedef]}</span>
+    <span class="n">dbf</span><span class="o">.</span><span class="n">_typechar_map</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">dbf</span><span class="o">.</span><span class="n">_typedefs_queue</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># queue of type defintion lines to process</span>
+
     <span class="n">grammar</span> <span class="o">=</span> <span class="n">_tdb_grammar</span><span class="p">()</span>
 
     <span class="k">for</span> <span class="n">command</span> <span class="ow">in</span> <span class="n">commands</span><span class="p">:</span>
@@ -1088,7 +1119,20 @@
             <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Failed while parsing: &quot;</span> <span class="o">+</span> <span class="n">command</span><span class="p">)</span>
             <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Tokens: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">tokens</span><span class="p">))</span>
             <span class="k">raise</span>
-    <span class="k">del</span> <span class="n">dbf</span><span class="o">.</span><span class="n">tdbtypedefs</span></div>
+
+    <span class="c1"># Process type definitions last, updating model_hints for defined phases.</span>
+    <span class="k">for</span> <span class="n">typechar</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">dbf</span><span class="o">.</span><span class="n">_typedefs_queue</span><span class="p">:</span>
+        <span class="n">_process_typedef</span><span class="p">(</span><span class="n">dbf</span><span class="p">,</span> <span class="n">typechar</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+    <span class="c1"># Raise warnings if there are any remaining type characters that one or more</span>
+    <span class="c1"># phases expected to be defined</span>
+    <span class="k">for</span> <span class="n">typechar</span><span class="p">,</span> <span class="n">phases_expecting_typechar</span> <span class="ow">in</span> <span class="n">dbf</span><span class="o">.</span><span class="n">_typechar_map</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The type definition character `</span><span class="si">{</span><span class="n">typechar</span><span class="si">}</span><span class="s2">` was defined in the following phases: &quot;</span>
+                      <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">phases_expecting_typechar</span><span class="si">}</span><span class="s2">, but no corresponding TYPE_DEFINITION line was found in the TDB.&quot;</span><span class="p">)</span>
+    <span class="k">del</span> <span class="n">dbf</span><span class="o">.</span><span class="n">_typechar_map</span>
+    <span class="k">del</span> <span class="n">dbf</span><span class="o">.</span><span class="n">_typedefs_queue</span>
+
+    <span class="n">dbf</span><span class="o">.</span><span class="n">process_parameter_queue</span><span class="p">()</span></div>
+
 
 
 <span class="n">Database</span><span class="o">.</span><span class="n">register_format</span><span class="p">(</span><span class="s2">&quot;tdb&quot;</span><span class="p">,</span> <span class="n">read</span><span class="o">=</span><span class="n">read_tdb</span><span class="p">,</span> <span class="n">write</span><span class="o">=</span><span class="n">write_tdb</span><span class="p">)</span>
@@ -1098,20 +1142,25 @@
            
           </div>
           <footer>
-  
 
   <hr/>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2015, pycalphad Development Team
+        &#169; Copyright 2015, pycalphad Development Team.
 
     </p>
   </div>
-  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
-
         </div>
       </div>
 
@@ -1119,7 +1168,6 @@
 
   </div>
   
-
 
   <script type="text/javascript">
       jQuery(function () {

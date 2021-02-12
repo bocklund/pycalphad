@@ -1,39 +1,42 @@
 
 
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>Exploring calculate and equilibrium xarray Datasets &mdash; pycalphad 0.8+6.g22a5544 documentation</title>
+  <title>Exploring calculate and equilibrium xarray Datasets &mdash; pycalphad 0.8+51.gbe404461 documentation</title>
   
-
-  
-  
-  
-  
-
-  
-  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
-  
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../_static/jquery.js"></script>
-        <script type="text/javascript" src="../_static/underscore.js"></script>
-        <script type="text/javascript" src="../_static/doctools.js"></script>
-        <script type="text/javascript" src="../_static/language_data.js"></script>
-        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    
-    <script type="text/javascript" src="../_static/js/theme.js"></script>
-
-    
 
   
   <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="FAQ" href="../faq.html" />
@@ -64,7 +67,7 @@
             
             
               <div class="version">
-                0.8+6.g22a5544
+                0.8+51.gbe404461
               </div>
             
           
@@ -81,6 +84,7 @@
           
         </div>
 
+        
         <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
           
             
@@ -116,6 +120,7 @@
             
           
         </div>
+        
       </div>
     </nav>
 
@@ -150,11 +155,13 @@
 
 
 
+
+
 <div role="navigation" aria-label="breadcrumbs navigation">
 
   <ul class="wy-breadcrumbs">
     
-      <li><a href="../index.html">Docs</a> &raquo;</li>
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
         
           <li><a href="index.html">Examples</a> &raquo;</li>
         
@@ -163,7 +170,7 @@
     
       <li class="wy-breadcrumbs-aside">
         
-            
+          
             <a href="../_sources/examples/UsingCalculationResults.rst.txt" rel="nofollow"> View page source</a>
           
         
@@ -198,7 +205,7 @@ the values of the properties as a function of the different conditions.
 There are three key terms:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">Dimensions</span></code>: these are the conditions that are calculated over,
-e.g. pressure (P) and temperature (T). They are essentially labels.</p></li>
+e.g. pressure (P) and temperature (T). They are essentially labels.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Coordinates</span></code>: these are the actual <em>values</em> that are taken on by
 the dimensions.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Data</span> <span class="pre">variables</span></code>: these are the properties calculated by pycalphad,
@@ -238,7 +245,7 @@ output keyword passed to <code class="docutils literal notranslate"><span class=
 Gibbs energy, GM.</p></li>
 </ul>
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%</span><span class="k">matplotlib</span> inline
-<span class="kn">from</span> <span class="nn">pycalphad</span> <span class="k">import</span> <span class="n">Database</span><span class="p">,</span> <span class="n">calculate</span><span class="p">,</span> <span class="n">equilibrium</span><span class="p">,</span> <span class="n">variables</span> <span class="k">as</span> <span class="n">v</span>
+<span class="kn">from</span> <span class="nn">pycalphad</span> <span class="kn">import</span> <span class="n">Database</span><span class="p">,</span> <span class="n">calculate</span><span class="p">,</span> <span class="n">equilibrium</span><span class="p">,</span> <span class="n">variables</span> <span class="k">as</span> <span class="n">v</span>
 
 <span class="n">dbf</span> <span class="o">=</span> <span class="n">Database</span><span class="p">(</span><span class="s1">&#39;alzn_mey.tdb&#39;</span><span class="p">)</span>
 <span class="n">comps</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;AL&#39;</span><span class="p">,</span> <span class="s1">&#39;ZN&#39;</span><span class="p">,</span> <span class="s1">&#39;VA&#39;</span><span class="p">]</span>
@@ -247,17 +254,18 @@ Gibbs energy, GM.</p></li>
 </pre></div>
 </div>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">xarray</span><span class="o">.</span><span class="n">Dataset</span><span class="o">&gt;</span>
-<span class="n">Dimensions</span><span class="p">:</span>    <span class="p">(</span><span class="n">P</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="n">T</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="n">component</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="n">internal_dof</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="n">points</span><span class="p">:</span> <span class="mi">4001</span><span class="p">)</span>
+<span class="n">Dimensions</span><span class="p">:</span>    <span class="p">(</span><span class="n">N</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="n">P</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="n">T</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="n">component</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="n">internal_dof</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="n">points</span><span class="p">:</span> <span class="mi">4001</span><span class="p">)</span>
 <span class="n">Coordinates</span><span class="p">:</span>
-  <span class="o">*</span> <span class="n">T</span>          <span class="p">(</span><span class="n">T</span><span class="p">)</span> <span class="n">float64</span> <span class="mf">500.0</span> <span class="mf">1e+03</span>
   <span class="o">*</span> <span class="n">component</span>  <span class="p">(</span><span class="n">component</span><span class="p">)</span> <span class="o">&lt;</span><span class="n">U2</span> <span class="s1">&#39;AL&#39;</span> <span class="s1">&#39;ZN&#39;</span>
+  <span class="o">*</span> <span class="n">N</span>          <span class="p">(</span><span class="n">N</span><span class="p">)</span> <span class="n">float64</span> <span class="mf">1.0</span>
   <span class="o">*</span> <span class="n">P</span>          <span class="p">(</span><span class="n">P</span><span class="p">)</span> <span class="n">float64</span> <span class="mf">1.013e+05</span>
+  <span class="o">*</span> <span class="n">T</span>          <span class="p">(</span><span class="n">T</span><span class="p">)</span> <span class="n">float64</span> <span class="mf">500.0</span> <span class="mf">1e+03</span>
 <span class="n">Dimensions</span> <span class="n">without</span> <span class="n">coordinates</span><span class="p">:</span> <span class="n">internal_dof</span><span class="p">,</span> <span class="n">points</span>
 <span class="n">Data</span> <span class="n">variables</span><span class="p">:</span>
-    <span class="n">Y</span>          <span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="n">internal_dof</span><span class="p">)</span> <span class="n">float64</span> <span class="mf">1.0</span> <span class="mf">1e-12</span> <span class="mf">1e-12</span> <span class="mf">1.0</span> <span class="o">...</span>
-    <span class="n">GM</span>         <span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">points</span><span class="p">)</span> <span class="n">float64</span> <span class="o">-</span><span class="mf">1.559e+04</span> <span class="o">-</span><span class="mf">2.01e+04</span> <span class="o">-</span><span class="mf">2.01e+04</span> <span class="o">...</span>
-    <span class="n">X</span>          <span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="n">component</span><span class="p">)</span> <span class="n">float64</span> <span class="mf">1.0</span> <span class="mf">1e-12</span> <span class="mf">1e-12</span> <span class="mf">1.0</span> <span class="mf">1e-12</span> <span class="o">...</span>
-    <span class="n">Phase</span>      <span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">points</span><span class="p">)</span> <span class="o">&lt;</span><span class="n">U6</span> <span class="s1">&#39;FCC_A1&#39;</span> <span class="s1">&#39;FCC_A1&#39;</span> <span class="s1">&#39;FCC_A1&#39;</span> <span class="s1">&#39;FCC_A1&#39;</span> <span class="o">...</span>
+    <span class="n">X</span>          <span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="n">component</span><span class="p">)</span> <span class="n">float64</span> <span class="mf">1.0</span> <span class="mf">1e-15</span> <span class="o">...</span> <span class="mf">0.7439</span> <span class="mf">0.2561</span>
+    <span class="n">Phase</span>      <span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">points</span><span class="p">)</span> <span class="o">&lt;</span><span class="n">U6</span> <span class="s1">&#39;FCC_A1&#39;</span> <span class="s1">&#39;FCC_A1&#39;</span> <span class="o">...</span> <span class="s1">&#39;FCC_A1&#39;</span> <span class="s1">&#39;FCC_A1&#39;</span>
+    <span class="n">Y</span>          <span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="n">internal_dof</span><span class="p">)</span> <span class="n">float64</span> <span class="mf">1.0</span> <span class="mf">1e-15</span> <span class="o">...</span> <span class="mf">0.2561</span>
+    <span class="n">GM</span>         <span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">points</span><span class="p">)</span> <span class="n">float64</span> <span class="o">-</span><span class="mf">1.559e+04</span> <span class="o">-</span><span class="mf">2.01e+04</span> <span class="o">...</span> <span class="o">-</span><span class="mf">4.81e+04</span>
 </pre></div>
 </div>
 <p>We can manipulate this by selecting data by value (of a coordinate)
@@ -272,11 +280,12 @@ Datasets</a>).</p>
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">calc_result</span><span class="o">.</span><span class="n">Y</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">internal_dof</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">points</span><span class="o">=</span><span class="mi">49</span><span class="p">)</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">T</span><span class="o">=</span><span class="mi">1000</span><span class="p">))</span>
 </pre></div>
 </div>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">xarray</span><span class="o">.</span><span class="n">DataArray</span> <span class="s1">&#39;Y&#39;</span> <span class="p">(</span><span class="n">P</span><span class="p">:</span> <span class="mi">1</span><span class="p">)</span><span class="o">&gt;</span>
-<span class="n">array</span><span class="p">([</span> <span class="mf">0.976488</span><span class="p">])</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">xarray</span><span class="o">.</span><span class="n">DataArray</span> <span class="s1">&#39;Y&#39;</span> <span class="p">(</span><span class="n">N</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="n">P</span><span class="p">:</span> <span class="mi">1</span><span class="p">)</span><span class="o">&gt;</span>
+<span class="n">array</span><span class="p">([[</span><span class="mf">0.97648824</span><span class="p">]])</span>
 <span class="n">Coordinates</span><span class="p">:</span>
-    <span class="n">T</span>        <span class="n">float64</span> <span class="mf">1e+03</span>
+  <span class="o">*</span> <span class="n">N</span>        <span class="p">(</span><span class="n">N</span><span class="p">)</span> <span class="n">float64</span> <span class="mf">1.0</span>
   <span class="o">*</span> <span class="n">P</span>        <span class="p">(</span><span class="n">P</span><span class="p">)</span> <span class="n">float64</span> <span class="mf">1.013e+05</span>
+    <span class="n">T</span>        <span class="n">float64</span> <span class="mf">1e+03</span>
 </pre></div>
 </div>
 <p>accessing the <code class="docutils literal notranslate"><span class="pre">values</span></code> attribute on any on any DataArray returns the
@@ -284,21 +293,21 @@ multidimensional NumPy array</p>
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">calc_result</span><span class="o">.</span><span class="n">X</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
 </pre></div>
 </div>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[[[[</span>  <span class="mf">1.00000000e+00</span>   <span class="mf">1.00000000e-12</span><span class="p">]</span>
-   <span class="p">[</span>  <span class="mf">1.00000000e-12</span>   <span class="mf">1.00000000e+00</span><span class="p">]</span>
-   <span class="p">[</span>  <span class="mf">1.00000000e-12</span>   <span class="mf">1.00000000e+00</span><span class="p">]</span>
-   <span class="o">...</span><span class="p">,</span>
-   <span class="p">[</span>  <span class="mf">1.56995650e-01</span>   <span class="mf">8.43004350e-01</span><span class="p">]</span>
-   <span class="p">[</span>  <span class="mf">1.12072782e-01</span>   <span class="mf">8.87927218e-01</span><span class="p">]</span>
-   <span class="p">[</span>  <span class="mf">7.43933641e-01</span>   <span class="mf">2.56066359e-01</span><span class="p">]]</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[[[[[</span><span class="mf">1.00000000e+00</span> <span class="mf">1.00000000e-15</span><span class="p">]</span>
+    <span class="p">[</span><span class="mf">1.00000000e-15</span> <span class="mf">1.00000000e+00</span><span class="p">]</span>
+    <span class="p">[</span><span class="mf">1.00000000e-15</span> <span class="mf">1.00000000e+00</span><span class="p">]</span>
+    <span class="o">...</span>
+    <span class="p">[</span><span class="mf">1.56995650e-01</span> <span class="mf">8.43004350e-01</span><span class="p">]</span>
+    <span class="p">[</span><span class="mf">1.12072782e-01</span> <span class="mf">8.87927218e-01</span><span class="p">]</span>
+    <span class="p">[</span><span class="mf">7.43933641e-01</span> <span class="mf">2.56066359e-01</span><span class="p">]]</span>
 
-  <span class="p">[[</span>  <span class="mf">1.00000000e+00</span>   <span class="mf">1.00000000e-12</span><span class="p">]</span>
-   <span class="p">[</span>  <span class="mf">1.00000000e-12</span>   <span class="mf">1.00000000e+00</span><span class="p">]</span>
-   <span class="p">[</span>  <span class="mf">1.00000000e-12</span>   <span class="mf">1.00000000e+00</span><span class="p">]</span>
-   <span class="o">...</span><span class="p">,</span>
-   <span class="p">[</span>  <span class="mf">1.56995650e-01</span>   <span class="mf">8.43004350e-01</span><span class="p">]</span>
-   <span class="p">[</span>  <span class="mf">1.12072782e-01</span>   <span class="mf">8.87927218e-01</span><span class="p">]</span>
-   <span class="p">[</span>  <span class="mf">7.43933641e-01</span>   <span class="mf">2.56066359e-01</span><span class="p">]]]]</span>
+   <span class="p">[[</span><span class="mf">1.00000000e+00</span> <span class="mf">1.00000000e-15</span><span class="p">]</span>
+    <span class="p">[</span><span class="mf">1.00000000e-15</span> <span class="mf">1.00000000e+00</span><span class="p">]</span>
+    <span class="p">[</span><span class="mf">1.00000000e-15</span> <span class="mf">1.00000000e+00</span><span class="p">]</span>
+    <span class="o">...</span>
+    <span class="p">[</span><span class="mf">1.56995650e-01</span> <span class="mf">8.43004350e-01</span><span class="p">]</span>
+    <span class="p">[</span><span class="mf">1.12072782e-01</span> <span class="mf">8.87927218e-01</span><span class="p">]</span>
+    <span class="p">[</span><span class="mf">7.43933641e-01</span> <span class="mf">2.56066359e-01</span><span class="p">]]]]]</span>
 </pre></div>
 </div>
 </div>
@@ -332,12 +341,12 @@ invalidate Gibbs phase rule.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Phase</span></code>: The string name of the phase in equilibrium at the
 conditions. There are as many as <code class="docutils literal notranslate"><span class="pre">len(vertex)</span></code> phases. Any time
 there are fewer phases in equilibrium than the indices described by
-<code class="docutils literal notranslate"><span class="pre">vertex</span></code>, the values of phase are paded by <code class="docutils literal notranslate"><span class="pre">''</span></code>, e.g. for a
+<code class="docutils literal notranslate"><span class="pre">vertex</span></code>, the values of phase are paded by <code class="docutils literal notranslate"><span class="pre">''</span></code>, e.g. for a
 single phase region for FCC_A1, the values of Phase will be
 <code class="docutils literal notranslate"><span class="pre">['FCC_A1',</span> <span class="pre">'']</span></code>. When more than one phase is present, it is
 important to note that they are not necessarily sorted.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">NP</span></code>: Phase fraction of each phase in equilibrium. When there is no
-other equilibrium phase (e.g. single phase <code class="docutils literal notranslate"><span class="pre">['FCC_A1',</span> <span class="pre">'']</span></code>) then
+other equilibrium phase (e.g. single phase <code class="docutils literal notranslate"><span class="pre">['FCC_A1',</span> <span class="pre">'']</span></code>) then
 the value of <code class="docutils literal notranslate"><span class="pre">NP</span></code> will be <code class="docutils literal notranslate"><span class="pre">nan</span></code> for the absence of a phase,
 rather than 0.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">MU</span></code>: The chemical potentials of each component for the conditions
@@ -359,25 +368,26 @@ the <code class="docutils literal notranslate"><span class="pre">GM</span></code
 </pre></div>
 </div>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">xarray</span><span class="o">.</span><span class="n">Dataset</span><span class="o">&gt;</span>
-<span class="n">Dimensions</span><span class="p">:</span>    <span class="p">(</span><span class="n">P</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="n">T</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span> <span class="n">X_ZN</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span> <span class="n">component</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="n">internal_dof</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="n">vertex</span><span class="p">:</span> <span class="mi">2</span><span class="p">)</span>
+<span class="n">Dimensions</span><span class="p">:</span>    <span class="p">(</span><span class="n">N</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="n">P</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="n">T</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span> <span class="n">X_ZN</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span> <span class="n">component</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="n">internal_dof</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="n">vertex</span><span class="p">:</span> <span class="mi">3</span><span class="p">)</span>
 <span class="n">Coordinates</span><span class="p">:</span>
+  <span class="o">*</span> <span class="n">N</span>          <span class="p">(</span><span class="n">N</span><span class="p">)</span> <span class="n">float64</span> <span class="mf">1.0</span>
   <span class="o">*</span> <span class="n">P</span>          <span class="p">(</span><span class="n">P</span><span class="p">)</span> <span class="n">float64</span> <span class="mf">1.013e+05</span>
   <span class="o">*</span> <span class="n">T</span>          <span class="p">(</span><span class="n">T</span><span class="p">)</span> <span class="n">float64</span> <span class="mf">500.0</span> <span class="mf">600.0</span> <span class="mf">700.0</span> <span class="mf">800.0</span> <span class="mf">900.0</span>
-  <span class="o">*</span> <span class="n">X_ZN</span>       <span class="p">(</span><span class="n">X_ZN</span><span class="p">)</span> <span class="n">float64</span> <span class="mf">1e-09</span> <span class="mf">0.05</span> <span class="mf">0.1</span> <span class="mf">0.15</span> <span class="mf">0.2</span> <span class="mf">0.25</span> <span class="mf">0.3</span> <span class="mf">0.35</span> <span class="mf">0.4</span> <span class="mf">0.45</span> <span class="o">...</span>
-  <span class="o">*</span> <span class="n">vertex</span>     <span class="p">(</span><span class="n">vertex</span><span class="p">)</span> <span class="n">int64</span> <span class="mi">0</span> <span class="mi">1</span>
+  <span class="o">*</span> <span class="n">X_ZN</span>       <span class="p">(</span><span class="n">X_ZN</span><span class="p">)</span> <span class="n">float64</span> <span class="mf">1e-12</span> <span class="mf">0.05</span> <span class="mf">0.1</span> <span class="mf">0.15</span> <span class="mf">0.2</span> <span class="o">...</span> <span class="mf">0.75</span> <span class="mf">0.8</span> <span class="mf">0.85</span> <span class="mf">0.9</span> <span class="mf">0.95</span>
+  <span class="o">*</span> <span class="n">vertex</span>     <span class="p">(</span><span class="n">vertex</span><span class="p">)</span> <span class="n">int64</span> <span class="mi">0</span> <span class="mi">1</span> <span class="mi">2</span>
   <span class="o">*</span> <span class="n">component</span>  <span class="p">(</span><span class="n">component</span><span class="p">)</span> <span class="o">&lt;</span><span class="n">U2</span> <span class="s1">&#39;AL&#39;</span> <span class="s1">&#39;ZN&#39;</span>
 <span class="n">Dimensions</span> <span class="n">without</span> <span class="n">coordinates</span><span class="p">:</span> <span class="n">internal_dof</span>
 <span class="n">Data</span> <span class="n">variables</span><span class="p">:</span>
-    <span class="n">X</span>          <span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">X_ZN</span><span class="p">,</span> <span class="n">vertex</span><span class="p">,</span> <span class="n">component</span><span class="p">)</span> <span class="n">float64</span> <span class="mf">1.0</span> <span class="mf">1e-09</span> <span class="n">nan</span> <span class="n">nan</span> <span class="o">...</span>
-    <span class="n">GM</span>         <span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">X_ZN</span><span class="p">)</span> <span class="n">float64</span> <span class="o">-</span><span class="mf">1.559e+04</span> <span class="o">-</span><span class="mf">1.615e+04</span> <span class="o">-</span><span class="mf">1.649e+04</span> <span class="o">...</span>
-    <span class="n">Phase</span>      <span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">X_ZN</span><span class="p">,</span> <span class="n">vertex</span><span class="p">)</span> <span class="o">&lt;</span><span class="n">U6</span> <span class="s1">&#39;FCC_A1&#39;</span> <span class="s1">&#39;&#39;</span> <span class="s1">&#39;FCC_A1&#39;</span> <span class="s1">&#39;&#39;</span> <span class="s1">&#39;FCC_A1&#39;</span> <span class="o">...</span>
-    <span class="n">NP</span>         <span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">X_ZN</span><span class="p">,</span> <span class="n">vertex</span><span class="p">)</span> <span class="n">float64</span> <span class="mf">1.0</span> <span class="n">nan</span> <span class="mf">1.0</span> <span class="n">nan</span> <span class="mf">0.9761</span> <span class="mf">0.02392</span> <span class="o">...</span>
-    <span class="n">Y</span>          <span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">X_ZN</span><span class="p">,</span> <span class="n">vertex</span><span class="p">,</span> <span class="n">internal_dof</span><span class="p">)</span> <span class="n">float64</span> <span class="mf">1.0</span> <span class="mf">1e-09</span> <span class="mf">0.9991</span> <span class="o">...</span>
-    <span class="n">MU</span>         <span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">X_ZN</span><span class="p">,</span> <span class="n">component</span><span class="p">)</span> <span class="n">float64</span> <span class="o">-</span><span class="mf">1.559e+04</span> <span class="o">-</span><span class="mf">9.584e+04</span> <span class="o">...</span>
-    <span class="n">HM</span>         <span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">X_ZN</span><span class="p">)</span> <span class="n">float64</span> <span class="mf">5.194e+03</span> <span class="mf">5.859e+03</span> <span class="mf">6.188e+03</span> <span class="mf">6.152e+03</span> <span class="o">...</span>
+    <span class="n">NP</span>         <span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">X_ZN</span><span class="p">,</span> <span class="n">vertex</span><span class="p">)</span> <span class="n">float64</span> <span class="mf">1.0</span> <span class="n">nan</span> <span class="n">nan</span> <span class="mf">1.0</span> <span class="o">...</span> <span class="mf">1.0</span> <span class="n">nan</span> <span class="n">nan</span>
+    <span class="n">GM</span>         <span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">X_ZN</span><span class="p">)</span> <span class="n">float64</span> <span class="o">-</span><span class="mf">1.559e+04</span> <span class="o">-</span><span class="mf">1.615e+04</span> <span class="o">...</span> <span class="o">-</span><span class="mf">5.068e+04</span>
+    <span class="n">MU</span>         <span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">X_ZN</span><span class="p">,</span> <span class="n">component</span><span class="p">)</span> <span class="n">float64</span> <span class="o">-</span><span class="mf">1.559e+04</span> <span class="o">...</span> <span class="o">-</span><span class="mf">5.065e+04</span>
+    <span class="n">X</span>          <span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">X_ZN</span><span class="p">,</span> <span class="n">vertex</span><span class="p">,</span> <span class="n">component</span><span class="p">)</span> <span class="n">float64</span> <span class="mf">1.0</span> <span class="mf">1e-12</span> <span class="o">...</span> <span class="n">nan</span> <span class="n">nan</span>
+    <span class="n">Y</span>          <span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">X_ZN</span><span class="p">,</span> <span class="n">vertex</span><span class="p">,</span> <span class="n">internal_dof</span><span class="p">)</span> <span class="n">float64</span> <span class="mf">1.0</span> <span class="mf">1e-12</span> <span class="o">...</span> <span class="n">nan</span>
+    <span class="n">Phase</span>      <span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">X_ZN</span><span class="p">,</span> <span class="n">vertex</span><span class="p">)</span> <span class="o">&lt;</span><span class="n">U6</span> <span class="s1">&#39;FCC_A1&#39;</span> <span class="s1">&#39;&#39;</span> <span class="s1">&#39;&#39;</span> <span class="o">...</span> <span class="s1">&#39;LIQUID&#39;</span> <span class="s1">&#39;&#39;</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">HM</span>         <span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">X_ZN</span><span class="p">)</span> <span class="n">float64</span> <span class="mf">5.194e+03</span> <span class="mf">5.859e+03</span> <span class="o">...</span> <span class="mf">2.528e+04</span>
 <span class="n">Attributes</span><span class="p">:</span>
-    <span class="n">engine</span><span class="p">:</span>   <span class="n">pycalphad</span> <span class="mf">0.5</span><span class="o">.</span><span class="mf">2.</span><span class="n">post1</span><span class="o">+</span><span class="mf">22.</span><span class="n">gc2a1cf7f</span><span class="o">.</span><span class="n">dirty</span>
-    <span class="n">created</span><span class="p">:</span>  <span class="mi">2017</span><span class="o">-</span><span class="mi">11</span><span class="o">-</span><span class="mi">16</span><span class="n">T07</span><span class="p">:</span><span class="mi">56</span><span class="p">:</span><span class="mf">07.904845</span>
+    <span class="n">engine</span><span class="p">:</span>   <span class="n">pycalphad</span> <span class="mf">0.8</span><span class="o">.</span><span class="mi">3</span><span class="o">+</span><span class="mf">10.</span><span class="n">gfd19517e</span>
+    <span class="n">created</span><span class="p">:</span>  <span class="mi">2020</span><span class="o">-</span><span class="mi">10</span><span class="o">-</span><span class="mi">27</span><span class="n">T14</span><span class="p">:</span><span class="mi">30</span><span class="p">:</span><span class="mf">03.243487</span>
 </pre></div>
 </div>
 <p>A common operation might be to find the phase fractions of the HCP_A3
@@ -392,32 +402,33 @@ to find the data values that match a condition (the Phase is FCC_A1):</p>
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">eq_result</span><span class="o">.</span><span class="n">NP</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">eq_result</span><span class="o">.</span><span class="n">Phase</span><span class="o">==</span><span class="s1">&#39;FCC_A1&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">P</span><span class="o">=</span><span class="mi">101325</span><span class="p">,</span> <span class="n">T</span><span class="o">=</span><span class="mi">800</span><span class="p">))</span>
 </pre></div>
 </div>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">xarray</span><span class="o">.</span><span class="n">DataArray</span> <span class="p">(</span><span class="n">X_ZN</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span> <span class="n">vertex</span><span class="p">:</span> <span class="mi">2</span><span class="p">)</span><span class="o">&gt;</span>
-<span class="n">array</span><span class="p">([[</span> <span class="mf">1.</span>      <span class="p">,</span>       <span class="n">nan</span><span class="p">],</span>
-       <span class="p">[</span> <span class="mf">1.</span>      <span class="p">,</span>       <span class="n">nan</span><span class="p">],</span>
-       <span class="p">[</span> <span class="mf">1.</span>      <span class="p">,</span>       <span class="n">nan</span><span class="p">],</span>
-       <span class="p">[</span> <span class="mf">1.</span>      <span class="p">,</span>       <span class="n">nan</span><span class="p">],</span>
-       <span class="p">[</span> <span class="mf">0.897399</span><span class="p">,</span>       <span class="n">nan</span><span class="p">],</span>
-       <span class="p">[</span> <span class="mf">0.71825</span> <span class="p">,</span>       <span class="n">nan</span><span class="p">],</span>
-       <span class="p">[</span> <span class="mf">0.539101</span><span class="p">,</span>       <span class="n">nan</span><span class="p">],</span>
-       <span class="p">[</span> <span class="mf">0.359952</span><span class="p">,</span>       <span class="n">nan</span><span class="p">],</span>
-       <span class="p">[</span> <span class="mf">0.180803</span><span class="p">,</span>       <span class="n">nan</span><span class="p">],</span>
-       <span class="p">[</span> <span class="mf">0.001654</span><span class="p">,</span>       <span class="n">nan</span><span class="p">],</span>
-       <span class="p">[</span>      <span class="n">nan</span><span class="p">,</span>       <span class="n">nan</span><span class="p">],</span>
-       <span class="p">[</span>      <span class="n">nan</span><span class="p">,</span>       <span class="n">nan</span><span class="p">],</span>
-       <span class="p">[</span>      <span class="n">nan</span><span class="p">,</span>       <span class="n">nan</span><span class="p">],</span>
-       <span class="p">[</span>      <span class="n">nan</span><span class="p">,</span>       <span class="n">nan</span><span class="p">],</span>
-       <span class="p">[</span>      <span class="n">nan</span><span class="p">,</span>       <span class="n">nan</span><span class="p">],</span>
-       <span class="p">[</span>      <span class="n">nan</span><span class="p">,</span>       <span class="n">nan</span><span class="p">],</span>
-       <span class="p">[</span>      <span class="n">nan</span><span class="p">,</span>       <span class="n">nan</span><span class="p">],</span>
-       <span class="p">[</span>      <span class="n">nan</span><span class="p">,</span>       <span class="n">nan</span><span class="p">],</span>
-       <span class="p">[</span>      <span class="n">nan</span><span class="p">,</span>       <span class="n">nan</span><span class="p">],</span>
-       <span class="p">[</span>      <span class="n">nan</span><span class="p">,</span>       <span class="n">nan</span><span class="p">]])</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">xarray</span><span class="o">.</span><span class="n">DataArray</span> <span class="s1">&#39;NP&#39;</span> <span class="p">(</span><span class="n">N</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="n">X_ZN</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span> <span class="n">vertex</span><span class="p">:</span> <span class="mi">3</span><span class="p">)</span><span class="o">&gt;</span>
+<span class="n">array</span><span class="p">([[[</span><span class="mf">1.</span>        <span class="p">,</span>        <span class="n">nan</span><span class="p">,</span>        <span class="n">nan</span><span class="p">],</span>
+        <span class="p">[</span><span class="mf">1.</span>        <span class="p">,</span>        <span class="n">nan</span><span class="p">,</span>        <span class="n">nan</span><span class="p">],</span>
+        <span class="p">[</span><span class="mf">1.</span>        <span class="p">,</span>        <span class="n">nan</span><span class="p">,</span>        <span class="n">nan</span><span class="p">],</span>
+        <span class="p">[</span><span class="mf">1.</span>        <span class="p">,</span>        <span class="n">nan</span><span class="p">,</span>        <span class="n">nan</span><span class="p">],</span>
+        <span class="p">[</span><span class="mf">0.89739918</span><span class="p">,</span>        <span class="n">nan</span><span class="p">,</span>        <span class="n">nan</span><span class="p">],</span>
+        <span class="p">[</span><span class="mf">0.71825009</span><span class="p">,</span>        <span class="n">nan</span><span class="p">,</span>        <span class="n">nan</span><span class="p">],</span>
+        <span class="p">[</span><span class="mf">0.53910097</span><span class="p">,</span>        <span class="n">nan</span><span class="p">,</span>        <span class="n">nan</span><span class="p">],</span>
+        <span class="p">[</span><span class="mf">0.35995186</span><span class="p">,</span>        <span class="n">nan</span><span class="p">,</span>        <span class="n">nan</span><span class="p">],</span>
+        <span class="p">[</span><span class="mf">0.18080276</span><span class="p">,</span>        <span class="n">nan</span><span class="p">,</span>        <span class="n">nan</span><span class="p">],</span>
+        <span class="p">[</span><span class="mf">0.00165369</span><span class="p">,</span>        <span class="n">nan</span><span class="p">,</span>        <span class="n">nan</span><span class="p">],</span>
+        <span class="p">[</span>       <span class="n">nan</span><span class="p">,</span>        <span class="n">nan</span><span class="p">,</span>        <span class="n">nan</span><span class="p">],</span>
+        <span class="p">[</span>       <span class="n">nan</span><span class="p">,</span>        <span class="n">nan</span><span class="p">,</span>        <span class="n">nan</span><span class="p">],</span>
+        <span class="p">[</span>       <span class="n">nan</span><span class="p">,</span>        <span class="n">nan</span><span class="p">,</span>        <span class="n">nan</span><span class="p">],</span>
+        <span class="p">[</span>       <span class="n">nan</span><span class="p">,</span>        <span class="n">nan</span><span class="p">,</span>        <span class="n">nan</span><span class="p">],</span>
+        <span class="p">[</span>       <span class="n">nan</span><span class="p">,</span>        <span class="n">nan</span><span class="p">,</span>        <span class="n">nan</span><span class="p">],</span>
+        <span class="p">[</span>       <span class="n">nan</span><span class="p">,</span>        <span class="n">nan</span><span class="p">,</span>        <span class="n">nan</span><span class="p">],</span>
+        <span class="p">[</span>       <span class="n">nan</span><span class="p">,</span>        <span class="n">nan</span><span class="p">,</span>        <span class="n">nan</span><span class="p">],</span>
+        <span class="p">[</span>       <span class="n">nan</span><span class="p">,</span>        <span class="n">nan</span><span class="p">,</span>        <span class="n">nan</span><span class="p">],</span>
+        <span class="p">[</span>       <span class="n">nan</span><span class="p">,</span>        <span class="n">nan</span><span class="p">,</span>        <span class="n">nan</span><span class="p">],</span>
+        <span class="p">[</span>       <span class="n">nan</span><span class="p">,</span>        <span class="n">nan</span><span class="p">,</span>        <span class="n">nan</span><span class="p">]]])</span>
 <span class="n">Coordinates</span><span class="p">:</span>
+  <span class="o">*</span> <span class="n">N</span>        <span class="p">(</span><span class="n">N</span><span class="p">)</span> <span class="n">float64</span> <span class="mf">1.0</span>
     <span class="n">P</span>        <span class="n">float64</span> <span class="mf">1.013e+05</span>
     <span class="n">T</span>        <span class="n">float64</span> <span class="mf">800.0</span>
-  <span class="o">*</span> <span class="n">X_ZN</span>     <span class="p">(</span><span class="n">X_ZN</span><span class="p">)</span> <span class="n">float64</span> <span class="mf">1e-09</span> <span class="mf">0.05</span> <span class="mf">0.1</span> <span class="mf">0.15</span> <span class="mf">0.2</span> <span class="mf">0.25</span> <span class="mf">0.3</span> <span class="mf">0.35</span> <span class="mf">0.4</span> <span class="mf">0.45</span> <span class="o">...</span>
-  <span class="o">*</span> <span class="n">vertex</span>   <span class="p">(</span><span class="n">vertex</span><span class="p">)</span> <span class="n">int64</span> <span class="mi">0</span> <span class="mi">1</span>
+  <span class="o">*</span> <span class="n">X_ZN</span>     <span class="p">(</span><span class="n">X_ZN</span><span class="p">)</span> <span class="n">float64</span> <span class="mf">1e-12</span> <span class="mf">0.05</span> <span class="mf">0.1</span> <span class="mf">0.15</span> <span class="mf">0.2</span> <span class="o">...</span> <span class="mf">0.75</span> <span class="mf">0.8</span> <span class="mf">0.85</span> <span class="mf">0.9</span> <span class="mf">0.95</span>
+  <span class="o">*</span> <span class="n">vertex</span>   <span class="p">(</span><span class="n">vertex</span><span class="p">)</span> <span class="n">int64</span> <span class="mi">0</span> <span class="mi">1</span> <span class="mi">2</span>
 </pre></div>
 </div>
 </div>
@@ -428,29 +439,29 @@ to find the data values that match a condition (the Phase is FCC_A1):</p>
            
           </div>
           <footer>
-  
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="../faq.html" class="btn btn-neutral float-right" title="FAQ" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
-      
-      
-        <a href="ViscosityModel.html" class="btn btn-neutral float-left" title="Custom Models in pycalphad: Viscosity" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
-      
+        <a href="../faq.html" class="btn btn-neutral float-right" title="FAQ" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="ViscosityModel.html" class="btn btn-neutral float-left" title="Custom Models in pycalphad: Viscosity" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
-  
 
   <hr/>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2015, pycalphad Development Team
+        &#169; Copyright 2015, pycalphad Development Team.
 
     </p>
   </div>
-  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
-
         </div>
       </div>
 
@@ -458,7 +469,6 @@ to find the data values that match a condition (the Phase is FCC_A1):</p>
 
   </div>
   
-
 
   <script type="text/javascript">
       jQuery(function () {

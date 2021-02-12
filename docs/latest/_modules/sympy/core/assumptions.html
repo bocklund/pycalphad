@@ -1,39 +1,42 @@
 
 
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>sympy.core.assumptions &mdash; pycalphad 0.8+6.g22a5544 documentation</title>
+  <title>sympy.core.assumptions &mdash; pycalphad 0.8+51.gbe404461 documentation</title>
   
-
-  
-  
-  
-  
-
-  
-  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
-  
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../../_static/language_data.js"></script>
-        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    
-    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
-
-    
 
   
   <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" /> 
 </head>
@@ -62,7 +65,7 @@
             
             
               <div class="version">
-                0.8+6.g22a5544
+                0.8+51.gbe404461
               </div>
             
           
@@ -79,6 +82,7 @@
           
         </div>
 
+        
         <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
           
             
@@ -97,6 +101,7 @@
             
           
         </div>
+        
       </div>
     </nav>
 
@@ -131,11 +136,13 @@
 
 
 
+
+
 <div role="navigation" aria-label="breadcrumbs navigation">
 
   <ul class="wy-breadcrumbs">
     
-      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
         
           <li><a href="../../index.html">Module code</a> &raquo;</li>
         
@@ -286,9 +293,51 @@
 <span class="sd">Notes</span>
 <span class="sd">=====</span>
 
-<span class="sd">Assumption values are stored in obj._assumptions dictionary or</span>
-<span class="sd">are returned by getter methods (with property decorators) or are</span>
-<span class="sd">attributes of objects/classes.</span>
+<span class="sd">The fully-resolved assumptions for any SymPy expression</span>
+<span class="sd">can be obtained as follows:</span>
+
+<span class="sd">    &gt;&gt;&gt; from sympy.core.assumptions import assumptions</span>
+<span class="sd">    &gt;&gt;&gt; x = Symbol(&#39;x&#39;,positive=True)</span>
+<span class="sd">    &gt;&gt;&gt; assumptions(x + I)</span>
+<span class="sd">    {&#39;commutative&#39;: True, &#39;complex&#39;: True, &#39;composite&#39;: False, &#39;even&#39;:</span>
+<span class="sd">    False, &#39;extended_negative&#39;: False, &#39;extended_nonnegative&#39;: False,</span>
+<span class="sd">    &#39;extended_nonpositive&#39;: False, &#39;extended_nonzero&#39;: False,</span>
+<span class="sd">    &#39;extended_positive&#39;: False, &#39;extended_real&#39;: False, &#39;finite&#39;: True,</span>
+<span class="sd">    &#39;imaginary&#39;: False, &#39;infinite&#39;: False, &#39;integer&#39;: False, &#39;irrational&#39;:</span>
+<span class="sd">    False, &#39;negative&#39;: False, &#39;noninteger&#39;: False, &#39;nonnegative&#39;: False,</span>
+<span class="sd">    &#39;nonpositive&#39;: False, &#39;nonzero&#39;: False, &#39;odd&#39;: False, &#39;positive&#39;:</span>
+<span class="sd">    False, &#39;prime&#39;: False, &#39;rational&#39;: False, &#39;real&#39;: False, &#39;zero&#39;:</span>
+<span class="sd">    False}</span>
+
+<span class="sd">Developers Notes</span>
+<span class="sd">================</span>
+
+<span class="sd">The current (and possibly incomplete) values are stored</span>
+<span class="sd">in the ``obj._assumptions dictionary``; queries to getter methods</span>
+<span class="sd">(with property decorators) or attributes of objects/classes</span>
+<span class="sd">will return values and update the dictionary.</span>
+
+<span class="sd">    &gt;&gt;&gt; eq = x**2 + I</span>
+<span class="sd">    &gt;&gt;&gt; eq._assumptions</span>
+<span class="sd">    {}</span>
+<span class="sd">    &gt;&gt;&gt; eq.is_finite</span>
+<span class="sd">    True</span>
+<span class="sd">    &gt;&gt;&gt; eq._assumptions</span>
+<span class="sd">    {&#39;finite&#39;: True, &#39;infinite&#39;: False}</span>
+
+<span class="sd">For a Symbol, there are two locations for assumptions that may</span>
+<span class="sd">be of interest. The ``assumptions0`` attribute gives the full set of</span>
+<span class="sd">assumptions derived from a given set of initial assumptions. The</span>
+<span class="sd">latter assumptions are stored as ``Symbol._assumptions.generator``</span>
+
+<span class="sd">    &gt;&gt;&gt; Symbol(&#39;x&#39;, prime=True, even=True)._assumptions.generator</span>
+<span class="sd">    {&#39;even&#39;: True, &#39;prime&#39;: True}</span>
+
+<span class="sd">The ``generator`` is not necessarily canonical nor is it filtered</span>
+<span class="sd">in any way: it records the assumptions used to instantiate a Symbol</span>
+<span class="sd">and (for storage purposes) represents a more compact representation</span>
+<span class="sd">of the assumptions needed to recreate the full set in</span>
+<span class="sd">`Symbol.assumptions0`.</span>
 
 
 <span class="sd">References</span>
@@ -307,14 +356,12 @@
 <span class="sd">.. [11] https://en.wikipedia.org/wiki/Algebraic_number</span>
 
 <span class="sd">&quot;&quot;&quot;</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span>
 
-<span class="kn">from</span> <span class="nn">sympy.core.facts</span> <span class="k">import</span> <span class="n">FactRules</span><span class="p">,</span> <span class="n">FactKB</span>
-<span class="kn">from</span> <span class="nn">sympy.core.core</span> <span class="k">import</span> <span class="n">BasicMeta</span>
-<span class="kn">from</span> <span class="nn">sympy.core.compatibility</span> <span class="k">import</span> <span class="n">integer_types</span>
+<span class="kn">from</span> <span class="nn">sympy.core.facts</span> <span class="kn">import</span> <span class="n">FactRules</span><span class="p">,</span> <span class="n">FactKB</span>
+<span class="kn">from</span> <span class="nn">sympy.core.core</span> <span class="kn">import</span> <span class="n">BasicMeta</span>
+<span class="kn">from</span> <span class="nn">sympy.core.sympify</span> <span class="kn">import</span> <span class="n">sympify</span>
 
-
-<span class="kn">from</span> <span class="nn">random</span> <span class="k">import</span> <span class="n">shuffle</span>
+<span class="kn">from</span> <span class="nn">random</span> <span class="kn">import</span> <span class="n">shuffle</span>
 
 
 <span class="n">_assume_rules</span> <span class="o">=</span> <span class="n">FactRules</span><span class="p">([</span>
@@ -323,26 +370,45 @@
     <span class="s1">&#39;rational       -&gt;  real&#39;</span><span class="p">,</span>
     <span class="s1">&#39;rational       -&gt;  algebraic&#39;</span><span class="p">,</span>
     <span class="s1">&#39;algebraic      -&gt;  complex&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;real           -&gt;  complex&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;transcendental ==  complex &amp; !algebraic&#39;</span><span class="p">,</span>
     <span class="s1">&#39;real           -&gt;  hermitian&#39;</span><span class="p">,</span>
     <span class="s1">&#39;imaginary      -&gt;  complex&#39;</span><span class="p">,</span>
     <span class="s1">&#39;imaginary      -&gt;  antihermitian&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;extended_real  -&gt;  commutative&#39;</span><span class="p">,</span>
     <span class="s1">&#39;complex        -&gt;  commutative&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;complex        -&gt;  finite&#39;</span><span class="p">,</span>
 
     <span class="s1">&#39;odd            ==  integer &amp; !even&#39;</span><span class="p">,</span>
     <span class="s1">&#39;even           ==  integer &amp; !odd&#39;</span><span class="p">,</span>
 
-    <span class="s1">&#39;real           ==  negative | zero | positive&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;transcendental ==  complex &amp; !algebraic&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;real           -&gt;  complex&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;extended_real  -&gt;  real | infinite&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;real           ==  extended_real &amp; finite&#39;</span><span class="p">,</span>
 
+    <span class="s1">&#39;extended_real        ==  extended_negative | zero | extended_positive&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;extended_negative    ==  extended_nonpositive &amp; extended_nonzero&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;extended_positive    ==  extended_nonnegative &amp; extended_nonzero&#39;</span><span class="p">,</span>
+
+    <span class="s1">&#39;extended_nonpositive ==  extended_real &amp; !extended_positive&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;extended_nonnegative ==  extended_real &amp; !extended_negative&#39;</span><span class="p">,</span>
+
+    <span class="s1">&#39;real           ==  negative | zero | positive&#39;</span><span class="p">,</span>
     <span class="s1">&#39;negative       ==  nonpositive &amp; nonzero&#39;</span><span class="p">,</span>
     <span class="s1">&#39;positive       ==  nonnegative &amp; nonzero&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;zero           ==  nonnegative &amp; nonpositive&#39;</span><span class="p">,</span>
 
     <span class="s1">&#39;nonpositive    ==  real &amp; !positive&#39;</span><span class="p">,</span>
     <span class="s1">&#39;nonnegative    ==  real &amp; !negative&#39;</span><span class="p">,</span>
 
+    <span class="s1">&#39;positive       ==  extended_positive &amp; finite&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;negative       ==  extended_negative &amp; finite&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;nonpositive    ==  extended_nonpositive &amp; finite&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;nonnegative    ==  extended_nonnegative &amp; finite&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;nonzero        ==  extended_nonzero &amp; finite&#39;</span><span class="p">,</span>
+
     <span class="s1">&#39;zero           -&gt;  even &amp; finite&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;zero           ==  extended_nonnegative &amp; extended_nonpositive&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;zero           ==  nonnegative &amp; nonpositive&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;nonzero        -&gt;  real&#39;</span><span class="p">,</span>
 
     <span class="s1">&#39;prime          -&gt;  integer &amp; positive&#39;</span><span class="p">,</span>
     <span class="s1">&#39;composite      -&gt;  integer &amp; positive &amp; !prime&#39;</span><span class="p">,</span>
@@ -350,11 +416,11 @@
 
     <span class="s1">&#39;irrational     ==  real &amp; !rational&#39;</span><span class="p">,</span>
 
-    <span class="s1">&#39;imaginary      -&gt;  !real&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;imaginary      -&gt;  !extended_real&#39;</span><span class="p">,</span>
 
-    <span class="s1">&#39;infinite       -&gt;  !finite&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;noninteger     ==  real &amp; !integer&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;nonzero        ==  real &amp; !zero&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;infinite       ==  !finite&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;noninteger     ==  extended_real &amp; !integer&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;extended_nonzero == extended_real &amp; !zero&#39;</span><span class="p">,</span>
 <span class="p">])</span>
 
 <span class="n">_assume_defined</span> <span class="o">=</span> <span class="n">_assume_rules</span><span class="o">.</span><span class="n">defined_facts</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
@@ -362,14 +428,165 @@
 <span class="n">_assume_defined</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">_assume_defined</span><span class="p">)</span>
 
 
+<span class="k">def</span> <span class="nf">assumptions</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">_check</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;return the T/F assumptions of ``expr``&quot;&quot;&quot;</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">sympify</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">n</span><span class="o">.</span><span class="n">is_Symbol</span><span class="p">:</span>
+        <span class="n">rv</span> <span class="o">=</span> <span class="n">n</span><span class="o">.</span><span class="n">assumptions0</span>  <span class="c1"># are any important ones missing?</span>
+        <span class="k">if</span> <span class="n">_check</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">rv</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">rv</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">rv</span><span class="p">)</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">_check</span><span class="p">)}</span>
+        <span class="k">return</span> <span class="n">rv</span>
+    <span class="n">rv</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">_assume_defined</span> <span class="k">if</span> <span class="n">_check</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">_check</span><span class="p">:</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="s1">&#39;is_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">rv</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+    <span class="k">return</span> <span class="n">rv</span>
+
+
+<span class="k">def</span> <span class="nf">common_assumptions</span><span class="p">(</span><span class="n">exprs</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;return those assumptions which have the same True or False</span>
+<span class="sd">    value for all the given expressions.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    ========</span>
+
+<span class="sd">    &gt;&gt;&gt; from sympy.core.assumptions import common_assumptions</span>
+<span class="sd">    &gt;&gt;&gt; from sympy import oo, pi, sqrt</span>
+<span class="sd">    &gt;&gt;&gt; common_assumptions([-4, 0, sqrt(2), 2, pi, oo])</span>
+<span class="sd">    {&#39;commutative&#39;: True, &#39;composite&#39;: False,</span>
+<span class="sd">    &#39;extended_real&#39;: True, &#39;imaginary&#39;: False, &#39;odd&#39;: False}</span>
+
+<span class="sd">    By default, all assumptions are tested; pass an iterable of the</span>
+<span class="sd">    assumptions to limit those that are reported:</span>
+
+<span class="sd">    &gt;&gt;&gt; common_assumptions([0, 1, 2], [&#39;positive&#39;, &#39;integer&#39;])</span>
+<span class="sd">    {&#39;integer&#39;: True}</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">check</span> <span class="o">=</span> <span class="n">_assume_defined</span> <span class="k">if</span> <span class="n">check</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">set</span><span class="p">(</span><span class="n">check</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">check</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">exprs</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{}</span>
+
+    <span class="c1"># get all assumptions for each</span>
+    <span class="n">assume</span> <span class="o">=</span> <span class="p">[</span><span class="n">assumptions</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">_check</span><span class="o">=</span><span class="n">check</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">sympify</span><span class="p">(</span><span class="n">exprs</span><span class="p">)]</span>
+    <span class="c1"># focus on those of interest that are True</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">e</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">assume</span><span class="p">):</span>
+        <span class="n">assume</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">e</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">check</span><span class="p">}</span>
+    <span class="c1"># what assumptions are in common?</span>
+    <span class="n">common</span> <span class="o">=</span> <span class="nb">set</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="nb">set</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">assume</span><span class="p">])</span>
+    <span class="c1"># which ones hold the same value</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">assume</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">a</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">common</span> <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">==</span> <span class="n">b</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">assume</span><span class="p">)}</span>
+
+
+<span class="k">def</span> <span class="nf">failing_assumptions</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="o">**</span><span class="n">assumptions</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a dictionary containing assumptions with values not</span>
+<span class="sd">    matching those of the passed assumptions.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    ========</span>
+
+<span class="sd">    &gt;&gt;&gt; from sympy import failing_assumptions, Symbol</span>
+
+<span class="sd">    &gt;&gt;&gt; x = Symbol(&#39;x&#39;, real=True, positive=True)</span>
+<span class="sd">    &gt;&gt;&gt; y = Symbol(&#39;y&#39;)</span>
+<span class="sd">    &gt;&gt;&gt; failing_assumptions(6*x + y, real=True, positive=True)</span>
+<span class="sd">    {&#39;positive&#39;: None, &#39;real&#39;: None}</span>
+
+<span class="sd">    &gt;&gt;&gt; failing_assumptions(x**2 - 1, positive=True)</span>
+<span class="sd">    {&#39;positive&#39;: None}</span>
+
+<span class="sd">    If *expr* satisfies all of the assumptions, an empty dictionary is returned.</span>
+
+<span class="sd">    &gt;&gt;&gt; failing_assumptions(x**2, positive=True)</span>
+<span class="sd">    {}</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">expr</span> <span class="o">=</span> <span class="n">sympify</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
+    <span class="n">failed</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">assumptions</span><span class="p">:</span>
+        <span class="n">test</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="s1">&#39;is_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">k</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">test</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">assumptions</span><span class="p">[</span><span class="n">k</span><span class="p">]:</span>
+            <span class="n">failed</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">test</span>
+    <span class="k">return</span> <span class="n">failed</span>  <span class="c1"># {} or {assumption: value != desired}</span>
+
+
+<span class="k">def</span> <span class="nf">check_assumptions</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">against</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">assume</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Checks whether assumptions of ``expr`` match the T/F assumptions</span>
+<span class="sd">    given (or possessed by ``against``). True is returned if all</span>
+<span class="sd">    assumptions match; False is returned if there is a mismatch and</span>
+<span class="sd">    the assumption in ``expr`` is not None; else None is returned.</span>
+
+<span class="sd">    Explanation</span>
+<span class="sd">    ===========</span>
+
+<span class="sd">    *assume* is a dict of assumptions with True or False values</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    ========</span>
+
+<span class="sd">    &gt;&gt;&gt; from sympy import Symbol, pi, I, exp, check_assumptions</span>
+<span class="sd">    &gt;&gt;&gt; check_assumptions(-5, integer=True)</span>
+<span class="sd">    True</span>
+<span class="sd">    &gt;&gt;&gt; check_assumptions(pi, real=True, integer=False)</span>
+<span class="sd">    True</span>
+<span class="sd">    &gt;&gt;&gt; check_assumptions(pi, real=True, negative=True)</span>
+<span class="sd">    False</span>
+<span class="sd">    &gt;&gt;&gt; check_assumptions(exp(I*pi/7), real=False)</span>
+<span class="sd">    True</span>
+<span class="sd">    &gt;&gt;&gt; x = Symbol(&#39;x&#39;, real=True, positive=True)</span>
+<span class="sd">    &gt;&gt;&gt; check_assumptions(2*x + 1, real=True, positive=True)</span>
+<span class="sd">    True</span>
+<span class="sd">    &gt;&gt;&gt; check_assumptions(-2*x - 5, real=True, positive=True)</span>
+<span class="sd">    False</span>
+
+<span class="sd">    To check assumptions of *expr* against another variable or expression,</span>
+<span class="sd">    pass the expression or variable as ``against``.</span>
+
+<span class="sd">    &gt;&gt;&gt; check_assumptions(2*x + 1, x)</span>
+<span class="sd">    True</span>
+
+<span class="sd">    ``None`` is returned if ``check_assumptions()`` could not conclude.</span>
+
+<span class="sd">    &gt;&gt;&gt; check_assumptions(2*x - 1, x)</span>
+
+<span class="sd">    &gt;&gt;&gt; z = Symbol(&#39;z&#39;)</span>
+<span class="sd">    &gt;&gt;&gt; check_assumptions(z, real=True)</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    ========</span>
+
+<span class="sd">    failing_assumptions</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">expr</span> <span class="o">=</span> <span class="n">sympify</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">against</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">against</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">assume</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s1">&#39;Expecting `against` or `assume`, not both.&#39;</span><span class="p">)</span>
+        <span class="n">assume</span> <span class="o">=</span> <span class="n">assumptions</span><span class="p">(</span><span class="n">against</span><span class="p">)</span>
+    <span class="n">known</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">assume</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">e</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="s1">&#39;is_&#39;</span> <span class="o">+</span> <span class="n">k</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">e</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">known</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">elif</span> <span class="n">v</span> <span class="o">!=</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">return</span> <span class="n">known</span>
+
+
 <span class="k">class</span> <span class="nc">StdFactKB</span><span class="p">(</span><span class="n">FactKB</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;A FactKB specialised for the built-in rules</span>
+    <span class="sd">&quot;&quot;&quot;A FactKB specialized for the built-in rules</span>
 
 <span class="sd">    This is the only kind of FactKB that Basic objects should use.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">rules</span> <span class="o">=</span> <span class="n">_assume_rules</span>
-
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">facts</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">facts</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">_assume_rules</span><span class="p">)</span>
         <span class="c1"># save a copy of the facts dict</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">facts</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_generator</span> <span class="o">=</span> <span class="p">{}</span>
@@ -470,14 +687,14 @@
 
 <span class="k">class</span> <span class="nc">ManagedProperties</span><span class="p">(</span><span class="n">BasicMeta</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Metaclass for classes with old-style assumptions&quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kws</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kws</span><span class="p">):</span>
         <span class="n">BasicMeta</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kws</span><span class="p">)</span>
 
         <span class="n">local_defs</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">_assume_defined</span><span class="p">:</span>
             <span class="n">attrname</span> <span class="o">=</span> <span class="n">as_property</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
             <span class="n">v</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">attrname</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">integer_types</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">))):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">))):</span>
                 <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                     <span class="n">v</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
                 <span class="n">local_defs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
@@ -526,20 +743,25 @@
            
           </div>
           <footer>
-  
 
   <hr/>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2015, pycalphad Development Team
+        &#169; Copyright 2015, pycalphad Development Team.
 
     </p>
   </div>
-  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
-
         </div>
       </div>
 
@@ -547,7 +769,6 @@
 
   </div>
   
-
 
   <script type="text/javascript">
       jQuery(function () {
