@@ -14,6 +14,7 @@ from pycalphad.io.tdb import expand_keyword
 from pycalphad.io.tdb import _apply_new_symbol_names, DatabaseExportError
 from pycalphad.tests.datasets import ALCRNI_TDB, ALFE_TDB, ALNIPT_TDB, ROSE_TDB, DIFFUSION_TDB
 
+from .fixtures import ALCRNI_DBF
 
 #
 # DATABASE LOADING TESTS
@@ -23,8 +24,6 @@ from pycalphad.tests.datasets import ALCRNI_TDB, ALFE_TDB, ALNIPT_TDB, ROSE_TDB,
 # Underneath it's calling many of the same routines, so we can't guarantee
 # the Database is correct; that's okay, other tests check correctness.
 # We're only checking consistency and exercising error checking here.
-REFERENCE_DBF = Database(ALCRNI_TDB)
-REFERENCE_MOD = Model(REFERENCE_DBF, ['CR', 'NI'], 'L12_FCC')
 
 INVALID_TDB_STR="""$ Note: database that invalidates the minimum compatibility subset for TDBs in different softwares
 $ functions names must be <=8 characters (Thermo-Calc)
@@ -36,7 +35,7 @@ def test_database_eq():
     "Database equality comparison."
     test_dbf = Database(ALCRNI_TDB)
     assert test_dbf == test_dbf
-    assert test_dbf == REFERENCE_DBF
+    assert test_dbf == ALCRNI_DBF
     assert not (test_dbf == Database(ROSE_TDB))
     # literals which don't have __dict__
     assert not (test_dbf == 42)
@@ -48,7 +47,7 @@ def test_database_ne():
     "Database inequality comparison."
     test_dbf = Database(ALCRNI_TDB)
     assert not (test_dbf != test_dbf)
-    assert not (test_dbf != REFERENCE_DBF)
+    assert not (test_dbf != ALCRNI_DBF)
     assert test_dbf != Database(ROSE_TDB)
     # literals which don't have __dict__
     assert test_dbf != 42
@@ -66,7 +65,7 @@ def test_database_diffusion():
 def test_load_from_string():
     "Test database loading from a string."
     test_model = Model(Database.from_string(ALCRNI_TDB, fmt='tdb'), ['CR', 'NI'], 'L12_FCC')
-    assert test_model == REFERENCE_MOD
+    assert test_model == Model(ALCRNI_DBF, ['CR', 'NI'], 'L12_FCC')
 
 def test_export_import():
     "Equivalence of re-imported database to original."
@@ -188,17 +187,17 @@ def test_unknown_format_from_string():
 def test_unknown_format_to_string():
     "to_string: Unknown export file format raises NotImplementedError."
     with pytest.raises(NotImplementedError):
-        REFERENCE_DBF.to_string(fmt='_fail_')
+        ALCRNI_DBF.to_string(fmt='_fail_')
 
 def test_load_from_stringio():
     "Test database loading from a file-like object."
     test_tdb = Database(StringIO(ALCRNI_TDB))
-    assert test_tdb == REFERENCE_DBF
+    assert test_tdb == ALCRNI_DBF
 
 def test_load_from_stringio_from_file():
     "Test database loading from a file-like object with the from_file method."
     test_tdb = Database.from_file(StringIO(ALCRNI_TDB), fmt='tdb')
-    assert test_tdb == REFERENCE_DBF
+    assert test_tdb == ALCRNI_DBF
 
 def test_unspecified_format_from_file():
     "from_file: Unspecified format for file descriptor raises ValueError."
@@ -208,7 +207,7 @@ def test_unspecified_format_from_file():
 def test_unspecified_format_to_file():
     "to_file: Unspecified format for file descriptor raises ValueError."
     with pytest.raises(ValueError):
-        REFERENCE_DBF.to_file(StringIO())
+        ALCRNI_DBF.to_file(StringIO())
 
 def test_unknown_format_from_file():
     "from_string: Unknown import file format raises NotImplementedError."
@@ -218,7 +217,7 @@ def test_unknown_format_from_file():
 def test_unknown_format_to_file():
     "to_file: Unknown export file format raises NotImplementedError."
     with pytest.raises(NotImplementedError):
-        REFERENCE_DBF.to_file(StringIO(), fmt='_fail_')
+        ALCRNI_DBF.to_file(StringIO(), fmt='_fail_')
 
 def test_expand_keyword():
     "expand_keyword expands command abbreviations."

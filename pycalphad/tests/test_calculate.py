@@ -8,40 +8,36 @@ from pycalphad import Database, calculate, Model
 import numpy as np
 from numpy.testing import assert_allclose
 from pycalphad import ConditionError
-from pycalphad.tests.datasets import ALCRNI_TDB as TDB_TEST_STRING, ALFE_TDB, CUMG_PARAMETERS_TDB
 
-
-DBF = Database(TDB_TEST_STRING)
-ALFE_DBF = Database(ALFE_TDB)
-CUMG_PARAMETERS_DBF = Database(CUMG_PARAMETERS_TDB)
+from .fixtures import ALCRNI_DBF, ALFE_DBF, CUMG_PARAMETERS_DBF
 
 def test_surface():
     "Bare minimum: calculation produces a result."
-    calculate(DBF, ['AL', 'CR', 'NI'], 'L12_FCC',
+    calculate(ALCRNI_DBF, ['AL', 'CR', 'NI'], 'L12_FCC',
                 T=1273., mode='numpy')
 
 def test_unknown_model_attribute():
     "Sampling an unknown model attribute raises exception."
     with pytest.raises(AttributeError):
-        calculate(DBF, ['AL', 'CR', 'NI'], 'L12_FCC', T=1400.0, output='_fail_')
+        calculate(ALCRNI_DBF, ['AL', 'CR', 'NI'], 'L12_FCC', T=1400.0, output='_fail_')
 
 def test_statevar_upcast():
     "Integer state variable values are cast to float."
-    calculate(DBF, ['AL', 'CR', 'NI'], 'L12_FCC',
+    calculate(ALCRNI_DBF, ['AL', 'CR', 'NI'], 'L12_FCC',
                 T=1273, mode='numpy')
 
 def test_points_kwarg_multi_phase():
     "Multi-phase calculation works when internal dof differ (gh-41)."
-    calculate(DBF, ['AL', 'CR', 'NI'], ['L12_FCC', 'LIQUID'],
+    calculate(ALCRNI_DBF, ['AL', 'CR', 'NI'], ['L12_FCC', 'LIQUID'],
                 T=1273, points={'L12_FCC': [0.20, 0.05, 0.75, 0.05, 0.20, 0.75]}, mode='numpy')
 
 def test_issue116():
     "Calculate gives correct result when a state variable is left as default (gh-116)."
-    result_one = calculate(DBF, ['AL', 'CR', 'NI'], 'LIQUID', T=400)
+    result_one = calculate(ALCRNI_DBF, ['AL', 'CR', 'NI'], 'LIQUID', T=400)
     result_one_values = result_one.GM.values
-    result_two = calculate(DBF, ['AL', 'CR', 'NI'], 'LIQUID', T=400, P=101325)
+    result_two = calculate(ALCRNI_DBF, ['AL', 'CR', 'NI'], 'LIQUID', T=400, P=101325)
     result_two_values = result_two.GM.values
-    result_three = calculate(DBF, ['AL', 'CR', 'NI'], 'LIQUID', T=400, P=101325, N=1)
+    result_three = calculate(ALCRNI_DBF, ['AL', 'CR', 'NI'], 'LIQUID', T=400, P=101325, N=1)
     result_three_values = result_three.GM.values
     np.testing.assert_array_equal(np.squeeze(result_one_values), np.squeeze(result_two_values))
     np.testing.assert_array_equal(np.squeeze(result_one_values), np.squeeze(result_three_values))
@@ -94,15 +90,15 @@ def test_incompatible_model_instance_raises():
     "Calculate raises when an incompatible Model instance built with a different phase is passed."
     comps = ['AL', 'CR', 'NI']
     phase_name = 'L12_FCC'
-    mod = Model(DBF, comps, 'LIQUID')  # Model instance does not match the phase
+    mod = Model(ALCRNI_DBF, comps, 'LIQUID')  # Model instance does not match the phase
     with pytest.raises(ValueError):
-        calculate(DBF, comps, phase_name, T=1400.0, output='_fail_', model=mod)
+        calculate(ALCRNI_DBF, comps, phase_name, T=1400.0, output='_fail_', model=mod)
 
 
 def test_single_model_instance_raises():
     "Calculate raises when a single Model instance is passed with multiple phases."
     comps = ['AL', 'CR', 'NI']
     phase_name = 'L12_FCC'
-    mod = Model(DBF, comps, 'L12_FCC')  # Model instance does not match the phase
+    mod = Model(ALCRNI_DBF, comps, 'L12_FCC')  # Model instance does not match the phase
     with pytest.raises(ValueError):
-        calculate(DBF, comps, ['LIQUID', 'L12_FCC'], T=1400.0, output='_fail_', model=mod)
+        calculate(ALCRNI_DBF, comps, ['LIQUID', 'L12_FCC'], T=1400.0, output='_fail_', model=mod)

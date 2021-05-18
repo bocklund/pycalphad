@@ -9,9 +9,7 @@ import pycalphad.variables as v
 from pycalphad.tests.datasets import *
 from matplotlib.axes import Axes
 
-ALFE_DBF = Database(ALFE_TDB)
-ALCOCRNI_DBF = Database(ALCOCRNI_TDB)
-
+from .fixtures import ALFE_DBF, ALCOCRNI_DBF
 
 def test_eqplot_binary():
     """

@@ -14,22 +14,23 @@ from pycalphad.codegen.callables import build_callables
 from pycalphad.core.solver import SolverBase, SundmanSolver
 from pycalphad.core.utils import get_state_variables
 import pycalphad.variables as v
-from pycalphad.tests.datasets import *
 
 warnings.simplefilter("always", UserWarning) # so we can test warnings
 
-ROSE_DBF = Database(ROSE_TDB)
-ALFE_DBF = Database(ALFE_TDB)
-ALNIFCC4SL_DBF = Database(ALNIFCC4SL_TDB)
-ALCOCRNI_DBF = Database(ALCOCRNI_TDB)
-ISSUE43_DBF = Database(ISSUE43_TDB)
-TOUGH_CHEMPOT_DBF = Database(ALNI_TOUGH_CHEMPOT_TDB)
-NI_AL_DUPIN_2001_DBF = Database(NI_AL_DUPIN_2001_TDB)
-CUO_DBF = Database(CUO_TDB)
-PBSN_DBF = Database(PBSN_TDB)
-AL_PARAMETER_DBF = Database(AL_PARAMETER_TDB)
-CUMG_PARAMETERS_DBF = Database(CUMG_PARAMETERS_TDB)
-
+from .fixtures import (
+    ROSE_DBF,
+    ALFE_DBF,
+    ALNIFCC4SL_DBF,
+    ALCOCRNI_DBF,
+    ALNIPT_DBF,
+    ISSUE43_DBF,
+    TOUGH_CHEMPOT_DBF,
+    NI_AL_DUPIN_2001_DBF,
+    CUO_DBF,
+    PBSN_DBF,
+    AL_PARAMETER_DBF,
+    CUMG_PARAMETERS_DBF
+)
 
 @pytest.mark.solver
 def test_rose_nine():
@@ -70,7 +71,7 @@ def test_eq_b2_without_all_comps():
     All-vacancy endmembers are correctly excluded from the computation when fewer than
     all components in a Database are selected for the calculation.
     """
-    equilibrium(Database(ALNIPT_TDB), ['AL', 'NI', 'VA'], 'BCC_B2', {v.X('NI'): 0.4, v.P: 101325, v.T: 1200},
+    equilibrium(ALNIPT_DBF, ['AL', 'NI', 'VA'], 'BCC_B2', {v.X('NI'): 0.4, v.P: 101325, v.T: 1200},
                 verbose=True)
 
 

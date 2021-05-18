@@ -2,14 +2,12 @@
 The test_model module contains unit tests for the Model object.
 """
 from pycalphad import Database, Model, variables as v, equilibrium
-from pycalphad.tests.datasets import ALCRNI_TDB, ALNIPT_TDB, ALFE_TDB, ZRO2_CUBIC_BCC_TDB, TDB_PARAMETER_FILTERS_TEST
+from pycalphad.tests.datasets import ZRO2_CUBIC_BCC_TDB, TDB_PARAMETER_FILTERS_TEST
 from pycalphad.core.errors import DofError
 import numpy as np
 import pytest
 
-ALCRNI_DBF = Database(ALCRNI_TDB)
-ALNIPT_DBF = Database(ALNIPT_TDB)
-ALFE_DBF = Database(ALFE_TDB)
+from .fixtures import ALCRNI_DBF, ALNIPT_DBF, ALFE_DBF
 
 def test_model_eq():
     "Model equality comparison."

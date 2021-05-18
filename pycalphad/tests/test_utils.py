@@ -6,11 +6,7 @@ import pytest
 from pycalphad import Database, Model
 from pycalphad.core.utils import filter_phases, unpack_components, instantiate_models
 
-from pycalphad.tests.datasets import ALNIPT_TDB, ALCRNI_TDB, ALCOCRNI_TDB
-
-ALNIPT_DBF = Database(ALNIPT_TDB)
-ALCRNI_DBF = Database(ALCRNI_TDB)
-ALCOCRNI_DBF = Database(ALCOCRNI_TDB)
+from .fixtures import ALNIPT_DBF, ALCRNI_DBF, ALCOCRNI_DBF
 
 def test_filter_phases_removes_disordered_phases_from_order_disorder():
     """Databases with order-disorder models should have the disordered phases be filtered if candidate_phases kwarg is not passed to filter_phases.

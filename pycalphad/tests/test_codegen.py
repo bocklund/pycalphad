@@ -9,11 +9,9 @@ from symengine import zoo
 from pycalphad import Database, Model, variables as v
 from pycalphad.codegen.callables import build_phase_records
 from pycalphad.codegen.sympydiff_utils import build_functions, build_constraint_functions
-from pycalphad.tests.datasets import ALNIPT_TDB, C_FE_BROSHE_TDB
 
+from .fixtures import ALNIPT_DBF, C_FE_DBF
 
-ALNIPT_DBF = Database(ALNIPT_TDB)
-C_FE_DBF = Database(C_FE_BROSHE_TDB)
 
 def test_build_functions_options():
     """The correct SymEngine backend can be chosen for build_functions"""

@@ -2,10 +2,8 @@ from pycalphad import Database, variables as v
 from pycalphad.plot.binary.compsets import BinaryCompset, CompsetPair
 from pycalphad.plot.binary.map import map_binary
 from pycalphad.plot.binary.zpf_boundary_sets import TwoPhaseRegion, ZPFBoundarySets
-from pycalphad.tests.datasets import *
 
-ALFE_DBF = Database(ALFE_TDB)
-
+from .fixtures import ALFE_DBF
 
 def test_binary_mapping():
     """
