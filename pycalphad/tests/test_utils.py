@@ -8,7 +8,7 @@ from pycalphad.core.utils import filter_phases, unpack_components, instantiate_m
 
 from .fixtures import ALNIPT_DBF, ALCRNI_DBF, ALCOCRNI_DBF
 
-def test_filter_phases_removes_disordered_phases_from_order_disorder():
+def test_filter_phases_removes_disordered_phases_from_order_disorder(ALNIPT_DBF, ALCRNI_DBF, ALCOCRNI_DBF):
     """Databases with order-disorder models should have the disordered phases be filtered if candidate_phases kwarg is not passed to filter_phases.
     If candidate_phases kwarg is passed, disordered phases just are filtered if respective ordered phases are inactive"""
     all_phases = set(ALNIPT_DBF.phases.keys())
@@ -26,14 +26,14 @@ def test_filter_phases_removes_disordered_phases_from_order_disorder():
     assert filtered_phases == {'BCC_B2'}
 
 
-def test_filter_phases_removes_phases_with_inactive_sublattices():
+def test_filter_phases_removes_phases_with_inactive_sublattices(ALNIPT_DBF):
     """Phases that have no active components in any sublattice should be filtered"""
     all_phases = set(ALNIPT_DBF.phases.keys())
     filtered_phases = set(filter_phases(ALNIPT_DBF, unpack_components(ALNIPT_DBF, ['AL', 'NI', 'VA'])))
     assert all_phases.difference(filtered_phases) == {'FCC_A1', 'PT8AL21', 'PT5AL21', 'PT2AL', 'PT2AL3', 'PT5AL3', 'ALPT2'}
 
 
-def test_instantiate_models_only_returns_desired_phases():
+def test_instantiate_models_only_returns_desired_phases(ALNIPT_DBF):
     """instantiate_models should only return phases passed"""
     comps = ['AL', 'NI', 'VA']
     phases = ['FCC_A1', 'LIQUID']

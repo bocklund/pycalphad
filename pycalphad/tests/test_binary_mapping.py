@@ -5,7 +5,7 @@ from pycalphad.plot.binary.zpf_boundary_sets import TwoPhaseRegion, ZPFBoundaryS
 
 from .fixtures import ALFE_DBF
 
-def test_binary_mapping():
+def test_binary_mapping(ALFE_DBF):
     """
     Binary mapping should return a ZPFBoundarySets object
     """

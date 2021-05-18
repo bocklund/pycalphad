@@ -31,7 +31,7 @@ FUNCTION A_VERY_LONG_FUNCTION_NAME  298.15 -42; 6000 N !
 FUNCTION COMPAT 298.15 +9001; 6000 N !
 """
 
-def test_database_eq():
+def test_database_eq(ALCRNI_DBF):
     "Database equality comparison."
     test_dbf = Database(ALCRNI_TDB)
     assert test_dbf == test_dbf
@@ -43,7 +43,7 @@ def test_database_eq():
     assert not (42 == test_dbf)
     assert not (None == test_dbf)
 
-def test_database_ne():
+def test_database_ne(ALCRNI_DBF):
     "Database inequality comparison."
     test_dbf = Database(ALCRNI_TDB)
     assert not (test_dbf != test_dbf)
@@ -62,7 +62,7 @@ def test_database_diffusion():
     # Won't work until sympy/sympy#10560 is fixed to prevent precision loss
     #assert Database(DIFFUSION_TDB) == Database.from_string(Database(DIFFUSION_TDB).to_string(fmt='tdb'), fmt='tdb')
 
-def test_load_from_string():
+def test_load_from_string(ALCRNI_DBF):
     "Test database loading from a string."
     test_model = Model(Database.from_string(ALCRNI_TDB, fmt='tdb'), ['CR', 'NI'], 'L12_FCC')
     assert test_model == Model(ALCRNI_DBF, ['CR', 'NI'], 'L12_FCC')
@@ -184,17 +184,17 @@ def test_unknown_format_from_string():
     with pytest.raises(NotImplementedError):
         Database.from_string(ALCRNI_TDB, fmt='_fail_')
 
-def test_unknown_format_to_string():
+def test_unknown_format_to_string(ALCRNI_DBF):
     "to_string: Unknown export file format raises NotImplementedError."
     with pytest.raises(NotImplementedError):
         ALCRNI_DBF.to_string(fmt='_fail_')
 
-def test_load_from_stringio():
+def test_load_from_stringio(ALCRNI_DBF):
     "Test database loading from a file-like object."
     test_tdb = Database(StringIO(ALCRNI_TDB))
     assert test_tdb == ALCRNI_DBF
 
-def test_load_from_stringio_from_file():
+def test_load_from_stringio_from_file(ALCRNI_DBF):
     "Test database loading from a file-like object with the from_file method."
     test_tdb = Database.from_file(StringIO(ALCRNI_TDB), fmt='tdb')
     assert test_tdb == ALCRNI_DBF
@@ -204,7 +204,7 @@ def test_unspecified_format_from_file():
     with pytest.raises(ValueError):
         Database.from_file(StringIO(ALCRNI_TDB))
 
-def test_unspecified_format_to_file():
+def test_unspecified_format_to_file(ALCRNI_DBF):
     "to_file: Unspecified format for file descriptor raises ValueError."
     with pytest.raises(ValueError):
         ALCRNI_DBF.to_file(StringIO())
@@ -214,7 +214,7 @@ def test_unknown_format_from_file():
     with pytest.raises(NotImplementedError):
         Database.from_string(ALCRNI_TDB, fmt='_fail_')
 
-def test_unknown_format_to_file():
+def test_unknown_format_to_file(ALCRNI_DBF):
     "to_file: Unknown export file format raises NotImplementedError."
     with pytest.raises(NotImplementedError):
         ALCRNI_DBF.to_file(StringIO(), fmt='_fail_')

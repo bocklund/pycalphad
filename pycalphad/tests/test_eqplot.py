@@ -11,7 +11,7 @@ from matplotlib.axes import Axes
 
 from .fixtures import ALFE_DBF, ALCOCRNI_DBF
 
-def test_eqplot_binary():
+def test_eqplot_binary(ALFE_DBF):
     """
     eqplot should return an axes object when one independent component and one
     independent potential are passed.
@@ -25,7 +25,7 @@ def test_eqplot_binary():
     assert isinstance(ax, Axes)
 
 
-def test_eqplot_ternary():
+def test_eqplot_ternary(ALCOCRNI_DBF):
     """
     eqplot should return an axes object that has a traingular projection when
     two independent components and one independent potential are passed.

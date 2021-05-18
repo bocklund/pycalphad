@@ -11,27 +11,27 @@ from pycalphad import ConditionError
 
 from .fixtures import ALCRNI_DBF, ALFE_DBF, CUMG_PARAMETERS_DBF
 
-def test_surface():
+def test_surface(ALCRNI_DBF):
     "Bare minimum: calculation produces a result."
     calculate(ALCRNI_DBF, ['AL', 'CR', 'NI'], 'L12_FCC',
                 T=1273., mode='numpy')
 
-def test_unknown_model_attribute():
+def test_unknown_model_attribute(ALCRNI_DBF):
     "Sampling an unknown model attribute raises exception."
     with pytest.raises(AttributeError):
         calculate(ALCRNI_DBF, ['AL', 'CR', 'NI'], 'L12_FCC', T=1400.0, output='_fail_')
 
-def test_statevar_upcast():
+def test_statevar_upcast(ALCRNI_DBF):
     "Integer state variable values are cast to float."
     calculate(ALCRNI_DBF, ['AL', 'CR', 'NI'], 'L12_FCC',
                 T=1273, mode='numpy')
 
-def test_points_kwarg_multi_phase():
+def test_points_kwarg_multi_phase(ALCRNI_DBF):
     "Multi-phase calculation works when internal dof differ (gh-41)."
     calculate(ALCRNI_DBF, ['AL', 'CR', 'NI'], ['L12_FCC', 'LIQUID'],
                 T=1273, points={'L12_FCC': [0.20, 0.05, 0.75, 0.05, 0.20, 0.75]}, mode='numpy')
 
-def test_issue116():
+def test_issue116(ALCRNI_DBF):
     "Calculate gives correct result when a state variable is left as default (gh-116)."
     result_one = calculate(ALCRNI_DBF, ['AL', 'CR', 'NI'], 'LIQUID', T=400)
     result_one_values = result_one.GM.values
@@ -50,7 +50,7 @@ def test_issue116():
     assert result_three_values.shape[:3] == (1, 1, 1)
 
 
-def test_calculate_some_phases_filtered():
+def test_calculate_some_phases_filtered(ALFE_DBF):
     """
     Phases are filtered out from calculate() when some cannot be built.
     """
@@ -58,14 +58,14 @@ def test_calculate_some_phases_filtered():
     calculate(ALFE_DBF, ['AL', 'VA'], ['FCC_A1', 'AL13FE4'], T=1200, P=101325)
 
 
-def test_calculate_raises_with_no_active_phases_passed():
+def test_calculate_raises_with_no_active_phases_passed(ALFE_DBF):
     """Passing inactive phases to calculate() raises a ConditionError."""
     # Phase cannot be built without FE
     with pytest.raises(ConditionError):
         calculate(ALFE_DBF, ['AL', 'VA'], ['AL13FE4'], T=1200, P=101325)
 
 
-def test_calculate_with_parameters_vectorized():
+def test_calculate_with_parameters_vectorized(CUMG_PARAMETERS_DBF):
     # Second set of parameter values are directly copied from the TDB
     parameters = {'VV0000': [-33134.699474175846, -32539.5], 'VV0001': [7734.114029426941, 8236.3],
                   'VV0002': [-13498.542175596054, -14675.0], 'VV0003': [-26555.048975092268, -24441.2],
@@ -86,7 +86,7 @@ def test_calculate_with_parameters_vectorized():
     assert_allclose(res.GM.isel(samples=1).values, res_noparams.GM.values)
 
 
-def test_incompatible_model_instance_raises():
+def test_incompatible_model_instance_raises(ALCRNI_DBF):
     "Calculate raises when an incompatible Model instance built with a different phase is passed."
     comps = ['AL', 'CR', 'NI']
     phase_name = 'L12_FCC'
@@ -95,7 +95,7 @@ def test_incompatible_model_instance_raises():
         calculate(ALCRNI_DBF, comps, phase_name, T=1400.0, output='_fail_', model=mod)
 
 
-def test_single_model_instance_raises():
+def test_single_model_instance_raises(ALCRNI_DBF):
     "Calculate raises when a single Model instance is passed with multiple phases."
     comps = ['AL', 'CR', 'NI']
     phase_name = 'L12_FCC'

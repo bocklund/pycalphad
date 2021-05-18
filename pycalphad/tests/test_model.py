@@ -9,7 +9,7 @@ import pytest
 
 from .fixtures import ALCRNI_DBF, ALNIPT_DBF, ALFE_DBF
 
-def test_model_eq():
+def test_model_eq(ALCRNI_DBF):
     "Model equality comparison."
     test_model = Model(ALCRNI_DBF, ['AL', 'CR'], 'L12_FCC')
     assert test_model == test_model
@@ -21,7 +21,7 @@ def test_model_eq():
     assert not (42 == test_model)
     assert not (None == test_model)
 
-def test_model_ne():
+def test_model_ne(ALCRNI_DBF):
     "Model inequality comparison."
     test_model = Model(ALCRNI_DBF, ['AL', 'CR'], 'L12_FCC')
     assert not (test_model != test_model)
@@ -33,13 +33,13 @@ def test_model_ne():
     assert 42 != test_model
     assert None != test_model
 
-def test_export_import():
+def test_export_import(ALNIPT_DBF):
     "Equivalence of Model using re-imported database."
     test_model = Model(Database.from_string(ALNIPT_DBF.to_string(fmt='tdb', if_incompatible='ignore'), fmt='tdb'), ['PT', 'NI', 'VA'], 'FCC_L12')
     ref_model = Model(ALNIPT_DBF, ['NI', 'PT', 'VA'], 'FCC_L12')
     assert test_model == ref_model
 
-def test_custom_model_contributions():
+def test_custom_model_contributions(ALCRNI_DBF):
     "Building a custom model using contributions."
     class CustomModel(Model):
         contributions = [('zzz', 'test'), ('xxx', 'test2'), ('yyy', 'test3')]
@@ -52,7 +52,7 @@ def test_custom_model_contributions():
     CustomModel(ALCRNI_DBF, ['AL', 'CR'], 'L12_FCC')
 
 
-def test_degree_of_ordering():
+def test_degree_of_ordering(ALFE_DBF):
     "Degree of ordering should be calculated properly."
     my_phases = ['B2_BCC']
     comps = ['AL', 'FE', 'VA']

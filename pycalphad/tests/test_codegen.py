@@ -13,7 +13,7 @@ from pycalphad.codegen.sympydiff_utils import build_functions, build_constraint_
 from .fixtures import ALNIPT_DBF, C_FE_DBF
 
 
-def test_build_functions_options():
+def test_build_functions_options(ALNIPT_DBF):
     """The correct SymEngine backend can be chosen for build_functions"""
     mod = Model(ALNIPT_DBF, ['AL'], 'LIQUID')
     int_cons = mod.get_internal_constraints()
@@ -55,7 +55,7 @@ def test_build_functions_options():
     assert isinstance(cfs_llvm.cons_hess, LLVMDouble)
 
 
-def test_phase_records_are_picklable():
+def test_phase_records_are_picklable(ALNIPT_DBF):
     dof = np.array([300, 1.0])
 
     mod = Model(ALNIPT_DBF, ['AL'], 'LIQUID')
@@ -73,7 +73,7 @@ def test_phase_records_are_picklable():
     assert np.all(out == out_unpickled)
 
 
-def test_complex_infinity_can_build_callables_successfully():
+def test_complex_infinity_can_build_callables_successfully(C_FE_DBF):
     """Test that functions that containing complex infinity can be built with codegen."""
     mod = Model(C_FE_DBF, ['C'], 'DIAMOND_A4')
     mod_vars = [v.N, v.P, v.T] + mod.site_fractions
