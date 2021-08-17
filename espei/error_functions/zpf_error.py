@@ -127,6 +127,11 @@ def _subsample_phase_points(phase_record, phase_points, target_composition, avg_
 
     # Find the points indicdes where the mass is within the average mass residual tolerance
     idxs = np.nonzero(np.mean(np.abs(phase_compositions - target_composition), axis=1) < avg_mass_residual_tol)[0]
+    # No points in tolerance, take whatever is the closest one
+    if len(idxs) == 0:
+        distances = np.mean(np.abs(phase_compositions - target_composition), axis=1)
+        idxs = [np.argmin(distances)]
+        print(distances[idxs])
 
     # Return the sub-space of points where this condition holds valid
     return phase_points[idxs]
@@ -192,7 +197,7 @@ def get_zpf_data(dbf: Database, comps: Sequence[str], phases: Sequence[str], dat
                 else:
                     has_missing_comp_cond = False
                     # Only sample points that have an average mass residual within tol
-                    tol = 0.02
+                    tol = 0.04
                     phase_points = _subsample_phase_points(phase_recs[phase_name], all_phase_points[phase_name], composition, tol)
                     assert phase_points.shape[0] > 0, "at least one set of points is within the target tolerance"
                 vtx = RegionVertex(phase_name, composition, comp_conds, phase_points, phase_recs, disordered_flag, has_missing_comp_cond)
@@ -403,7 +408,7 @@ def calculate_zpf_error(zpf_data: Sequence[Dict[str, Any]],
     """
     if len(zpf_data) == 0:
         return 0.0
-    driving_forces, weights = calculate_zpf_driving_forces(zpf_data, parameters, approximate_equilibrium, short_circuit=True)
+    driving_forces, weights = calculate_zpf_driving_forces(zpf_data, parameters, approximate_equilibrium, short_circuit=False)
     # Driving forces and weights are 2D ragged arrays with the shape (len(zpf_data), len(zpf_data['values']))
     driving_forces = np.concatenate(driving_forces)
     weights = np.concatenate(weights)
