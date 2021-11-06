@@ -286,7 +286,15 @@ def equilibrium(dbf, comps, phases, conditions, output=None, model=None,
             new_data_vars[var] = (coord_names, np.concatenate([grid[var], refined_grid[var]], axis=coord_names.index('points')))
         else:
             new_data_vars[var] = (coord_names, value_array)
-    grid = LightDataset(new_data_vars, grid.coords)
+    # special case handling for attrs
+    new_attrs = copy.deepcopy(grid.attrs)
+    # phase_indices attr
+    # TODO: fix that we don't bother with refined indices for now
+    # the code below doesn't work because eqsolver assumes that all the phases points are grouped together
+    # for phase_name in grid.attrs['phase_indices'].keys():
+    #     new_attrs['phase_indices'][phase_name] = np.s_[grid.attrs['phase_indices'][phase_name], refined_grid.attrs['phase_indices'][phase_name]]
+
+    grid = LightDataset(new_data_vars, grid.coords, new_attrs)
 
     coord_dict = str_conds.copy()
     coord_dict['vertex'] = np.arange(len(pure_elements) + 1)  # +1 is to accommodate the degenerate degree of freedom at the invariant reactions
