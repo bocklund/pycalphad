@@ -883,3 +883,102 @@ cpdef find_solution(list compsets, int num_statevars, int num_components,
         x = np.r_[x, cs_dof[num_statevars:]]
     x = np.r_[x, phase_amt]
     return converged, x, np.array(state.chemical_potentials)
+
+cpdef local_min_compset(CompositionSet compset):
+    cdef double ALLOWED_DELTA_PHASE_AMT = 1e-10
+    cdef bint converged = False
+    cdef double[::1] x
+    cdef double[::1] new_y
+    cdef int i, j
+    # assume one composition set
+
+    cdef int num_phase_dof = compset.phase_record.phase_dof
+    cdef int num_internal_cons = compset.phase_record.num_internal_cons
+
+    cdef int num_statevars = compset.dof.shape[0] - num_phase_dof
+    cdef int num_components = compset.X.shape[0]
+
+    cdef double step_size = 1.0
+
+    cdef double[::1] delta_y = np.zeros(num_phase_dof)
+    cdef double[::1] c_G = np.zeros(compset.phase_record.phase_dof)
+
+    cdef double[::1] dummy_components_array = np.zeros(num_components)
+    cdef int[::1] fixed_phase_dof_indices = np.array([], dtype=np.int32)
+
+    cdef double[:,::1] phase_matrix = np.zeros((num_phase_dof + num_internal_cons, num_phase_dof + num_internal_cons))
+    cdef double[:,::1] full_e_matrix = np.zeros((num_phase_dof + num_internal_cons, num_phase_dof + num_internal_cons))
+    cdef double[::1] grad = np.zeros(num_statevars + num_phase_dof)
+    cdef double[:,::1] hess = np.zeros((num_statevars + num_phase_dof, num_statevars + num_phase_dof))
+    cdef double[:,::1] cons_jac_tmp = np.zeros((num_internal_cons, num_statevars + num_phase_dof))  # TODO: compute? not needed
+    cdef int[::1] ipiv = np.empty(phase_matrix.shape[0], dtype=np.int32)
+
+    for iteration in range(1000):
+        # recompute
+        phase_matrix[:,:] = 0
+        grad[:] = 0
+        hess[:,:] = 0
+        cons_jac_tmp[:] = 0
+        compset.phase_record.formulagrad(grad, compset.dof)
+        compset.phase_record.formulahess(hess, compset.dof)
+
+        # Compute phase matrix (LHS of Eq. 41, Sundman 2015)
+        x = compset.dof
+        compute_phase_matrix(phase_matrix, hess, cons_jac_tmp, compset, num_statevars, dummy_components_array, x, fixed_phase_dof_indices)
+        # Copy the phase matrix into the e matrix and invert the e matrix
+        for i in range(full_e_matrix.shape[0]):
+            for j in range(full_e_matrix.shape[1]):
+                full_e_matrix[i,j] = phase_matrix[i,j]
+        invert_matrix(&full_e_matrix[0,0], full_e_matrix.shape[0], &ipiv[0])
+
+        # Compute c_G
+        c_G[:] = 0
+        for i in range(num_phase_dof):
+            for j in range(num_phase_dof):
+                c_G[i] -= full_e_matrix[i, j] * grad[num_statevars+j]
+
+        # Construct delta_y from Eq. 43 in Sundman 2015
+        delta_y[:] = 0
+        # TODO: needs charge balance contribution
+        for i in range(delta_y.shape[0]):
+            delta_y[i] += c_G[i]
+
+        converged = True
+        for i in range(delta_y.shape[0]):
+            if delta_y[i] > ALLOWED_DELTA_PHASE_AMT:
+                converged = False
+
+        new_y = np.array(x)
+        minimum_step_size = 1e-20 * step_size
+        while step_size >= minimum_step_size:
+            exceeded_bounds = False
+            for i in range(num_statevars, new_y.shape[0]):
+                new_y[i] = x[i] + step_size * delta_y[i - num_statevars]
+                if new_y[i] > 1:
+                    if (new_y[i] - 1) > 1e-11:
+                        # Allow some tolerance in the name of progress
+                        exceeded_bounds = True
+                    new_y[i] = 1
+                elif new_y[i] < MIN_SITE_FRACTION:
+                    if (MIN_SITE_FRACTION - new_y[i]) > 1e-11:
+                        # Allow some tolerance in the name of progress
+                        exceeded_bounds = True
+                    # Reduce by two orders of magnitude, or MIN_SITE_FRACTION, whichever is larger
+                    new_y[i] = max(x[i]/100, MIN_SITE_FRACTION)
+            if exceeded_bounds:
+                step_size *= 0.5
+                continue
+            break
+    #         state.largest_y_change[0] = 0.0
+    #         for i in range(spec.num_statevars, new_y.shape[0]):
+    #             state.largest_y_change[0] = max(state.largest_y_change[0], abs(x[i] - new_y[i]))
+
+        # Update the compset site fractions
+#         compset.dof[:] = new_y
+        compset.update(new_y[num_phase_dof:], 1.0, new_y[:num_phase_dof])
+
+        if converged:
+#             print(iteration)
+            return True
+
+    return False

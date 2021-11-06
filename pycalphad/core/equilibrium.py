@@ -274,6 +274,20 @@ def equilibrium(dbf, comps, phases, conditions, output=None, model=None,
     grid = calculate(dbf, comps, active_phases, model=models, fake_points=True,
                      phase_records=phase_records, output='GM', parameters=parameters,
                      to_xarray=False, **grid_opts)
+    import copy
+    refined_grid = copy.deepcopy(grid)
+    from pycalphad.core.calculate import refine_grid
+    refine_grid(refined_grid, {sv: conds[sv] for sv in state_variables}, phase_records)  # modified in place
+
+    # concatenate grid + refined grid into a new grid
+    new_data_vars = {}
+    for var, (coord_names, value_array) in grid.data_vars.items():
+        if 'points' in coord_names:
+            new_data_vars[var] = (coord_names, np.concatenate([grid[var], refined_grid[var]], axis=coord_names.index('points')))
+        else:
+            new_data_vars[var] = (coord_names, value_array)
+    grid = LightDataset(new_data_vars, grid.coords)
+
     coord_dict = str_conds.copy()
     coord_dict['vertex'] = np.arange(len(pure_elements) + 1)  # +1 is to accommodate the degenerate degree of freedom at the invariant reactions
     coord_dict['component'] = pure_elements

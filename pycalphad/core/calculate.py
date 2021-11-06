@@ -72,6 +72,51 @@ def _sample_phase_constitution(model, sampler, fixed_grid, pdens):
     return points
 
 
+def refine_grid(grid, statevar_dict, phase_records):
+    from pycalphad.core.minimizer import local_min_compset
+    from pycalphad.core.composition_set import CompositionSet
+    # Refines the `grid`, modifying the site fractions, compositions and Gibbs energy in-place
+    # What _should_ happen is that the points on the sampled grid from `calculate`
+    # should collapse onto the minimum for that phase. Then the output of this
+    # `refined_grid` function would get used for starting point selection and
+    # the global minimization check in `_solve_eq_at_conditions`.
+    # Ignore, for now, that doing this refinement may mean that it's impossible
+    # to find a starting point simplex that can mass balance to a composition condition.
+    it = np.nditer(grid.GM, flags=['multi_index'])
+
+    conds_keys = sorted(map(str,statevar_dict.keys()))
+
+    while not it.finished:
+        cur_conds = OrderedDict(zip(conds_keys, [np.asarray(grid.coords[b][a], dtype=np.float_) for a, b in zip(it.multi_index, conds_keys)]))
+        state_variable_values = np.asarray(list(cur_conds.values()))
+#         print(state_variable_values)
+#         print(it.multi_index)
+#         print(cur_conds)
+        phase_name = grid.Phase[it.multi_index]
+        if phase_name == '' or phase_name == '_FAKE_':
+            it.iternext()
+            continue
+
+        # instantiate a Composition set and populate it with the current site fractions
+        phase_rec = phase_records[phase_name]
+        site_fracs = grid.Y[it.multi_index + (slice(None, phase_rec.phase_dof),)]
+        phase_amt = 1.0  # per atom
+        compset = CompositionSet(phase_rec)
+        compset.update(site_fracs, phase_amt, state_variable_values)
+
+        # Optimize to cur_conds, with only global constraints (N, P, T)
+        local_min_compset(compset)
+
+        # Update the grid in-place
+        grid.Y[it.multi_index + (slice(None, phase_rec.phase_dof),)] = compset.dof[len(compset.phase_record.state_variables):]
+        grid.X[it.multi_index + (slice(None),)] = compset.X
+        grid.GM[it.multi_index] = compset.energy
+#         break  # testing only
+        it.iternext()
+
+    return grid
+
+
 def _compute_phase_values(components, statevar_dict,
                           points, phase_record, output, maximum_internal_dof, broadcast=True,
                           parameters=None, fake_points=False,
