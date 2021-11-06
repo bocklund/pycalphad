@@ -269,13 +269,18 @@ def equilibrium(dbf, comps, phases, conditions, output=None, model=None,
     statevar_strings = [str(x) for x in state_variables]
     grid_opts.update({key: value for key, value in str_conds.items() if key in statevar_strings})
 
+    import copy
+    refined_grid_opts = copy.deepcopy(grid_opts)
     if 'pdens' not in grid_opts:
         grid_opts['pdens'] = 50
+        refined_grid_opts['pdens'] = 10
     grid = calculate(dbf, comps, active_phases, model=models, fake_points=True,
                      phase_records=phase_records, output='GM', parameters=parameters,
                      to_xarray=False, **grid_opts)
-    import copy
-    refined_grid = copy.deepcopy(grid)
+
+    refined_grid = calculate(dbf, comps, active_phases, model=models, fake_points=True,
+                     phase_records=phase_records, output='GM', parameters=parameters,
+                     to_xarray=False, **refined_grid_opts)
     from pycalphad.core.calculate import refine_grid
     refine_grid(refined_grid, {sv: conds[sv] for sv in state_variables}, phase_records)  # modified in place
 
