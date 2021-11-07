@@ -22,19 +22,16 @@ _MAX_PARAM_NESTING = 32
 # TODO: document API
 class AbstractModel(Protocol):
     """
-    ModelProtocol defines the minimal API required for an equilibrium calculation.
-    Any class that implements the defined properties and methods correctly could
-    be used for equilibrium calculations in pycalphad.
+    AbstractModel defines the minimal API required for an use by `calculate` or for
+    computing arbitrary properties.
     """
     # constituents should correspond to the active constituents in each
     # sublattice corresponding to how those constituents are represented in the
-    # Gibbs energy model. Usually the species in Model.constituents are subsets
+    # model. Usually the species in Model.constituents are subsets
     # of Phase.constituents with the inactive species filtered out, but some
     # models can have internal virtual constituents that don't necessarily match
     # Phase.constituents and this allows pycalphad to handle this correctly.
     constituents: Sequence[Sequence[v.Species]]
-    G: Expr  # Units J/mol-formula
-    GM: Expr  # Units J/mol-atom
     site_fractions: List[v.SiteFraction]
     state_variables: List[v.StateVariable]
 
@@ -57,6 +54,16 @@ class AbstractModel(Protocol):
         constraint expressions should evaluate to zero.
         """
         raise NotImplementedError
+
+
+def GibbsEnergyModel(AbstractModel,Protocol):
+    """
+    GibbsEnergyModel defines the minimal API required for an equilibrium calculation.
+    Any class that implements the defined properties and methods correctly could
+    be used for equilibrium calculations in pycalphad.
+    """
+    G: Expr  # Units J/mol-formula
+    GM: Expr  # Units J/mol-atom
 
 
 # A protocol defining whether a model can be instantiated by pycalphad.core.utils.instantiate_models
@@ -110,7 +117,7 @@ class ReferenceState():
         return s
 
 
-class Model(InstantiatableModel):
+class Model(GibbsEnergyModel, InstantiatableModel):
     """
     Models use an abstract representation of the function
     for calculation of values under specified conditions.
