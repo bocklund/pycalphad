@@ -35,6 +35,9 @@ class AbstractModel(Protocol):
     site_fractions: List[v.SiteFraction]
     state_variables: List[v.StateVariable]
 
+    def __init__(dbf: "pycalphad.io.database.Database", comps: List[str], phase_name: str, parameters: Union[List[str], Dict[str, float]]):
+        raise NotImplementedError
+
     # TODO: When is this used for pure element species and when for other
     #       species? Does there need to be a distinction in the API so
     #       subclassers know that these cases (pure element moles vs species
@@ -56,7 +59,7 @@ class AbstractModel(Protocol):
         raise NotImplementedError
 
 
-def GibbsEnergyModel(AbstractModel,Protocol):
+def GibbsEnergyModel(AbstractModel, Protocol):
     """
     GibbsEnergyModel defines the minimal API required for an equilibrium calculation.
     Any class that implements the defined properties and methods correctly could
@@ -64,12 +67,6 @@ def GibbsEnergyModel(AbstractModel,Protocol):
     """
     G: Expr  # Units J/mol-formula
     GM: Expr  # Units J/mol-atom
-
-
-# A protocol defining whether a model can be instantiated by pycalphad.core.utils.instantiate_models
-def InstantiatableModel(AbstractModel, Protocol):
-    def __init__(dbf: "pycalphad.io.database.Database", comps: List[str], phase_name: str, parameters: Union[List[str], Dict[str, float]]):
-        raise NotImplementedError
 
 
 class ReferenceState():
@@ -117,7 +114,7 @@ class ReferenceState():
         return s
 
 
-class Model(GibbsEnergyModel, InstantiatableModel):
+class Model(GibbsEnergyModel):
     """
     Models use an abstract representation of the function
     for calculation of values under specified conditions.
