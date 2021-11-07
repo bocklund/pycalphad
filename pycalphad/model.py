@@ -4,7 +4,8 @@ calculations under specified conditions.
 """
 import copy
 import warnings
-from sympy import exp, log, Abs, Add, And, Float, Mul, Piecewise, Pow, S, sin, StrictGreaterThan, Symbol, zoo, oo, nan
+from typing import Protocol, List, Sequence, Union
+from sympy import exp, log, Abs, Add, And, Expr, Float, Mul, Piecewise, Pow, S, sin, StrictGreaterThan, Symbol, zoo, oo, nan
 from tinydb import where
 import pycalphad.variables as v
 from pycalphad.core.errors import DofError
@@ -16,6 +17,46 @@ from collections import OrderedDict
 # Maximum number of levels deep we check for symbols that are functions of
 # other symbols
 _MAX_PARAM_NESTING = 32
+
+
+# TODO: document API
+class AbstractModel(Protocol):
+    """
+    ModelProtocol defines the minimal API required for an equilibrium calculation.
+    Any class that implements the defined properties and methods correctly could
+    be used for equilibrium calculations in pycalphad.
+    """
+    # constituents should correspond to the active constituents in each
+    # sublattice corresponding to how those constituents are represented in the
+    # Gibbs energy model. Usually the species in Model.constituents are subsets
+    # of Phase.constituents with the inactive species filtered out, but some
+    # models can have internal virtual constituents that don't necessarily match
+    # Phase.constituents and this allows pycalphad to handle this correctly.
+    constituents: Sequence[Sequence[v.Species]]
+    G: Expr  # Units J/mol-formula
+    GM: Expr  # Units J/mol-atom
+    site_fractions: List[v.SiteFraction]
+    state_variables: List[v.StateVariable]
+
+    # TODO: When is this used for pure element species and when for other
+    #       species? Does there need to be a distinction in the API so
+    #       subclassers know that these cases (pure element moles vs species
+    #       moles) need to be handled differently?
+    #       Would it be possible to change how this API is called internally so that only Species are allowed and strings are not automatically converted to Species?
+    def moles(self, species: Union[str, v.Species], per_formula_unit: bool = False) -> Expr:
+        """Return an expression to calculate the moles of a pure element"""
+        raise NotImplementedError
+
+    def get_internal_constraints(self) -> List[Expr]:
+        """Return a list of expressions for the internal constraints of this phase.
+
+        Usually the internal constraints correspond to constraints that should
+        be valid within the phase internal degrees of freedom. Common examples
+        are that the sum of site fractions on a sublattice should sum to unity
+        or that the total charge is neutral. When each constraint is satisfied, the
+        constraint expressions should evaluate to zero.
+        """
+        raise NotImplementedError
 
 
 class ReferenceState():
@@ -63,7 +104,7 @@ class ReferenceState():
         return s
 
 
-class Model(object):
+class Model(AbstractModel):
     """
     Models use an abstract representation of the function
     for calculation of values under specified conditions.
