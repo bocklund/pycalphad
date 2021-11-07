@@ -4,7 +4,7 @@ calculations under specified conditions.
 """
 import copy
 import warnings
-from typing import Protocol, List, Sequence, Union
+from typing import Dict, Protocol, List, Sequence, Union
 from sympy import exp, log, Abs, Add, And, Expr, Float, Mul, Piecewise, Pow, S, sin, StrictGreaterThan, Symbol, zoo, oo, nan
 from tinydb import where
 import pycalphad.variables as v
@@ -59,6 +59,12 @@ class AbstractModel(Protocol):
         raise NotImplementedError
 
 
+# A protocol defining whether a model can be instantiated by pycalphad.core.utils.instantiate_models
+def InstantiatableModel(AbstractModel, Protocol):
+    def __init__(dbf: "pycalphad.io.database.Database", comps: List[str], phase_name: str, parameters: Union[List[str], Dict[str, float]]):
+        raise NotImplementedError
+
+
 class ReferenceState():
     """
     Define the phase and any fixed state variables as a reference state for a component.
@@ -104,7 +110,7 @@ class ReferenceState():
         return s
 
 
-class Model(AbstractModel):
+class Model(InstantiatableModel):
     """
     Models use an abstract representation of the function
     for calculation of values under specified conditions.
