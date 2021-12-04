@@ -51,6 +51,7 @@ def _sample_phase_constitution(model, sampler, fixed_grid, pdens):
     sublattice_dof = [len(subl) for subl in model.constituents]
     # Add all endmembers to guarantee their presence
     points = endmember_matrix(sublattice_dof, vacancy_indices=vacancy_indices)
+    endmembers = np.copy(points)
     site_ratios = model.site_ratios
     constant_site_ratios = True
     # The only implementation with variable site ratios is the two-sublattice ionic liquid.
@@ -69,13 +70,32 @@ def _sample_phase_constitution(model, sampler, fixed_grid, pdens):
 
     if charge_constrained_space:
         Q = np.dot(points, species_charge)
-        neutral_mask = np.abs(Q) < ALLOWED_CHARGE
-        # Do not preserve all endmembers for charge-constrained spaces; they may be infeasible
-        points = points[neutral_mask]
+        # Sort endmembers by their charge
+        charge_neutral_endmember_idxs = []
+        charge_positive_endmember_idxs = []
+        charge_negative_endmember_idxs = []
+        for em_idx in range(endmembers.shape[0]):
+            if Q[em_idx] > ALLOWED_CHARGE:
+                charge_positive_endmember_idxs.append(em_idx)
+            elif Q[em_idx] < -ALLOWED_CHARGE:
+                charge_negative_endmember_idxs.append(em_idx)
+            else:
+                charge_neutral_endmember_idxs.append(em_idx)
+
+        # Find all endmember pairs between the
+        em_pts = [endmembers[em_idx] for em_idx in charge_neutral_endmember_idxs]
+        for pos_em_idx, neg_em_idx in itertools.product(charge_positive_endmember_idxs, charge_negative_endmember_idxs):
+            # Solve equation: Q_{pos}*x + Q_{neg}(1-x) = 0
+            x = - Q[neg_em_idx] / (Q[pos_em_idx] - Q[neg_em_idx])
+            em_pts.append(endmembers[pos_em_idx] * x + endmembers[neg_em_idx] * (1-x))
+
+        # Charge neutral endmembers and mixed pseudo-endmembers
+        endmembers = np.asarray(em_pts)
+
     if fixed_grid is True:
         # Sample along the edges of the endmembers
         # These constitution space edges are often the equilibrium points!
-        em_pairs = list(itertools.combinations(points, 2))
+        em_pairs = list(itertools.combinations(endmembers, 2))
         lingrid = np.linspace(0, 1, pdens)
         extra_points = [first_em * lingrid[np.newaxis].T +
                         second_em * lingrid[::-1][np.newaxis].T
@@ -88,7 +108,7 @@ def _sample_phase_constitution(model, sampler, fixed_grid, pdens):
             # Otherwise, we risk including infeasible points in the grid
             pass
         else:
-            points = np.concatenate((points, sampler(sublattice_dof, pdof=pdens)))
+            points = np.concatenate((points, np.dot(sampler([endmembers.shape[0]], pdof=pdens), endmembers)))
 
     # Filter out nan's that may have slipped in if we sampled too high a vacancy concentration
     # Issues with this appear to be platform-dependent
