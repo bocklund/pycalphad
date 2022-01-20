@@ -7,7 +7,8 @@ cimport scipy.linalg.cython_lapack as cython_lapack
 from libc.stdlib cimport malloc, free
 
 @cython.boundscheck(False)
-cdef void lstsq(double *A, int M, int N, double* x, double rcond) nogil:
+cdef bint lstsq(double *A, int M, int N, double* x, double rcond) nogil:
+    """Return True if successful. Return False if there is a rank deficiency."""
     cdef int i
     cdef int NRHS = 1
     cdef int iwork = 0
@@ -16,16 +17,27 @@ cdef void lstsq(double *A, int M, int N, double* x, double rcond) nogil:
     cdef int NLVL = 10  # this is also a guess
     cdef int lwork = 12*N + 2*N*SMLSIZ + 8*N*NLVL + N*NRHS + (SMLSIZ+1)**2
     cdef int rank = 0
+    cdef bint is_rank_deficient
     cdef double* work = <double*>malloc(lwork * sizeof(double))
     cdef double* singular_values = <double*>malloc(N * sizeof(double))
 
     cython_lapack.dgelsd(&M, &N, &NRHS, A, &N, x, &M, singular_values, &rcond, &rank,
                          work, &lwork, &iwork, &info)
+
+    # following NumPy's default tolerance for np.linalg.matrix_rank, which cites
+    # Numerical Recipes, any singular value less than `S.max() * max(M, N) * eps` is
+    # considered zero. We are only interested in whether there's _any_ rank deficiency.
+    # Because the singular values returned from dgelsd are in sorted order,
+    # `S.max() == singular_values[0]` and `S.min() == singular_values[N-1]`, so
+    # we can test for any rank deficiency just by using these two values.
+    # For type `double`, epsilon ~= 2.22e-16.
+    is_rank_deficient = singular_values[N - 1] < (singular_values[0] * max(M, N) * 2.22e-16)
     free(singular_values)
     free(work)
     if info != 0:
         for i in range(N):
             x[i] = -1e19
+    return not is_rank_deficient
 
 @cython.boundscheck(False)
 cdef void invert_matrix(double *A, int N, int* ipiv) nogil:
@@ -554,6 +566,7 @@ cpdef solve_state(SystemSpecification spec, SystemState state):
     cdef double[::1,:] equilibrium_matrix  # Fortran ordering required by call into lapack
     cdef double[::1] equilibrium_soln
     cdef int chempot_idx, comp_idx, num_stable_phases, num_fixed_phases, num_fixed_components, num_free_variables
+    cdef bint is_rank_deficient
 
     state.recompute(spec)
 
@@ -573,20 +586,10 @@ cpdef solve_state(SystemSpecification spec, SystemState state):
     equilibrium_soln[:] = 0
     fill_equilibrium_system(equilibrium_matrix, equilibrium_soln, spec, state)
 
-    lstsq(&equilibrium_matrix[0,0], equilibrium_matrix.shape[0], equilibrium_matrix.shape[1],
+    is_rank_deficient = not lstsq(&equilibrium_matrix[0,0], equilibrium_matrix.shape[0], equilibrium_matrix.shape[1],
           &equilibrium_soln[0], -1)
 
-    # set the chemical potentials from the solution
-    for i in range(spec.free_chemical_potential_indices.shape[0]):
-        chempot_idx = spec.free_chemical_potential_indices[i]
-        state.chemical_potentials[chempot_idx] = equilibrium_soln[i]
-
-    # Force some chemical potentials to adopt their fixed values
-    for chempot_idx in range(spec.fixed_chemical_potential_indices.shape[0]):
-        comp_idx = spec.fixed_chemical_potential_indices[chempot_idx]
-        state.chemical_potentials[comp_idx] = spec.initial_chemical_potentials[comp_idx]
-
-    return equilibrium_soln
+    return equilibrium_soln, is_rank_deficient
 
 
 # TODO: should we store equilibrium_soln in the state(?)
@@ -598,6 +601,17 @@ cpdef advance_state(SystemSpecification spec, SystemState state, double[::1] equ
     cdef int soln_index_offset = spec.free_chemical_potential_indices.shape[0]  # Chemical potentials handled after solving
     cdef double[::1] new_y, x
     cdef CompsetState csst
+
+    # 0. Set the chemical potentials from the solution
+    # This must be done before stepping in internal degrees of freedom
+    for i in range(spec.free_chemical_potential_indices.shape[0]):
+        chempot_idx = spec.free_chemical_potential_indices[i]
+        state.chemical_potentials[chempot_idx] = equilibrium_soln[i]
+
+    # Force some chemical potentials to adopt their fixed values
+    for chempot_idx in range(spec.fixed_chemical_potential_indices.shape[0]):
+        comp_idx = spec.fixed_chemical_potential_indices[chempot_idx]
+        state.chemical_potentials[comp_idx] = spec.initial_chemical_potentials[comp_idx]
 
     # 1. Step in phase amounts
     # Determine largest allowable step size such that the smallest phase amount is zero
@@ -801,7 +815,7 @@ cpdef find_solution(list compsets, int num_statevars, int num_components,
     cdef int[::1] metastable_phase_iterations = np.zeros(len(compsets), dtype=np.int32)
     cdef int[::1] times_compset_removed = np.zeros(len(compsets), dtype=np.int32)
     cdef bint converged = False
-    cdef bint phases_changed
+    cdef bint phases_changed, is_rank_deficient
     cdef SystemSpecification spec = SystemSpecification(num_statevars, num_components, prescribed_system_amount,
                                                         initial_chemical_potentials, prescribed_elemental_amounts,
                                                         prescribed_element_indices,
@@ -831,7 +845,31 @@ cpdef find_solution(list compsets, int num_statevars, int num_components,
 
         previous_chemical_potentials[:] = state.chemical_potentials[:]
 
-        eq_soln = solve_state(spec, state)
+        eq_soln, is_rank_deficient = solve_state(spec, state)
+        if is_rank_deficient:
+            # TODO: maybe needs a mass residual check?
+
+            # These feasibility checks are using the state from the previous iteration,
+            # since the values don't get set until the state is advanced.
+            # Perhaps we should be computing the step first (despite the rank deficiency)
+            # and then determine the feasibility based on whether or not that step will change the solution.
+            solution_is_feasible = (
+                # Presumably a phase change led to the rank deficiency, so don't
+                # consider a phase amount change to contribute.
+                # (state.largest_phase_amt_change[0] < ALLOWED_DELTA_PHASE_AMT) and
+                (state.largest_y_change[0] < ALLOWED_DELTA_Y) and
+                (state.largest_statevar_change[0] < ALLOWED_DELTA_STATEVAR)
+            )
+            if solution_is_feasible:
+                # The equilibrium matix is rank deficient and continuing will probably
+                # lead to the system getting into a bad state (e.g. incorrect chemical
+                # potentials). Instead of conting further,
+                converged = True
+                break
+            else:
+                print("Breaking on rank deficiency in an unconverged state.")
+                converged = False
+                break
 
         advance_state(spec, state, eq_soln, step_size)
 
