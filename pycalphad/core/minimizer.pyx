@@ -586,6 +586,8 @@ cpdef solve_state(SystemSpecification spec, SystemState state):
     equilibrium_soln[:] = 0
     fill_equilibrium_system(equilibrium_matrix, equilibrium_soln, spec, state)
 
+    print('equilibrium matrix\n', np.asarray(equilibrium_matrix))
+    print('SVD', np.linalg.svd(equilibrium_matrix))
     is_rank_deficient = not lstsq(&equilibrium_matrix[0,0], equilibrium_matrix.shape[0], equilibrium_matrix.shape[1],
           &equilibrium_soln[0], -1)
 
@@ -865,10 +867,15 @@ cpdef find_solution(list compsets, int num_statevars, int num_components,
                 # The equilibrium matix is rank deficient and continuing will probably
                 # lead to the system getting into a bad state (e.g. incorrect chemical
                 # potentials). Instead of conting further,
+                print("Breaking on rank deficiency in a converged state.")
                 converged = True
                 break
             else:
                 print("Breaking on rank deficiency in an unconverged state.")
+                print("state.mass_residual, allowed_mass_residual", state.mass_residual, allowed_mass_residual)
+                print("state.largest_phase_amt_change[0], ALLOWED_DELTA_PHASE_AMT", state.largest_phase_amt_change[0], ALLOWED_DELTA_PHASE_AMT)
+                print("state.largest_y_change[0], ALLOWED_DELTA_Y", state.largest_y_change[0], ALLOWED_DELTA_Y)
+                print("state.largest_statevar_change[0], ALLOWED_DELTA_STATEVAR", state.largest_statevar_change[0], ALLOWED_DELTA_STATEVAR)
                 converged = False
                 break
 

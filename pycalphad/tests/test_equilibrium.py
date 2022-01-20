@@ -655,7 +655,7 @@ def test_eq_needs_metastable_starting():
     conds[v.T] = 960
     conds[v.P] = 1e5
     conds[v.N] = 1
-    eq = equilibrium(dbf, ['CO', 'CR', 'FE', 'NB', 'TI', 'VA'], phases, conds)
+    eq = equilibrium(dbf, ['CO', 'CR', 'FE', 'NB', 'TI', 'VA'], phases, conds, verbose=True)
     assert set(np.squeeze(eq.Phase.values)) == {'SIGMA', 'BCC_A2', 'MU_PHASE', 'FCC_A1', 'LAVES_PHASE', ''}
     assert_allclose(eq.GM.values, -46868.31620088)
 
