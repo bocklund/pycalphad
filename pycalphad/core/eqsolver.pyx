@@ -292,6 +292,8 @@ def _solve_eq_at_conditions(properties, phase_records, grid, conds_keys, state_v
             if len(composition_sets) == 0:
                 changed_phases = False
                 break
+            if verbose:
+                print('Solving from starting point:', composition_sets)
             result = solve_and_update(composition_sets, cur_conds, iter_solver)
 
             chemical_potentials[:] = result.chemical_potentials
