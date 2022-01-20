@@ -847,17 +847,18 @@ cpdef find_solution(list compsets, int num_statevars, int num_components,
 
         eq_soln, is_rank_deficient = solve_state(spec, state)
         if is_rank_deficient:
-            # TODO: maybe needs a mass residual check?
-
             # These feasibility checks are using the state from the previous iteration,
             # since the values don't get set until the state is advanced.
             # Perhaps we should be computing the step first (despite the rank deficiency)
             # and then determine the feasibility based on whether or not that step will change the solution.
             solution_is_feasible = (
-                # Presumably a phase change led to the rank deficiency, so don't
-                # consider a phase amount change to contribute.
+                (state.mass_residual < allowed_mass_residual) and
+                    # Presumably a phase change led to the rank deficiency, so don't
+                    # consider a phase amount change to contribute.
                 # (state.largest_phase_amt_change[0] < ALLOWED_DELTA_PHASE_AMT) and
-                (state.largest_y_change[0] < ALLOWED_DELTA_Y) and
+                    # largest_y_change can be for a phase that isn't stable, so we don't consider it.
+                    # TODO: can we compute the largest_y_change from the last step for phases that are currently stable?
+                # (state.largest_y_change[0] < ALLOWED_DELTA_Y) and
                 (state.largest_statevar_change[0] < ALLOWED_DELTA_STATEVAR)
             )
             if solution_is_feasible:
