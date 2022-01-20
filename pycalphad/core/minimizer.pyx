@@ -846,6 +846,7 @@ cpdef find_solution(list compsets, int num_statevars, int num_components,
         previous_chemical_potentials[:] = state.chemical_potentials[:]
 
         eq_soln, is_rank_deficient = solve_state(spec, state)
+        is_rank_deficient = False
         if is_rank_deficient:
             # These feasibility checks are using the state from the previous iteration,
             # since the values don't get set until the state is advanced.
