@@ -849,6 +849,13 @@ cpdef find_solution(list compsets, int num_statevars, int num_components,
         previous_chemical_potentials[:] = state.chemical_potentials[:]
 
         eq_soln, is_rank_deficient = solve_state(spec, state)
+
+        print("Stable phases (amnt):", end=" ")
+        for _idx in range(len(state.free_stable_compset_indices)):
+            stable_cs_idx = state.free_stable_compset_indices[_idx]
+            print(f"{state.compsets[stable_cs_idx].phase_record.phase_name} ({state.phase_amt[stable_cs_idx]:0.6g})", end=", ")
+        print()
+
         if is_rank_deficient:
             # These feasibility checks are using the state from the previous iteration,
             # since the values don't get set until the state is advanced.
@@ -873,9 +880,6 @@ cpdef find_solution(list compsets, int num_statevars, int num_components,
                 break
             else:
                 print("Breaking on rank deficiency in an unconverged state.")
-                print("Stable phases:", end=" ")
-                for compset_idx in range(len(state.free_stable_compset_indices)):
-                    print(state.compsets[compset_idx].phase_record.phase_name, end=", ")
                 print("state.mass_residual, allowed_mass_residual", state.mass_residual, allowed_mass_residual)
                 print("state.largest_phase_amt_change[0], ALLOWED_DELTA_PHASE_AMT", state.largest_phase_amt_change[0], ALLOWED_DELTA_PHASE_AMT)
                 print("state.largest_y_change[0], ALLOWED_DELTA_Y", state.largest_y_change[0], ALLOWED_DELTA_Y)
