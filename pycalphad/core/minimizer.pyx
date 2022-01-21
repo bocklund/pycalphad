@@ -587,7 +587,7 @@ cpdef solve_state(SystemSpecification spec, SystemState state):
     fill_equilibrium_system(equilibrium_matrix, equilibrium_soln, spec, state)
 
     print('equilibrium matrix\n', np.asarray(equilibrium_matrix))
-    print('SVD', np.linalg.svd(equilibrium_matrix))
+    print('Singular values', np.linalg.svd(equilibrium_matrix)[1])
     is_rank_deficient = not lstsq(&equilibrium_matrix[0,0], equilibrium_matrix.shape[0], equilibrium_matrix.shape[1],
           &equilibrium_soln[0], -1)
 
@@ -841,6 +841,7 @@ cpdef find_solution(list compsets, int num_statevars, int num_components,
     iterations_since_last_phase_change = 0
     step_size = 1.0
     for iteration in range(1000):
+        print('--- Iteration ---', iteration)
         state.iteration = iteration
         if (state.mass_residual > 10) and (np.any(np.abs(state.chemical_potentials) > 1.0e10)):
             state.chemical_potentials[:] = spec.initial_chemical_potentials
@@ -872,6 +873,9 @@ cpdef find_solution(list compsets, int num_statevars, int num_components,
                 break
             else:
                 print("Breaking on rank deficiency in an unconverged state.")
+                print("Stable phases:", end=" ")
+                for compset_idx in range(len(state.free_stable_compset_indices)):
+                    print(state.compsets[compset_idx].phase_record.phase_name, end=", ")
                 print("state.mass_residual, allowed_mass_residual", state.mass_residual, allowed_mass_residual)
                 print("state.largest_phase_amt_change[0], ALLOWED_DELTA_PHASE_AMT", state.largest_phase_amt_change[0], ALLOWED_DELTA_PHASE_AMT)
                 print("state.largest_y_change[0], ALLOWED_DELTA_Y", state.largest_y_change[0], ALLOWED_DELTA_Y)
