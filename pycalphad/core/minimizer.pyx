@@ -787,11 +787,6 @@ cdef bint remove_and_consolidate_phases(SystemSpecification spec, SystemState st
         if state.phase_amt[idx] < 1e-10:
             # Don't allow consolidation into this composition set
             continue
-            # print(f"REMOVE_AND_CONSOLIDATE: MIN_PHASE_AMOUNT REMOVING COMPSET {state.compsets[idx]}")
-            # continue
-            # compset_indices_to_remove.add(idx)
-            # state.phase_amt[idx] = 0
-            # continue
         for j in range(len(state.free_stable_compset_indices)):
             idx2 = state.free_stable_compset_indices[j]
             compset2 = state.compsets[idx2]
@@ -834,12 +829,13 @@ cdef bint remove_and_consolidate_phases(SystemSpecification spec, SystemState st
     return phases_changed
 
 cdef bint change_phases(SystemSpecification spec, SystemState state):
-    cdef int idx, i, cs_idx, least_removed_cs_idx, smallest_df_cs_idx
+    cdef int idx, i, cs_idx, least_removed_cs_idx, smallest_df_cs_idx, comp_idx
     cdef double[::1] driving_forces = state.driving_forces()
     cdef double MIN_PHASE_AMOUNT = 1e-9
     cdef int MIN_REQUIRED_METASTABLE_PHASE_ITERATIONS_TO_ADD = 5
     cdef double MIN_DRIVING_FORCE_TO_ADD = 1e-5
     cdef int MAX_ALLOWED_TIMES_COMPSET_REMOVED = 4
+    cdef double closest_cs_distance, cs_distance
     phase_amt = state.phase_amt
     current_free_stable_compset_indices = state.free_stable_compset_indices
     compsets_to_remove = set()
@@ -847,6 +843,7 @@ cdef bint change_phases(SystemSpecification spec, SystemState state):
         cs_idx = current_free_stable_compset_indices[i]
         if phase_amt[cs_idx] < MIN_PHASE_AMOUNT:
             compsets_to_remove.add(cs_idx)
+            phase_amt[cs_idx] = 0.0
 
     # Only add phases with positive driving force which have been metastable for at least 5 iterations, which have been removed fewer than 4 times
     compsets_to_add = set()
@@ -863,18 +860,6 @@ cdef bint change_phases(SystemSpecification spec, SystemState state):
     max_allowed_to_add = spec.max_num_free_stable_phases + len(compsets_to_remove) - len(current_free_stable_compset_indices)
     # We must obey the Gibbs phase rule
     if len(compsets_to_add) > 0:
-        if max_allowed_to_add < 1:
-            # We are at the maximum number of allowed phases, yet there is still positive driving force
-            # Destabilize one phase and add only one phase
-            possible_phases_to_destabilize = sorted(set(current_free_stable_compset_indices) - compsets_to_add - compsets_to_remove)
-            # Destabilize the one that has been removed the least
-            least_removed_cs_idx = possible_phases_to_destabilize[0]
-            for i in range(1, len(possible_phases_to_destabilize)):
-                cs_idx = possible_phases_to_destabilize[i]
-                if state.times_compset_removed[cs_idx] < state.times_compset_removed[least_removed_cs_idx]:
-                    least_removed_cs_idx = cs_idx
-            compsets_to_remove.add(least_removed_cs_idx)
-            phase_amt[least_removed_cs_idx] = 0
         # Add the compset with least amount (but still positive) driving force
         possible_phases_to_add = sorted(compsets_to_add)
         smallest_df_cs_idx = possible_phases_to_add[0]
@@ -883,6 +868,24 @@ cdef bint change_phases(SystemSpecification spec, SystemState state):
             if driving_forces[cs_idx] < driving_forces[smallest_df_cs_idx]:
                 smallest_df_cs_idx = cs_idx
         compsets_to_add = {smallest_df_cs_idx}
+        if max_allowed_to_add < 1:
+            # We are at the maximum number of allowed phases, yet there is still positive driving force
+            # Destabilize one phase to exchange with the new one
+            # Destabilize the one that is the closest (in composition) to the one we are adding
+            possible_phases_to_destabilize = sorted(set(current_free_stable_compset_indices) - compsets_to_add - compsets_to_remove)
+            closest_cs_idx = possible_phases_to_destabilize[0]
+            closest_cs_distance = np.inf
+            for i in range(len(possible_phases_to_destabilize)):
+                cs_idx = possible_phases_to_destabilize[i]
+                # compute distance (norm) from the compset to add
+                cs_distance = 0.0
+                for comp_idx in range(spec.num_components):
+                    cs_distance += (state.compsets[smallest_df_cs_idx].X[comp_idx] - state.compsets[cs_idx].X[comp_idx])**2
+                if cs_distance < closest_cs_distance:
+                    closest_cs_distance = cs_distance
+                    closest_cs_idx = cs_idx
+            compsets_to_remove.add(closest_cs_idx)
+            phase_amt[closest_cs_idx] = 0.0
     new_free_stable_compset_indices = np.array(sorted((set(current_free_stable_compset_indices) - compsets_to_remove)
                                                       | compsets_to_add
                                                       ),
