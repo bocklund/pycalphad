@@ -785,9 +785,13 @@ cdef bint remove_and_consolidate_phases(SystemSpecification spec, SystemState st
             continue
         # Remove unstable phases
         if state.phase_amt[idx] < 1e-10:
-            compset_indices_to_remove.add(idx)
-            state.phase_amt[idx] = 0
+            # Don't allow consolidation into this composition set
             continue
+            # print(f"REMOVE_AND_CONSOLIDATE: MIN_PHASE_AMOUNT REMOVING COMPSET {state.compsets[idx]}")
+            # continue
+            # compset_indices_to_remove.add(idx)
+            # state.phase_amt[idx] = 0
+            # continue
         for j in range(len(state.free_stable_compset_indices)):
             idx2 = state.free_stable_compset_indices[j]
             compset2 = state.compsets[idx2]
