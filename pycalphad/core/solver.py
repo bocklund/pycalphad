@@ -103,6 +103,8 @@ class Solver(SolverBase):
         """
         spec = self.get_system_spec(composition_sets, conditions)
         state = spec.get_new_state(composition_sets)
+        if self.verbose:
+            print(f"Solving: {composition_sets}")
         converged = spec.run_loop(state, 1000)
 
         if self.remove_metastable:
@@ -128,6 +130,7 @@ class Solver(SolverBase):
         chemical_potentials = np.array(state.chemical_potentials)
 
         if self.verbose:
+            print('Converged', converged)
             print('Chemical Potentials', chemical_potentials)
             print(np.asarray(x))
         return SolverResult(converged=converged, x=x, chemical_potentials=chemical_potentials)
