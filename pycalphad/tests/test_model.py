@@ -64,11 +64,15 @@ def test_model_pickle_2(load_database):
     test_model = Model(dbf, ['NI', 'PT', 'VA'], 'FCC_L12')
     new_model = pickle.loads(pickle.dumps(test_model))
     for key in test_model.__dict__.keys():
-        if test_model.__dict__.get(key) != new_model.__dict__.get(key):
-            print(f"Initial (key = {key}): {test_model.__dict__.get(key)}")
-            print(f"Pickled (key = {key}): {new_model.__dict__.get(key)}")
-        else:
+        if key != "models":
+            assert test_model.__dict__.get(key) == new_model.__dict__.get(key)
             print(f"{key} matches")
+        else:
+            # test all of models
+            for model_key in test_model.__dict__.get(key).keys():
+                if test_model.__dict__.get(key).get(model_key) != new_model.__dict__.get(key).get(model_key):
+                    print(f"Initial models (key = {model_key}): {test_model.__dict__.get(key).get(model_key)}")
+                    print(f"Pickled models (key = {model_key}): {new_model.__dict__.get(key).get(model_key)}")
 
     assert test_model.__dict__ == new_model.__dict__
 
