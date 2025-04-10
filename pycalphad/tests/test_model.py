@@ -55,7 +55,7 @@ def test_model_pickle(load_database):
     dbf = load_database()
     test_model = Model(dbf, ['NI', 'PT', 'VA'], 'FCC_L12')
     new_model = pickle.loads(pickle.dumps(test_model))
-    assert test_model == new_model
+    assert test_model == new_model, test_model.__dict__ == new_model.__dict__
 
 
 @select_database("alcrni.tdb")
