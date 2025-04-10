@@ -55,8 +55,15 @@ def test_model_pickle(load_database):
     dbf = load_database()
     test_model = Model(dbf, ['NI', 'PT', 'VA'], 'FCC_L12')
     new_model = pickle.loads(pickle.dumps(test_model))
-    assert test_model == new_model, test_model.__dict__ == new_model.__dict__
+    assert test_model == new_model
 
+@select_database("alnipt.tdb")
+def test_model_pickle_2(load_database):
+    "Model pickle roundtrip."
+    dbf = load_database()
+    test_model = Model(dbf, ['NI', 'PT', 'VA'], 'FCC_L12')
+    new_model = pickle.loads(pickle.dumps(test_model))
+    assert test_model.__dict__ == new_model.__dict__
 
 @select_database("alcrni.tdb")
 def test_custom_model_contributions(load_database):
