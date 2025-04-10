@@ -63,6 +63,11 @@ def test_model_pickle_2(load_database):
     dbf = load_database()
     test_model = Model(dbf, ['NI', 'PT', 'VA'], 'FCC_L12')
     new_model = pickle.loads(pickle.dumps(test_model))
+    for key in test_model.keys():
+        if test_model.__dict__.get(key) != new_model.__dict__.get(key):
+            print(f"Initial (key = {key}): {test_model.__dict__.get(key)}")
+            print(f"Pickled (key = {key}): {new_model.__dict__.get(key)}")
+
     assert test_model.__dict__ == new_model.__dict__
 
 @select_database("alcrni.tdb")
