@@ -23,6 +23,15 @@ jobs:
       - name: "Activate virtual environment (Linux/Mac)"
         run: source pycalphad-dev/bin/activate
         if: ${{ runner.os != 'Windows' }}
+      - name: "Check limits"
+        run: ulimit -a
+        if: ${{ runner.os != 'Windows' }}
+      - name: "Check macOS ram"
+        run: sysctl hw.memsize
+        if: ${{ runner.os == 'macOS' }}
+      - name: "Check Linux ram"
+        run: lshw -c memory
+        if: ${{ runner.os == 'Linux' }}
       - name: "Activate virtual environment (Windows)"
         run: pycalphad-dev\Scripts\Activate.ps1
         if: ${{ runner.os == 'Windows' }}
