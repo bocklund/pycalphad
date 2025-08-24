@@ -18,6 +18,9 @@ filterwarnings = [
     "error",
     "ignore:The type definition character*:UserWarning",
 ]
+addopts = [
+    "--memray",
+]
 
 [tool.coverage.paths]
 # The first path is the path to the modules to report coverage against.

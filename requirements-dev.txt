@@ -9,6 +9,7 @@ wheel
 furo>=2021.11.16
 ipython  # for pygments syntax highlighting
 pytest-cov
+pytest-memray
 sphinx
 nbsphinx-link
 docutils<0.21 # workaround for https://github.com/vidartf/nbsphinx-link/issues/22
