@@ -35,6 +35,7 @@ jobs:
       - name: "Activate virtual environment (Windows)"
         run: pycalphad-dev\Scripts\Activate.ps1
         if: ${{ runner.os == 'Windows' }}
+      - run: pip install -r requirements-dev.txt
       - run: pip install build
       - run: python -m build --wheel
         env:
