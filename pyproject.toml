@@ -42,8 +42,7 @@ source_pkgs = [
 omit = [
     "pycalphad/core/*.pxd", # workaround for https://github.com/nedbat/coveragepy/issues/972
     "stringsource",
-    "*/site-packages/*",  # omit all site-packages (pycalphad installed in site-packages still gets correctly mapped via `source` converage path)
-    "*/numpy/*",  # omit numpy (from anywhere, even if not in site-packages)
+    "site-packages/numpy/*",  # omit numpy
 
 ]
 
