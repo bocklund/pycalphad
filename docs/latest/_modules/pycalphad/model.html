@@ -1,14 +1,15 @@
 <!doctype html>
 <html class="no-js" lang="en" data-content_root="../../">
-  <head><meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width,initial-scale=1"/>
-    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html">
+        <link rel="prefetch" href="../../_static/pycalphad-logo-withtext.png" as="image">
 
-    <!-- Generated with Sphinx 7.3.7 and Furo 2024.05.06 -->
-        <title>pycalphad.model - pycalphad 0.10.1.dev81+g8ff03d21 documentation</title>
+    <!-- Generated with Sphinx 8.1.3 and Furo 2025.09.25 -->
+        <title>pycalphad.model - pycalphad 0.10.1.dev132+g828bfa41d documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
-    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=387cc868" />
-    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=36a5483c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=580074bf" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
     
     
 
@@ -87,19 +88,6 @@
       <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
     </svg>
   </symbol>
-  <symbol id="svg-sun-half" viewBox="0 0 24 24">
-    <title>Auto light/dark mode</title>
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
-      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M13 12h5" />
-      <path d="M13 15h4" />
-      <path d="M13 18h1" />
-      <path d="M13 9h4" />
-      <path d="M13 6h1" />
-    </svg>
-  </symbol>
   <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
     <title>Auto light/dark, in light mode</title>
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -140,7 +128,7 @@
       <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
       <path d="M13.5 6.5l4 4" />
       <path d="M20 21l2 -2l-2 -2" />
-      <path d="M17 17l-2 2l2 2" /
+      <path d="M17 17l-2 2l2 2" />
     </svg>
   </symbol>
   <symbol id="svg-eye" viewBox="0 0 24 24">
@@ -156,14 +144,10 @@
   </symbol>
 </svg>
 
-<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
-<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
-<label class="overlay sidebar-overlay" for="__navigation">
-  <div class="visually-hidden">Hide navigation sidebar</div>
-</label>
-<label class="overlay toc-overlay" for="__toc">
-  <div class="visually-hidden">Hide table of contents sidebar</div>
-</label>
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
 
 <a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
 
@@ -173,17 +157,15 @@
   <header class="mobile-header">
     <div class="header-left">
       <label class="nav-overlay-icon" for="__navigation">
-        <div class="visually-hidden">Toggle site navigation sidebar</div>
-        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">pycalphad 0.10.1.dev81+g8ff03d21 documentation</div></a>
+      <a href="../../index.html"><div class="brand">pycalphad 0.10.1.dev132+g828bfa41d documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
-        <button class="theme-toggle">
-          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
           <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
           <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
           <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
@@ -191,8 +173,7 @@
         </button>
       </div>
       <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
-        <div class="visually-hidden">Toggle table of contents sidebar</div>
-        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
       </label>
     </div>
   </header>
@@ -200,12 +181,11 @@
     <div class="sidebar-container">
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
-  
   <div class="sidebar-logo-container">
     <img class="sidebar-logo" src="../../_static/pycalphad-logo-withtext.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">pycalphad 0.10.1.dev81+g8ff03d21 documentation</span>
+  <span class="sidebar-brand-text">pycalphad 0.10.1.dev132+g828bfa41d documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -215,17 +195,26 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../INSTALLING.html">Install pycalphad</a></li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../../examples/index.html">Examples</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Examples</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../examples/index.html">Examples</a><input aria-label="Toggle navigation of Examples" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/BinaryExamples.html">Plotting Isobaric Binary Phase Diagrams with <code class="docutils literal notranslate"><span class="pre">binplot</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/BinaryExamples.html#Calculating-Energy-Surfaces-of-Binary-Systems">Calculating Energy Surfaces of Binary Systems</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/TernaryExamples.html">Plotting Ternary Phase Diagrams and Using Triangular Axes</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/UsingCalculationResults.html">Exploring <code class="docutils literal notranslate"><span class="pre">calculate</span></code> and <code class="docutils literal notranslate"><span class="pre">equilibrium</span></code> xarray Datasets</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/ChargedPhases.html">Phases with Electrically Charged Species</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/Metastability.html">Plot energy curves for several phases</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/Metastability.html#Driving-force-calculation">Driving force calculation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/Metastability.html#Calculate-T0-(t-zero)-as-a-function-of-composition">Calculate T0 (t-zero) as a function of composition</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/ReferenceStateExamples.html">Calculations with Reference States</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/PlotActivity.html">Calculate and Plot Activity</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/EquilibriumWithOrdering.html">Equilibrium Properties and Partial Ordering (Al-Fe and Al-Ni)</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/ViscosityModel.html">Custom Models in pycalphad: Viscosity</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/CementiteAnalysis.html">Heat Capacity of Cementite (<span class="math notranslate nohighlight">\(Fe_3C\)</span>)</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../examples/index.html#advanced-examples">Advanced Examples</a><input aria-label="Toggle navigation of Advanced Examples" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/UsingCalculationResults.html">Exploring <code class="docutils literal notranslate"><span class="pre">calculate</span></code> and <code class="docutils literal notranslate"><span class="pre">equilibrium</span></code> xarray Datasets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/LegacyEnergySurface.html">Calculating Energy Surfaces [Legacy Method]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/LegacyReferenceState.html">Special <code class="docutils literal notranslate"><span class="pre">_MIX</span></code> Reference State</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/LegacyReferenceState.html#Calculations-at-specific-site-fractions">Calculations at specific site fractions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/ChargedPhases.html">Phases with Electrically Charged Species</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/PlotActivity.html">Calculate and Plot Activity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/ViscosityModel.html">Custom Models in pycalphad: Viscosity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/Mapping.html">Plotting using the Mapping API</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../faq.html">FAQ</a></li>
@@ -235,16 +224,21 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../releasing.html">Releasing pycalphad</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../onboarding.html">Onboarding as a Developer</a></li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../../api/modules.html">API Documentation</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of API Documentation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../../api/pycalphad.html">pycalphad package</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of pycalphad package</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../api/modules.html">API Documentation</a><input aria-label="Toggle navigation of API Documentation" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../api/pycalphad.html">pycalphad package</a><input aria-label="Toggle navigation of pycalphad package" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../api/pycalphad.codegen.html">pycalphad.codegen package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/pycalphad.core.html">pycalphad.core package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/pycalphad.io.html">pycalphad.io package</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../api/pycalphad.mapping.html">pycalphad.mapping package</a><input aria-label="Toggle navigation of pycalphad.mapping package" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/pycalphad.mapping.strategy.html">pycalphad.mapping.strategy package</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/pycalphad.models.html">pycalphad.models package</a></li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../api/pycalphad.plot.html">pycalphad.plot package</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of pycalphad.plot package</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../api/pycalphad.plot.html">pycalphad.plot package</a><input aria-label="Toggle navigation of pycalphad.plot package" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../api/pycalphad.plot.binary.html">pycalphad.plot.binary package</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/pycalphad.property_framework.html">pycalphad.property_framework package</a></li>
 </ul>
 </li>
 </ul>
@@ -269,8 +263,7 @@
         </a>
         <div class="content-icon-container">
           <div class="theme-toggle-container theme-toggle-content">
-            <button class="theme-toggle">
-              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
               <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
               <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
               <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
@@ -278,8 +271,7 @@
             </button>
           </div>
           <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
-            <div class="visually-hidden">Toggle table of contents sidebar</div>
-            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
           </label>
         </div>
         <article role="main" id="furo-main-content">
@@ -295,9 +287,15 @@
 <span class="kn">import</span> <span class="nn">pycalphad.variables</span> <span class="k">as</span> <span class="nn">v</span>
 <span class="kn">from</span> <span class="nn">pycalphad.core.errors</span> <span class="kn">import</span> <span class="n">DofError</span>
 <span class="kn">from</span> <span class="nn">pycalphad.core.constants</span> <span class="kn">import</span> <span class="n">MIN_SITE_FRACTION</span>
-<span class="kn">from</span> <span class="nn">pycalphad.core.utils</span> <span class="kn">import</span> <span class="n">unpack_components</span><span class="p">,</span> <span class="n">get_pure_elements</span><span class="p">,</span> <span class="n">wrap_symbol</span>
+<span class="kn">from</span> <span class="nn">pycalphad.core.utils</span> <span class="kn">import</span> <span class="n">unpack_species</span><span class="p">,</span> <span class="n">get_pure_elements</span><span class="p">,</span> <span class="n">wrap_symbol</span>
+<span class="kn">from</span> <span class="nn">pycalphad.io.tdb</span> <span class="kn">import</span> <span class="n">get_supported_variables</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="c1"># needs Python 3.13+</span>
+    <span class="kn">from</span> <span class="nn">warnings</span> <span class="kn">import</span> <span class="n">deprecated</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">typing_extensions</span> <span class="kn">import</span> <span class="n">deprecated</span>
 
 <span class="c1"># Maximum number of levels deep we check for symbols that are functions of</span>
 <span class="c1"># other symbols</span>
@@ -486,7 +484,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">phase_name</span> <span class="o">=</span> <span class="n">phase_name</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
         <span class="n">phase</span> <span class="o">=</span> <span class="n">dbe</span><span class="o">.</span><span class="n">phases</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">phase_name</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">site_ratios</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">phase</span><span class="o">.</span><span class="n">sublattices</span><span class="p">)</span>
-        <span class="n">active_species</span> <span class="o">=</span> <span class="n">unpack_components</span><span class="p">(</span><span class="n">dbe</span><span class="p">,</span> <span class="n">comps</span><span class="p">)</span>
+        <span class="n">active_species</span> <span class="o">=</span> <span class="n">unpack_species</span><span class="p">(</span><span class="n">dbe</span><span class="p">,</span> <span class="n">comps</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">sublattice</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">phase</span><span class="o">.</span><span class="n">constituents</span><span class="p">):</span>
             <span class="n">subl_comps</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">sublattice</span><span class="p">)</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">active_species</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">components</span> <span class="o">|=</span> <span class="n">subl_comps</span>
@@ -563,7 +561,7 @@
 
         <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="c1"># XXX: xreplace hack because SymEngine seems to let Symbols slip in somehow</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">symbol_replace</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">symbols</span><span class="p">)</span><span class="o">.</span><span class="n">xreplace</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">supported_variables_in_databases</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">symbol_replace</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">symbols</span><span class="p">)</span><span class="o">.</span><span class="n">xreplace</span><span class="p">(</span><span class="n">get_supported_variables</span><span class="p">())</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">site_fractions</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">SiteFraction</span><span class="p">)],</span> <span class="n">key</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">state_variables</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">SiteFraction</span><span class="p">)],</span> <span class="n">key</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
@@ -736,6 +734,7 @@
     <span class="n">formulaenergy</span> <span class="o">=</span> <span class="n">G</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="k">lambda</span> <span class="bp">self</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">ast</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_site_ratio_normalization</span><span class="p">)</span>
     <span class="n">entropy</span> <span class="o">=</span> <span class="n">SM</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="k">lambda</span> <span class="bp">self</span><span class="p">:</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">GM</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">T</span><span class="p">))</span>
     <span class="n">enthalpy</span> <span class="o">=</span> <span class="n">HM</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="k">lambda</span> <span class="bp">self</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">GM</span> <span class="o">-</span> <span class="n">v</span><span class="o">.</span><span class="n">T</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">GM</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">T</span><span class="p">))</span>
+    <span class="n">formulaenthalpy</span> <span class="o">=</span> <span class="n">H</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="k">lambda</span> <span class="bp">self</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">G</span> <span class="o">-</span> <span class="n">v</span><span class="o">.</span><span class="n">T</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">G</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">T</span><span class="p">))</span>
     <span class="n">heat_capacity</span> <span class="o">=</span> <span class="n">CPM</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="k">lambda</span> <span class="bp">self</span><span class="p">:</span> <span class="o">-</span><span class="n">v</span><span class="o">.</span><span class="n">T</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">GM</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">T</span><span class="p">))</span>
     <span class="c1">#pylint: enable=C0103</span>
     <span class="n">mixing_energy</span> <span class="o">=</span> <span class="n">GM_MIX</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="k">lambda</span> <span class="bp">self</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">GM</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">endmember_reference_model</span><span class="o">.</span><span class="n">GM</span><span class="p">)</span>
@@ -1024,6 +1023,10 @@
         <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
             <span class="c1"># iterate over every sublattice</span>
             <span class="n">mixing_term</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">One</span>
+            <span class="n">param_subl_dof</span> <span class="o">=</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">subl</span><span class="p">)</span> <span class="k">for</span> <span class="n">subl</span> <span class="ow">in</span> <span class="n">param</span><span class="p">[</span><span class="s2">&quot;constituent_array&quot;</span><span class="p">]]</span>
+            <span class="n">mixing_sublattice_indices</span> <span class="o">=</span> <span class="p">[</span><span class="n">subl_index</span> <span class="k">for</span> <span class="n">subl_index</span><span class="p">,</span> <span class="n">dof</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">param_subl_dof</span><span class="p">)</span> <span class="k">if</span> <span class="n">dof</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">mixing_sublattice_indices</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">max</span><span class="p">(</span><span class="n">param_subl_dof</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Parameters with mixing on multiple sublattices cannot include interactions beyond binary. Got mixing on </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">mixing_sublattice_indices</span><span class="p">)</span><span class="si">}</span><span class="s2"> sublattices with one sublattice having mixing between </span><span class="si">{</span><span class="nb">max</span><span class="p">(</span><span class="n">param_subl_dof</span><span class="p">)</span><span class="si">}</span><span class="s2"> constituents for parameter </span><span class="si">{</span><span class="n">param</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">subl_index</span><span class="p">,</span> <span class="n">comps</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;constituent_array&#39;</span><span class="p">]):</span>
                 <span class="n">comp_symbols</span> <span class="o">=</span> <span class="kc">None</span>
                 <span class="c1"># convert strings to symbols</span>
@@ -1075,9 +1078,23 @@
                     <span class="n">mixing_term</span> <span class="o">*=</span> <span class="n">Mul</span><span class="p">(</span><span class="o">*</span><span class="n">comp_symbols</span><span class="p">)</span>
                 <span class="c1"># is this a higher-order interaction parameter?</span>
                 <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">comps</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;parameter_order&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-                    <span class="c1"># interacting sublattice, add the interaction polynomial</span>
-                    <span class="n">mixing_term</span> <span class="o">*=</span> <span class="n">Pow</span><span class="p">(</span><span class="n">comp_symbols</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> \
-                        <span class="n">comp_symbols</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;parameter_order&#39;</span><span class="p">])</span>
+                    <span class="c1"># multiply in (y_A - y_B) terms</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">mixing_sublattice_indices</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="c1"># Normal R-K interaction parameter for mixing on one sublattice</span>
+                        <span class="n">mixing_term</span> <span class="o">*=</span> <span class="n">Pow</span><span class="p">(</span><span class="n">comp_symbols</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">comp_symbols</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;parameter_order&#39;</span><span class="p">])</span>
+                    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">mixing_sublattice_indices</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                        <span class="c1"># We have a reciprocal parameter</span>
+                        <span class="c1"># Similar to the ternary case, the parameter order has a special meaning for reciprocal parameters.</span>
+                        <span class="c1"># We only multiply by (y_A - y_B) if the sublattice corresponds to a specific parameter order</span>
+                        <span class="c1"># See Eq 5.99 in Section 5.8.1 of Lukas, Fries and Sundman [2].</span>
+                        <span class="c1"># Testing with Thermo-Calc indicates that that L1 corresponds to the second sublattice</span>
+                        <span class="c1"># with mixing and L2 corresponds to the first sublattice with mixing.</span>
+                        <span class="k">if</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;parameter_order&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>  <span class="c1"># L0 case doesn&#39;t have a (yA - yB) term</span>
+                            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Reciprocal parameters can only use parameter order 0, 1, or 2. Got </span><span class="si">{</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;parameter_order&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> for </span><span class="si">{</span><span class="n">param</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">subl_index</span> <span class="o">==</span> <span class="n">mixing_sublattice_indices</span><span class="p">[</span><span class="o">-</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;parameter_order&#39;</span><span class="p">]]:</span>
+                            <span class="n">mixing_term</span> <span class="o">*=</span> <span class="p">(</span><span class="n">comp_symbols</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">comp_symbols</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Reciprocal interaction parameters beyond order L0 for more than 2 sublattices are not supported. Got mixing on </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">mixing_sublattice_indices</span><span class="p">)</span><span class="si">}</span><span class="s2"> sublattices for parameter </span><span class="si">{</span><span class="n">param</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
                 <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">comps</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
                     <span class="c1"># &#39;parameter_order&#39; is an index to a variable when</span>
                     <span class="c1"># we are in the ternary interaction parameter case</span>
@@ -1586,12 +1603,21 @@
         <span class="n">num_ordered_interstitial_subls</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ordered_phase</span><span class="o">.</span><span class="n">sublattices</span><span class="p">)</span> <span class="o">-</span> <span class="n">num_substitutional_sublattice_idxs</span>
         <span class="n">num_disordered_interstitial_subls</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">disordered_phase</span><span class="o">.</span><span class="n">sublattices</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
         <span class="k">if</span> <span class="n">num_ordered_interstitial_subls</span> <span class="o">!=</span> <span class="n">num_disordered_interstitial_subls</span><span class="p">:</span>
+            <span class="kn">import</span> <span class="nn">textwrap</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s1">&#39;Number of interstitial sublattices for the disordered phase &#39;</span>
-                <span class="sa">f</span><span class="s1">&#39;(</span><span class="si">{</span><span class="n">num_disordered_interstitial_subls</span><span class="si">}</span><span class="s1">) and the ordered phase &#39;</span>
-                <span class="sa">f</span><span class="s1">&#39;(</span><span class="si">{</span><span class="n">num_ordered_interstitial_subls</span><span class="si">}</span><span class="s1">) do not match. Got &#39;</span>
-                <span class="sa">f</span><span class="s1">&#39;substitutional sublattice indices of </span><span class="si">{</span><span class="n">substitutional_sublattice_idxs</span><span class="si">}</span><span class="s1">.&#39;</span>
-                <span class="p">)</span>
+                <span class="n">textwrap</span><span class="o">.</span><span class="n">dedent</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">                Number of interstitial sublattices for the disordered phase</span>
+<span class="s2">                 </span><span class="si">{</span><span class="n">disordered_phase_name</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">num_disordered_interstitial_subls</span><span class="si">}</span><span class="s2">)</span>
+<span class="s2">                 and the ordered phase </span><span class="si">{</span><span class="n">ordered_phase_name</span><span class="si">}</span>
+<span class="s2">                 (</span><span class="si">{</span><span class="n">num_ordered_interstitial_subls</span><span class="si">}</span><span class="s2">) do not match. Found substitutional</span>
+<span class="s2">                 sublattices in the ordered phase with indices of</span>
+<span class="s2">                 </span><span class="si">{</span><span class="n">substitutional_sublattice_idxs</span><span class="si">}</span><span class="s2">. Ensure that all the constituents in</span>
+<span class="s2">                 the substitutional sublattices for the disordered and ordered phase</span>
+<span class="s2">                 match exactly and the constituents in the interstitial sublattices for</span>
+<span class="s2">                 the disordered and ordered phase match exactly.</span>
+<span class="s2">                &quot;&quot;&quot;</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">))</span>
         <span class="c1"># We also validate that no physical properties have ordered</span>
         <span class="c1"># contributions because the underlying physical property needs to</span>
         <span class="c1"># paritioned and substituted for the physical property in the disordered</span>
@@ -1678,16 +1704,16 @@
         <span class="k">return</span> <span class="n">ordering_energy</span></div>
 
 
-    <span class="c1"># TODO: fix case for VA interactions: L(PHASE,A,VA:VA;0)-type parameters</span>
 <div class="viewcode-block" id="Model.shift_reference_state">
 <a class="viewcode-back" href="../../api/pycalphad.html#pycalphad.model.Model.shift_reference_state">[docs]</a>
+    <span class="nd">@deprecated</span><span class="p">(</span><span class="s2">&quot;shift_reference_state is deprecated. Use `pycalphad.property_framework.ReferenceState` instead.&quot;</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">shift_reference_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reference_states</span><span class="p">,</span> <span class="n">dbe</span><span class="p">,</span> <span class="n">contrib_mods</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">output</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;GM&#39;</span><span class="p">,</span> <span class="s1">&#39;HM&#39;</span><span class="p">,</span> <span class="s1">&#39;SM&#39;</span><span class="p">,</span> <span class="s1">&#39;CPM&#39;</span><span class="p">),</span> <span class="n">fmt_str</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">R&quot;</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Add new attributes for calculating properties w.r.t. an arbitrary pure element reference state.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        reference_states : Iterable of ReferenceState</span>
+<span class="sd">        reference_states : Iterable of pycalphad.model.ReferenceState</span>
 <span class="sd">            Pure element ReferenceState objects. Must include all the pure</span>
 <span class="sd">            elements defined in the current model.</span>
 <span class="sd">        dbe : Database</span>
@@ -1895,7 +1921,7 @@
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2015, pycalphad Development Team
+                Copyright &#169; 2015-2022, pycalphad Development Team
             </div>
             Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
             
@@ -1915,10 +1941,10 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=35570c71"></script>
-    <script src="../../_static/doctools.js?v=9a2dae69"></script>
+</div><script src="../../_static/documentation_options.js?v=c8154842"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script src="../../_static/scripts/furo.js?v=4e2eecee"></script>
+    <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     </body>
 </html>
