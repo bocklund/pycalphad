@@ -364,8 +364,13 @@ class Model(object):
     def moles(self, species, per_formula_unit=False):
         "Number of moles of species or elements."
         species = v.Species(species)
-        is_pure_element = (len(species.constituents.keys()) == 1 and
-                           list(species.constituents.keys())[0] == species.name)
+        is_pure_element = (
+            len(species.constituents.keys()) == 1 and
+            (
+                list(species.constituents.keys())[0] == species.name or
+                species.number_of_atoms == 0  # special case to handle vacancies that might not have species.name == VA (i.e. if they're charged)
+            )
+        )
         result = S.Zero
         normalization = S.Zero
         if is_pure_element:
