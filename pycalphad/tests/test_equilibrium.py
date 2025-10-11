@@ -9,7 +9,7 @@ import pytest
 from symengine import Symbol
 from numpy.testing import assert_allclose
 import numpy as np
-from pycalphad import Database, Model, calculate, equilibrium, EquilibriumError, ConditionError
+from pycalphad import Database, Model, calculate, equilibrium, EquilibriumError, ConditionError, Workspace
 from pycalphad.codegen.phase_record_factory import PhaseRecordFactory
 from pycalphad.core.solver import SolverBase, Solver
 from pycalphad.core.utils import get_state_variables, instantiate_models
@@ -1102,3 +1102,22 @@ def test_issue589_global_min(load_database):
     # Confirmed by turning point density up to 1e7
     assert_allclose(res.GM.values.squeeze(), np.array([-39263.10130208]))
     assert_allclose(res.MU.values.squeeze(), np.array([-73190.455829,  55931.596253, -59900.399453, -79250.493316, -80354.857076]))
+
+
+@select_database("TiO-15Ham.tdb")
+def test_ionic_solid_charged_vacancies(load_database):
+    dbf = load_database()
+    # TI3O2 has no internal degrees of freedom. Rutile has one internal DOF
+    wks = Workspace(dbf, ["TI", "O", "VA"], ["TI3O2", "RUTILE_C4"], {v.P: 101325., v.N: 1., v.T: 300., v.X("TI"): 0.54}, verbose=True)
+    GM = wks.get("GM")
+
+    chempots = wks.get("MU(*)")
+    NPs = wks.get("NP(TI3O2)", "NP(RUTILE_C4)")
+    Y_TI3O2 = wks.get("Y(TI3O2,*,*)")
+    Y_RUTILE_C4 = wks.get("Y(RUTILE_C4,*,*)")
+    print(GM, chempots, NPs, Y_TI3O2, Y_RUTILE_C4)
+
+    assert_allclose(chempots, [-4.3969E+05, -8.6720E+04], rtol=2e-5)
+    assert_allclose(NPs, [7.4454E-01, 2.5546E-01], rtol=2e-5)
+    assert_allclose(Y_TI3O2, [1.0, 1.0, 1.0], atol=1e-5)
+    assert_allclose(Y_RUTILE_C4, [1.0, 8.69368E-01, 1.30632E-01], atol=1e-5)
