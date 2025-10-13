@@ -622,6 +622,8 @@ class MoleFraction(StateVariable):
         else:
             return 'x_{'+self.species.escaped_name+'}'
 
+    def __repr__(self):
+        return f"X('{self.name.strip('X_')}')"
 
 class MassFraction(StateVariable):
     """

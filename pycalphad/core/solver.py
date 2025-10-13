@@ -32,6 +32,51 @@ class Solver(SolverBase):
         self.remove_metastable = remove_metastable
 
 
+    def _reproducer_script(self, composition_sets, conditions):
+        conds_str = "{"
+        for key, val in conditions.items():
+            conds_str += f"v.{repr(key)}: {val}, "
+        conds_str += "}"
+        x = f"""from importlib.resources import files
+import numpy as np
+import pycalphad.tests.databases
+from pycalphad import Database, variables as v
+from pycalphad.core.utils import instantiate_models
+from pycalphad.codegen.phase_record_factory import PhaseRecordFactory
+from pycalphad.core.solver import Solver
+from pycalphad.core.composition_set import CompositionSet
+
+databases = files(pycalphad.tests.databases)
+dbf = Database(databases / "TiO-15Ham.tdb")
+solver = Solver()
+comps = ["TI", "O", "VA"]
+phases = list(dbf.phases.keys())
+#conditions = {{v.P: 101325.0, v.T: 300.0, v.N: 1, v.X("TI"): 0.34125}}
+conditions = {conds_str}
+state_variables = {{v.N, v.P, v.T}}
+
+models = instantiate_models(dbf, comps, phases)
+phase_record_factory = PhaseRecordFactory(dbf, comps, state_variables, models)
+num_statevars = len(phase_record_factory.state_variables)
+"""
+        compset_names = []
+        for i, cs in enumerate(composition_sets):
+            phase_name = cs.phase_record.phase_name
+            compset_name = f"cs_{i}_{phase_name}"
+            compset_names.append(compset_name)
+            x += f"dof = np.asarray({np.asarray(cs.dof).tolist()}); "
+            x += f"NP = {cs.NP}; "
+            x += f"fixed = {cs.fixed}; "
+            x += f"{compset_name} = CompositionSet(phase_record_factory['{phase_name}']); "
+            x += f"{compset_name}.update(dof[num_statevars:], NP, dof[:num_statevars])"
+            x += "\n"
+
+        x += f"composition_sets = [{', '.join(compset_names)}]\n"
+        x += f"solver.solve(composition_sets, conditions)\n"
+
+        return x
+
+
     def get_system_spec(self, composition_sets, conditions):
         """
         Create a SystemSpecification object for the specified conditions.
@@ -160,12 +205,17 @@ class Solver(SolverBase):
         SolverResult
 
         """
+        reproducer_string = self._reproducer_script(composition_sets, conditions)
         if self.verbose:
             print(f"Solver: Attempting to solve system at conditions {conditions} with starting point: {composition_sets}")
         spec = self.get_system_spec(composition_sets, conditions)
         self._fix_state_variables_in_compsets(composition_sets, conditions)
         state = spec.get_new_state(composition_sets)
-        converged = spec.run_loop(state, 1000)
+        try:
+            converged = spec.run_loop(state, 1000)
+        except Exception as e:
+            print(reproducer_string)
+            raise e
 
         if self.remove_metastable:
             phase_idx = 0
@@ -195,4 +245,5 @@ class Solver(SolverBase):
                 print(f"Solver: (converged in {state.iteration+1} iterations): {soln_desc}", )
             else:
                 print(f"Solver: (not converged): {soln_desc}", )
+                print(reproducer_string)
         return SolverResult(converged=converged, x=x, chemical_potentials=chemical_potentials)
