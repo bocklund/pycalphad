@@ -1121,3 +1121,43 @@ def test_ionic_solid_charged_vacancies(load_database):
     assert_allclose(NPs, [7.4454E-01, 2.5546E-01], rtol=2e-5)
     assert_allclose(Y_TI3O2, [1.0, 1.0, 1.0], atol=1e-5)
     assert_allclose(Y_RUTILE_C4, [1.0, 8.69368E-01, 1.30632E-01], atol=1e-5)
+
+
+@select_database("TiO-15Ham.tdb")
+def test_charged_phase_converges(load_database):
+    """Can raise ZeroDivisionError: float division
+
+pycalphad/core/minimizer.pyx:268: in pycalphad.core.minimizer.fill_equilibrium_system
+    write_row_fixed_mole_fraction(equilibrium_matrix[component_row_offset + fixed_molefrac_cond_idx, :],
+>   (phase_amt[idx]/current_system_amount) * mass_jac[component_idx, num_statevars+j] * c_component[chempot_idx, j]
+E   ZeroDivisionError: float division
+    """
+    from pycalphad import Database, variables as v
+    from pycalphad.core.utils import instantiate_models
+    from pycalphad.codegen.phase_record_factory import PhaseRecordFactory
+    from pycalphad.core.solver import Solver
+    from pycalphad.core.composition_set import CompositionSet
+
+    dbf = load_database()
+    solver = Solver()
+    comps = ["TI", "O", "VA"]
+    phases = list(dbf.phases.keys())
+    #conditions = {v.P: 101325.0, v.T: 300.0, v.N: 1, v.X("TI"): 0.34125}
+    conditions = {v.N: 1.0, v.P: 101325.0, v.T: 300.0, v.X('TI'): 0.3412499999999999, }
+    state_variables = {v.N, v.P, v.T}
+
+    models = instantiate_models(dbf, comps, phases)
+    phase_record_factory = PhaseRecordFactory(dbf, comps, state_variables, models)
+    num_statevars = len(phase_record_factory.state_variables)
+    dof = np.asarray([1.0, 101325.0, 300.0, 1.0, 1.0, 1.0]); NP = 0.6121250000000237; fixed = False; cs_0_TI20O39 = CompositionSet(phase_record_factory['TI20O39']); cs_0_TI20O39.update(dof[num_statevars:], NP, dof[:num_statevars])
+    dof = np.asarray([1.0, 101325.0, 300.0, 1.0, 1.0, 1.0]); NP = 0.3878749999999764; fixed = False; cs_1_TI10O19 = CompositionSet(phase_record_factory['TI10O19']); cs_1_TI10O19.update(dof[num_statevars:], NP, dof[:num_statevars])
+    dof = np.asarray([1.0, 101325.0, 300.0, 1.0, 0.99999999999999, 9.9999999999999e-15]); NP = 0.0; fixed = False; cs_2_RUTILE_C4 = CompositionSet(phase_record_factory['RUTILE_C4']); cs_2_RUTILE_C4.update(dof[num_statevars:], NP, dof[:num_statevars])
+    dof = np.asarray([1.0, 101325.0, 300.0, 1.0, 1.0, 1.0]); NP = 0.0; fixed = False; cs_3_TI4O7 = CompositionSet(phase_record_factory['TI4O7']); cs_3_TI4O7.update(dof[num_statevars:], NP, dof[:num_statevars])
+    dof = np.asarray([1.0, 101325.0, 300.0, 1.0, 1.0, 1.0]); NP = 0.0; fixed = False; cs_4_TI5O9 = CompositionSet(phase_record_factory['TI5O9']); cs_4_TI5O9.update(dof[num_statevars:], NP, dof[:num_statevars])
+    dof = np.asarray([1.0, 101325.0, 300.0, 1.0, 1.0, 1.0]); NP = 0.0; fixed = False; cs_5_TI6O11 = CompositionSet(phase_record_factory['TI6O11']); cs_5_TI6O11.update(dof[num_statevars:], NP, dof[:num_statevars])
+    dof = np.asarray([1.0, 101325.0, 300.0, 1.0, 1.0, 1.0]); NP = 0.0; fixed = False; cs_6_TI7O13 = CompositionSet(phase_record_factory['TI7O13']); cs_6_TI7O13.update(dof[num_statevars:], NP, dof[:num_statevars])
+    dof = np.asarray([1.0, 101325.0, 300.0, 1.0, 1.0, 1.0]); NP = 0.0; fixed = False; cs_7_TI8O15 = CompositionSet(phase_record_factory['TI8O15']); cs_7_TI8O15.update(dof[num_statevars:], NP, dof[:num_statevars])
+    dof = np.asarray([1.0, 101325.0, 300.0, 1.0, 1.0, 1.0]); NP = 0.0; fixed = False; cs_8_TI9O17 = CompositionSet(phase_record_factory['TI9O17']); cs_8_TI9O17.update(dof[num_statevars:], NP, dof[:num_statevars])
+    composition_sets = [cs_0_TI20O39, cs_1_TI10O19, cs_2_RUTILE_C4, cs_3_TI4O7, cs_4_TI5O9, cs_5_TI6O11, cs_6_TI7O13, cs_7_TI8O15, cs_8_TI9O17]
+    solver_result = solver.solve(composition_sets, conditions)
+    assert solver_result.converged
