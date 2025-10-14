@@ -1122,6 +1122,8 @@ def test_ionic_solid_charged_vacancies(load_database):
     assert_allclose(Y_TI3O2, [1.0, 1.0, 1.0], atol=1e-5)
     assert_allclose(Y_RUTILE_C4, [1.0, 8.69368E-01, 1.30632E-01], atol=1e-5)
 
+    raise ValueError("XFAIL")
+
 
 @select_database("TiO-15Ham.tdb")
 def test_charged_phase_converges(load_database):

@@ -212,7 +212,7 @@ num_statevars = len(phase_record_factory.state_variables)
         self._fix_state_variables_in_compsets(composition_sets, conditions)
         state = spec.get_new_state(composition_sets)
         try:
-            converged = spec.run_loop(state, 1000)
+            converged = spec.run_loop(state, 100)
         except Exception as e:
             print(reproducer_string)
             raise e
