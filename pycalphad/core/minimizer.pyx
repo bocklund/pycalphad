@@ -5,7 +5,7 @@ from pycalphad.core.composition_set cimport CompositionSet
 from pycalphad.core.constants import MIN_SITE_FRACTION
 cimport scipy.linalg.cython_lapack as cython_lapack
 from libc.stdlib cimport malloc, free
-from libc.math cimport isnan
+from libc.math cimport isnan, fabs
 
 @cython.boundscheck(False)
 cdef void lstsq(double *A, int M, int N, double* x, double rcond) nogil:
@@ -50,28 +50,129 @@ cpdef void lstsq_check_infeasible(double[:,::] A, double[::] b, double[::] out_x
         out_x[:] = np.nan
 
 @cython.boundscheck(False)
-cdef void invert_matrix(double *A, int N, int* ipiv) nogil:
-    "A will be overwritten."
-    cdef int info = 0
-    cdef int i
-    cdef double* work = <double*>malloc(N * sizeof(double))
-    cdef bint isfinite = True
+cdef void invert_matrix_svd(double *A, int N, double rcond=1e-15) nogil:
+    """
+    Invert matrix A using SVD decomposition.
+    A will be overwritten with its inverse.
 
-    for i in range(N**2):
+    Parameters:
+    -----------
+    A : double*
+        Input matrix (N x N), will be overwritten with inverse
+    N : int
+        Matrix dimension
+    rcond : double
+        Cutoff for small singular values. Singular values smaller than
+        rcond * largest_singular_value are set to zero.
+    """
+    cdef int info = 0
+    cdef int i, j, k
+    cdef int lwork = -1
+    cdef double work_size
+    cdef double* work
+    cdef double* S = <double*>malloc(N * sizeof(double))  # Singular values
+    cdef double* U = <double*>malloc(N * N * sizeof(double))  # Left singular vectors
+    cdef double* VT = <double*>malloc(N * N * sizeof(double))  # Right singular vectors (transposed)
+    cdef double* A_copy = <double*>malloc(N * N * sizeof(double))  # Copy of A for SVD
+    cdef bint isfinite = True
+    cdef double s_max, s_threshold
+
+    # Check for NaN values
+    for i in range(N * N):
         if isnan(A[i]):
             isfinite = False
+            break
 
     if not isfinite:
-        for i in range(N**2):
-            A[i] = 0
+        # If matrix contains NaN, set to zeros
+        for i in range(N * N):
+            A[i] = 0.0
     else:
-        cython_lapack.dgetrf(&N, &N, A, &N, ipiv, &info)
-        cython_lapack.dgetri(&N, A, &N, ipiv, work, &N, &info)
+        # Copy A to A_copy (SVD will destroy it)
+        for i in range(N * N):
+            A_copy[i] = A[i]
 
-    free(work)
+        # Query optimal workspace size
+        cython_lapack.dgesvd(
+            b"A", b"A",  # Compute all left and right singular vectors
+            &N, &N,
+            A_copy, &N,
+            S,
+            U, &N,
+            VT, &N,
+            &work_size, &lwork,
+            &info
+        )
+
+        if info == 0:
+            # Allocate optimal workspace
+            lwork = <int>work_size
+            work = <double*>malloc(lwork * sizeof(double))
+
+            # Perform actual SVD: A = U * S * VT
+            cython_lapack.dgesvd(
+                b"A", b"A",
+                &N, &N,
+                A_copy, &N,
+                S,
+                U, &N,
+                VT, &N,
+                work, &lwork,
+                &info
+            )
+
+            if info == 0:
+                # Find maximum singular value for threshold
+                s_max = S[0]
+                for i in range(1, N):
+                    if S[i] > s_max:
+                        s_max = S[i]
+
+                s_threshold = rcond * s_max
+
+                # Compute pseudo-inverse: A^+ = V * S^+ * U^T
+                # First, compute S^+ * U^T (store in U)
+                for i in range(N):
+                    if fabs(S[i]) > s_threshold:
+                        # Scale i-th row of U^T by 1/S[i]
+                        for j in range(N):
+                            U[j * N + i] = U[j * N + i] / S[i]
+                    else:
+                        # Zero out rows corresponding to small singular values
+                        for j in range(N):
+                            U[j * N + i] = 0.0
+
+                # Now compute V * (S^+ * U^T) = V * U (modified)
+                # Result goes into A
+                for i in range(N):
+                    for j in range(N):
+                        A[i * N + j] = 0.0
+                        for k in range(N):
+                            # V is stored as VT transposed, so V[i,k] = VT[k,i]
+                            A[i * N + j] += VT[k * N + i] * U[j * N + k]
+
+            free(work)
+
+    # Clean up
+    free(S)
+    free(U)
+    free(VT)
+    free(A_copy)
+
+    # If SVD failed, fill with error values
     if info != 0:
-        for i in range(N**2):
+        for i in range(N * N):
             A[i] = -1e19
+
+
+# Alternative version that preserves the original interface (with ipiv for compatibility)
+@cython.boundscheck(False)
+cdef void invert_matrix(double *A, int N, int* ipiv) nogil:
+    """
+    Wrapper that maintains the original interface but uses SVD internally.
+    The ipiv parameter is ignored since SVD doesn't use pivoting.
+    """
+    invert_matrix_svd(A, N, 1e-15)
 
 @cython.boundscheck(False)
 cdef void compute_phase_matrix(double[:,::1] phase_matrix, double[:,::1] hess,
@@ -380,6 +481,11 @@ cdef class SystemSpecification:
             (state.largest_statevar_change[0] < ALLOWED_DELTA_STATEVAR) and
             (state.mass_residual < self.ALLOWED_MASS_RESIDUAL)
         )
+        print(f"state.largest_phase_amt_change[0] < {ALLOWED_DELTA_PHASE_AMT} = {state.largest_phase_amt_change[0]} {(state.largest_phase_amt_change[0] < ALLOWED_DELTA_PHASE_AMT)}")
+        print(f"state.largest_y_change[0] < {ALLOWED_DELTA_Y} = {state.largest_y_change[0]} {(state.largest_y_change[0] < ALLOWED_DELTA_Y)}")
+        print(f"state.largest_statevar_change[0] < {ALLOWED_DELTA_STATEVAR} = {state.largest_statevar_change[0]} {(state.largest_statevar_change[0] < ALLOWED_DELTA_STATEVAR)}")
+        print(f"state.mass_residual < {self.ALLOWED_MASS_RESIDUAL} = {state.mass_residual} {(state.mass_residual < self.ALLOWED_MASS_RESIDUAL)}")
+        print(f"state.iterations_since_last_phase_change >= 10 = {state.iterations_since_last_phase_change}")
         if solution_is_feasible and (state.iterations_since_last_phase_change >= 10):
             return True
         else:
@@ -398,6 +504,7 @@ cdef class SystemSpecification:
         cdef bint phases_changed = False
         cdef size_t iteration
         for iteration in range(max_iterations):
+            print(f"iteration {iteration}")
             state.iteration = iteration
             if not self.pre_solve_hook(state):
                 break
@@ -616,6 +723,10 @@ cdef class SystemState:
                 for j in range(csst.full_e_matrix.shape[1]):
                     csst.full_e_matrix[i,j] = csst.phase_matrix[i,j]
             invert_matrix(&csst.full_e_matrix[0,0], csst.full_e_matrix.shape[0], &csst.ipiv[0])
+            print(f"Compset {idx} {compset.phase_record.phase_name} energy={compset.energy} formula_energy={csst.energy} NP={compset.NP} dof={np.asarray(compset.dof).tolist()} internal_cons={np.asarray(csst.internal_cons).tolist()}")
+            print(f"Condition number {np.linalg.cond(csst.phase_matrix)}")
+            print(f"phase_matrix={np.asarray(csst.phase_matrix).tolist()}")
+            print(f"full_e_matrix={np.asarray(csst.full_e_matrix).tolist()}")
 
             num_phase_dof = compset.phase_record.phase_dof
             csst.c_G[:] = 0
