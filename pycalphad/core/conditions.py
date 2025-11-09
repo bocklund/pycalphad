@@ -115,7 +115,15 @@ class Conditions:
             if np.any(np.logical_and(np.asarray(vals) < self.minimum_composition, np.asarray(vals) > 0)):
                 warnings.warn(
                     f"Some specified compositions are below the minimum allowed composition of {self.minimum_composition}.")
-            value = [min(max(val, self.minimum_composition), 1-self.minimum_composition) for val in vals]
+            # For MoleFraction and MassFraction, adjust the upper bound based on the number of independent components
+            # to ensure numerical stability at composition space edges
+            if isinstance(prop, (v.MoleFraction, v.MassFraction)) and self._wks is not None:
+                # Number of independent components is len(components) - 1 (since they sum to 1)
+                n_independent = len(self._wks.components) - 1
+                max_composition = 1 - (n_independent * self.minimum_composition)
+            else:
+                max_composition = 1 - self.minimum_composition
+            value = [min(max(val, self.minimum_composition), max_composition) for val in vals]
         else:
             value = unpack_condition(value)
 

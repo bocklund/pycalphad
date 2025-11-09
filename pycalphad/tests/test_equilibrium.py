@@ -1102,3 +1102,24 @@ def test_issue589_global_min(load_database):
     # Confirmed by turning point density up to 1e7
     assert_allclose(res.GM.values.squeeze(), np.array([-39263.10130208]))
     assert_allclose(res.MU.values.squeeze(), np.array([-73190.455829,  55931.596253, -59900.399453, -79250.493316, -80354.857076]))
+
+@pytest.mark.solver
+@select_database("alcrni.tdb")
+def test_issue_279_composition_at_edge(load_database):
+    """
+    Test that v.X(component) = 1.0 conditions get numerically adjusted off the edge
+    of composition space, similar to v.X(component) = 0 conditions.
+    Regression test for issue #279.
+    """
+    dbf = load_database()
+    # This should not produce NaN values for chemical potentials
+    eq = equilibrium(dbf, ['AL', 'CR', 'NI', 'VA'], list(dbf.phases.keys()),
+                     {v.X('AL'): 1.0, v.X('CR'): 0, v.T: 674, v.P: 101325}, verbose=True)
+    # Chemical potentials should be finite, not NaN
+    assert np.all(np.isfinite(eq.MU.values))
+    # The actual composition should be adjusted slightly from 1.0
+    # For a 3-component system, there are 2 independent components
+    # so the adjustment should be approximately 1 - 2*1e-10
+    actual_X_AL = np.nansum(np.squeeze(eq.NP * eq.X), axis=-2)[0]
+    assert actual_X_AL < 1.0
+    assert actual_X_AL > 1.0 - 1e-8  # Should be very close to 1.0
