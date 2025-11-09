@@ -36,9 +36,13 @@ def unpack_condition(tup):
         if len(tup) == 1:
             return [float(tup[0])]
         elif len(tup) == 2:
-            return np.arange(tup[0], tup[1], dtype=np.float64)
+            # Use closed interval [start, stop] with default step of 1
+            return np.arange(tup[0], tup[1] + 1, dtype=np.float64)
         elif len(tup) == 3:
-            return np.arange(tup[0], tup[1], tup[2], dtype=np.float64)
+            # Use linspace to create closed interval [start, stop] with explicit step
+            # Calculate number of points: (stop - start) / step + 1
+            num_points = int(round((tup[1] - tup[0]) / tup[2])) + 1
+            return np.linspace(tup[0], tup[1], num_points, dtype=np.float64)
         else:
             raise ValueError('Condition tuple is length {}'.format(len(tup)))
     elif isinstance(tup, Q_):
