@@ -256,6 +256,8 @@ def _compute_phase_values(components, statevar_dict, str_phase_local_conditions,
     # func may only have support for vectorization along a single axis (no broadcasting)
     # we need to force broadcasting and flatten the result before calling
     bc_statevars = np.ascontiguousarray([broadcast_to(x, points.shape[:-1]).reshape(-1) for x in statevars])
+    # Handle parameters=None case by converting to empty dict
+    parameters = parameters or {}
     param_symbols, parameter_array = extract_parameters(parameters)
     parameter_array_length = parameter_array.shape[0]
     max_tieline_vertices = len(pure_elements)

@@ -382,3 +382,47 @@ def test_calculate_raises_if_no_feasible_points_exist():
     # fake_points provides points and therefore calculate should not raise for having no points
     # fake_points also prevents the warning here
     grid = calculate(dbf, ["O", "ZR", "VA"], ["SPINEL"], P=1e5, T=1000, fake_points=True, to_xarray=False)
+
+
+@select_database("alcrni.tdb")
+def test_compute_phase_values_with_none_parameters(load_database):
+    """
+    Test that _compute_phase_values accepts parameters=None (gh-284).
+
+    This test verifies that passing parameters=None to _compute_phase_values
+    does not raise an AttributeError when extract_parameters is called.
+    """
+    from pycalphad.core.calculate import _compute_phase_values
+    from collections import OrderedDict
+
+    dbf = load_database()
+    comps = ['AL', 'CR', 'NI', 'VA']
+    phase_name = 'L12_FCC'
+
+    # Build necessary components for calling _compute_phase_values
+    models = instantiate_models(dbf, comps, [phase_name])
+    phase_records = PhaseRecordFactory(dbf, comps, [v.T, v.P], models)
+    phase_record = phase_records[phase_name]
+
+    # Create minimal inputs
+    statevar_dict = OrderedDict([('T', np.array([1273.]))])
+    str_phase_local_conditions = OrderedDict()
+    points = np.array([[0.33, 0.33, 0.34, 0.33, 0.33, 0.34]])  # Simple composition
+
+    # This should not raise an AttributeError
+    result = _compute_phase_values(
+        components=comps,
+        statevar_dict=statevar_dict,
+        str_phase_local_conditions=str_phase_local_conditions,
+        points=points,
+        phase_record=phase_record,
+        output='GM',
+        maximum_internal_dof=6,
+        broadcast=True,
+        parameters=None,  # This is the key test - should handle None gracefully
+        fake_points=False
+    )
+
+    # Verify we got a result
+    assert result is not None
+    assert 'GM' in result.data_vars
