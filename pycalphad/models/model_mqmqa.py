@@ -7,6 +7,7 @@ from tinydb import where
 from pycalphad.model import _MAX_PARAM_NESTING
 import pycalphad.variables as v
 from pycalphad.core.utils import unpack_species, wrap_symbol
+from pycalphad.io.tdb import get_supported_variables
 from pycalphad import Model
 from pycalphad.core.errors import DofError
 
@@ -722,8 +723,15 @@ class ModelMQMQA(Model):
         dbe : 'pycalphad.io.Database'
         """
         self.models.clear()
+        # Get the symbols dict prepared during __init__
+        symbols = getattr(self, '_build_phase_symbols', {})
         for key, value in self.__class__.contributions:
-            self.models[key] = S(getattr(self, value)(dbe))
+            contribution = S(getattr(self, value)(dbe))
+            # Perform symbol replacement immediately after computing each contribution
+            # This ensures subsequent contributions can correctly differentiate/use prior contributions
+            if symbols:
+                contribution = self.symbol_replace(contribution, symbols).xreplace(get_supported_variables())
+            self.models[key] = contribution
 
     @staticmethod
     def symbol_replace(obj, symbols):

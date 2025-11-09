@@ -261,3 +261,40 @@ def test_error_raised_for_higher_order_reciprocal_parameter():
     # Check that a model with a higher order reciprocal parameter > 2 throws an error
     with pytest.raises(ValueError):
         mod = Model(dbf, ["MO", "NB", "C", "VA"], "PHASE_HIGH_ORDER")
+
+
+@select_database("alfe.tdb")
+def test_custom_model_with_derivative(load_database):
+    """
+    Test that custom models can correctly compute derivatives (issue #452).
+
+    This test verifies that symbol replacement happens early enough in build_phase
+    so that custom contributions can compute derivatives of earlier contributions.
+    Specifically, it tests that entropy can be calculated as -dG/dT.
+    """
+    dbf = load_database()
+
+    class CustomEntropyModel(Model):
+        # Add a custom contribution that computes entropy from derivative
+        contributions = Model.contributions + [('custom_s', 'build_custom_entropy')]
+
+        def build_custom_entropy(self, dbe):
+            # This should compute entropy as -dG/dT
+            # Before the fix, this would return 0 because symbols weren't replaced yet
+            return -self.GM.diff(v.T)
+
+    # Create the model
+    mod = CustomEntropyModel(dbf, ['AL', 'FE'], 'FCC_A1')
+
+    # The custom entropy contribution should be non-zero and equal to SM (built-in entropy)
+    # We can't directly compare symbolic expressions easily, but we can check that
+    # the custom entropy is not identically zero
+    assert mod.models['custom_s'] != 0, "Custom entropy contribution should not be zero"
+
+    # More specifically, check that it contains temperature-dependent terms
+    # by verifying it has v.T as a free symbol or in the expression
+    custom_s_symbols = mod.models['custom_s'].free_symbols
+    # The derivative result should not have v.T in free symbols (it gets consumed in derivative)
+    # but it should have resulted in a non-trivial expression
+    # Let's verify by checking the expression is not just a simple zero
+    assert str(mod.models['custom_s']) != '0', "Custom entropy should produce a non-trivial expression"

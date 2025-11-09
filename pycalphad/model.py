@@ -269,10 +269,14 @@ class Model(object):
             self._parameters_arg = None
 
         self._symbols = {wrap_symbol(key): value for key, value in symbols.items()}
+        # Store symbols dict for use in build_phase
+        self._build_phase_symbols = symbols
 
         self.models = OrderedDict()
         self.build_phase(dbe)
 
+        # Symbol replacement now happens inside build_phase, but we keep this
+        # loop for backward compatibility with custom models that override build_phase
         for name, value in self.models.items():
             # XXX: xreplace hack because SymEngine seems to let Symbols slip in somehow
             self.models[name] = self.symbol_replace(value, symbols).xreplace(get_supported_variables())
@@ -536,8 +540,15 @@ class Model(object):
                 # Users that need to override this behavior should override build_phase
                 raise ValueError('\'atomic_ordering_energy\' must be the final contribution')
         self.models.clear()
+        # Get the symbols dict prepared during __init__
+        symbols = getattr(self, '_build_phase_symbols', {})
         for key, value in self.__class__.contributions:
-            self.models[key] = S(getattr(self, value)(dbe))
+            contribution = S(getattr(self, value)(dbe))
+            # Perform symbol replacement immediately after computing each contribution
+            # This ensures subsequent contributions can correctly differentiate/use prior contributions
+            if symbols:
+                contribution = self.symbol_replace(contribution, symbols).xreplace(get_supported_variables())
+            self.models[key] = contribution
 
     def _array_validity(self, constituent_array):
         """
