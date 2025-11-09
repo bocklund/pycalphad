@@ -169,7 +169,7 @@ cdef public class PhaseRecord(object)[type PhaseRecordType, object PhaseRecordOb
         cdef:
             int el_idx
         self.phase_record_factory = phase_record_factory
-        self.components = phase_record_factory.comps
+        self.components = phase_record_factory.species
         self.phase_name = phase_name
         self.variables = phase_record_factory.models[phase_name].site_fractions
         self.state_variables = phase_record_factory.state_variables

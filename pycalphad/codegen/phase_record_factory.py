@@ -10,7 +10,7 @@ import numpy as np
 
 class PhaseRecordFactory(object):
     def __init__(self, dbf, comps, state_variables, models, parameters=None):
-        self.comps = sorted(unpack_species(dbf, comps))
+        self.species = sorted(unpack_species(dbf, comps))
         self.pure_elements = get_pure_elements(dbf, comps)
         self.nonvacant_elements = sorted([x for x in self.pure_elements if x != 'VA'])
         self.molar_masses = np.array([dbf.refstates[x]['mass'] for x in self.nonvacant_elements], dtype='float')

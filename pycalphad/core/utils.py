@@ -272,8 +272,8 @@ def get_pure_elements(dbf, comps):
     list
         A list of pure elements in the Database
     """
-    comps = sorted(unpack_species(dbf, comps))
-    components = [x for x in comps]
+    species = sorted(unpack_species(dbf, comps))
+    components = [x for x in species]
     desired_active_pure_elements = [list(x.constituents.keys()) for x in components]
     desired_active_pure_elements = [el.upper() for constituents in desired_active_pure_elements for el in constituents]
     pure_elements = sorted(set([x for x in desired_active_pure_elements if x != 'VA']))
@@ -302,8 +302,8 @@ def filter_phases(dbf, comps, candidate_phases=None):
     """
     # TODO: filter phases that can not charge balance
 
-    def all_sublattices_active(comps, phase):
-        active_sublattices = [len(set(comps).intersection(subl)) > 0 for
+    def all_sublattices_active(species, phase):
+        active_sublattices = [len(set(species).intersection(subl)) > 0 for
                               subl in phase.constituents]
         return all(active_sublattices)
     if candidate_phases == None:

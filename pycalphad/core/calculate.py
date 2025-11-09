@@ -432,20 +432,20 @@ def calculate(dbf, comps, phases, mode=None, output='GM', fake_points=False, bro
         phases = [phases]
     if isinstance(comps, (str, v.Species)):
         comps = [comps]
-    comps = sorted(unpack_species(dbf, comps))
+    species = sorted(unpack_species(dbf, comps))
     if points_dict is None and broadcast is False:
         raise ValueError('The \'points\' keyword argument must be specified if broadcast=False is also given.')
-    nonvacant_components = [x for x in sorted(comps) if x.number_of_atoms > 0]
+    nonvacant_components = [x for x in sorted(species) if x.number_of_atoms > 0]
     nonvacant_elements = get_pure_elements(dbf, comps)
 
     all_phase_data = []
     largest_energy = 1e10
 
     # Consider only the active phases
-    list_of_possible_phases = filter_phases(dbf, comps)
+    list_of_possible_phases = filter_phases(dbf, species)
     if len(list_of_possible_phases) == 0:
-        raise ConditionError('There are no phases in the Database that can be active with components {0}'.format(comps))
-    active_phases = filter_phases(dbf, comps, phases)
+        raise ConditionError('There are no phases in the Database that can be active with components {0}'.format(species))
+    active_phases = filter_phases(dbf, species, phases)
     if len(active_phases) == 0:
         raise ConditionError('None of the passed phases ({0}) are active. List of possible phases: {1}.'.format(phases, list_of_possible_phases))
 
