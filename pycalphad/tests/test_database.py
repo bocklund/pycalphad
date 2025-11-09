@@ -122,6 +122,26 @@ def test_roundtrip_nested_powers():
         # this type of incompatibility cannot be automatically fixed
         test_dbf.to_string(fmt='tdb', if_incompatible='fix')
 
+def test_roundtrip_exp_function():
+    "Round-trip with EXP function should preserve exponential form (issue #420)."
+    TDB = """
+    ELEMENT A FCC_A1 0 0 0 !
+
+    PHASE FCC_A1 % 1 1 !
+    CONSTITUENT FCC_A1 : A : !
+
+    PARAMETER G(FCC_A1,A;0) 298.15 +0.000281*EXP(12300/(8.3145*T)); 6000 N !
+    """
+    test_dbf = Database(TDB)
+    roundtrip_str = test_dbf.to_string(fmt='tdb', if_incompatible='ignore')
+    # Check that EXP is preserved in the output (not converted to numerical form)
+    assert 'EXP(' in roundtrip_str.upper(), f"EXP function not found in output: {roundtrip_str}"
+    # Ensure it doesn't contain the numerical value of e (2.71828...)
+    assert '2.71828' not in roundtrip_str, f"Found numerical e value instead of EXP: {roundtrip_str}"
+    # Verify roundtrip equality
+    roundtrip_dbf = Database.from_string(roundtrip_str, fmt='tdb')
+    assert roundtrip_dbf == test_dbf
+
 def test_incompatible_db_warns_by_default():
     "Symbol names too long for Thermo-Calc warn and write the database as given by default."
     test_dbf = Database.from_string(INVALID_TDB_STR, fmt='tdb')

@@ -58,7 +58,7 @@ def _sympify_string(math_string):
         if type(node) not in _AST_WHITELIST: #pylint: disable=W1504
             raise ValueError('Expression from TDB file not in whitelist: '
                              '{}'.format(expr_string))
-    return sympify(expr_string).xreplace(get_supported_variables()).n()
+    return sympify(expr_string).xreplace(get_supported_variables())
 
 def _parse_action(func):
     """
