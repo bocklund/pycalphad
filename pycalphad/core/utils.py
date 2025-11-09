@@ -280,6 +280,72 @@ def get_pure_elements(dbf, comps):
     return pure_elements
 
 
+def is_pseudobinary(dbf, components, axis_vars):
+    """
+    Detect if a system is a pseudobinary system.
+
+    A pseudobinary system has:
+    - 2 components (which may be compounds or pure elements)
+    - 3 pure elements total
+    - 1 composition axis variable
+
+    Parameters
+    ----------
+    dbf : Database
+        A Database object
+    components : list
+        A list of component names (species and pure elements)
+    axis_vars : list
+        List of axis variables from conditions
+
+    Returns
+    -------
+    bool
+        True if the system is pseudobinary, False otherwise
+    """
+    pure_elements = get_pure_elements(dbf, components)
+    non_va_components = [c for c in components if c != 'VA']
+    composition_axis_vars = [av for av in axis_vars if isinstance(av, v.MoleFraction)]
+
+    # Pseudobinary: 2 components, 3 pure elements, 1 composition axis
+    return (len(non_va_components) == 2 and
+            len(pure_elements) == 3 and
+            len(composition_axis_vars) == 1)
+
+
+def is_pseudoternary(dbf, components, axis_vars):
+    """
+    Detect if a system is a pseudoternary system.
+
+    A pseudoternary system has:
+    - 3 components (which may be compounds or pure elements)
+    - 4 pure elements total
+    - 2 composition axis variables
+
+    Parameters
+    ----------
+    dbf : Database
+        A Database object
+    components : list
+        A list of component names (species and pure elements)
+    axis_vars : list
+        List of axis variables from conditions
+
+    Returns
+    -------
+    bool
+        True if the system is pseudoternary, False otherwise
+    """
+    pure_elements = get_pure_elements(dbf, components)
+    non_va_components = [c for c in components if c != 'VA']
+    composition_axis_vars = [av for av in axis_vars if isinstance(av, v.MoleFraction)]
+
+    # Pseudoternary: 3 components, 4 pure elements, 2 composition axes
+    return (len(non_va_components) == 3 and
+            len(pure_elements) == 4 and
+            len(composition_axis_vars) == 2)
+
+
 def filter_phases(dbf, comps, candidate_phases=None):
     """Return phases that are valid for equilibrium calculations for the given database and components
 

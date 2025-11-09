@@ -115,9 +115,16 @@ def _sort_point(point: Point, axis_vars: list[v.StateVariable]):
 class TernaryStrategy(MapStrategy):
     def __init__(self, dbf: Database, components: list[str], phases: list[str], conditions: dict[v.StateVariable, Union[float, tuple[float]]], **kwargs):
         super().__init__(dbf, components, phases, conditions, **kwargs)
-        # TODO: This assumes pure elements and will likely change with the generalize component support
-        unlisted_element = list(set(self.components) - {'VA'} - set([str(av.species) for av in self.axis_vars]))[0]
-        self.all_vars = self.axis_vars + [v.X(unlisted_element)]
+        # Find the unlisted component (the third component not in axis_vars)
+        # This works for both pure elements and compound components
+        unlisted_component = list(set(self.components) - {'VA'} - set([str(av.species) for av in self.axis_vars]))[0]
+        self.all_vars = self.axis_vars + [v.X(unlisted_component)]
+
+        # Detect if this is a pseudoternary system
+        from pycalphad.core.utils import is_pseudoternary
+        self.is_pseudoternary = is_pseudoternary(self.dbf, self.components, self.axis_vars)
+        if self.is_pseudoternary:
+            _log.info(f"Detected pseudoternary system with components {self.components} and {len(self.elements)} pure elements")
 
     def generate_automatic_starting_points(self):
         """

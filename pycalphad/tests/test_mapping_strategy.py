@@ -521,4 +521,67 @@ def test_primitive_representation(load_database):
         assert keyword in point_repr
 
 
+def test_pseudobinary_detection():
+    """Test detection of pseudobinary systems"""
+    from pycalphad.core.utils import is_pseudobinary
+
+    dbf = Database()
+
+    # Test 1: Regular binary system (2 elements, 2 components, 1 composition axis)
+    # Should NOT be detected as pseudobinary
+    components = ['AL', 'MG', 'VA']
+    axis_vars = [v.X('MG')]
+    result = is_pseudobinary(dbf, components, axis_vars)
+    assert not result, "Regular binary should not be detected as pseudobinary"
+
+    # Test 2: Regular ternary (3 elements, 3 components, 2 composition axes)
+    # Should NOT be detected as pseudobinary
+    components = ['AL', 'MG', 'SI', 'VA']
+    axis_vars = [v.X('MG'), v.X('SI')]
+    result = is_pseudobinary(dbf, components, axis_vars)
+    assert not result, "Regular ternary should not be detected as pseudobinary"
+
+    # Note: True pseudobinary tests (with compound components) would require
+    # a database with proper compound definitions
+
+
+def test_pseudoternary_detection():
+    """Test detection of pseudoternary systems"""
+    from pycalphad.core.utils import is_pseudoternary
+
+    dbf = Database()
+
+    # Test 1: Regular ternary (3 elements, 3 components, 2 composition axes)
+    # Should NOT be detected as pseudoternary
+    components = ['AL', 'MG', 'SI', 'VA']
+    axis_vars = [v.X('MG'), v.X('SI')]
+    result = is_pseudoternary(dbf, components, axis_vars)
+    assert not result, "Regular ternary should not be detected as pseudoternary"
+
+    # Test 2: Regular binary (2 elements, 2 components, 1 composition axis)
+    # Should NOT be detected as pseudoternary
+    components = ['AL', 'MG', 'VA']
+    axis_vars = [v.X('MG')]
+    result = is_pseudoternary(dbf, components, axis_vars)
+    assert not result, "Regular binary should not be detected as pseudoternary"
+
+    # Note: True pseudoternary tests (with compound components) would require
+    # a database with proper compound definitions
+
+
+def test_component_with_compound_formulas():
+    """Test that the Component class correctly handles compound formulas"""
+    from pycalphad.variables import Component
+
+    # Test compound formula parsing
+    comp = Component('AL2MG3')
+    assert comp.constituents == {'AL': 2, 'MG': 3}, "Component parsing failed for AL2MG3"
+
+    comp = Component('MGSI')
+    assert comp.constituents == {'MG': 1, 'SI': 1}, "Component parsing failed for MGSI"
+
+    comp = Component('FE3C')
+    assert comp.constituents == {'FE': 3, 'C': 1}, "Component parsing failed for FE3C"
+
+
 

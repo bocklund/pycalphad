@@ -66,6 +66,15 @@ def _sort_point(point: Point, axis_vars: list[v.StateVariable], norm: dict[v.Sta
         return options_tests[best_index][1], options_tests[best_index][2]
 
 class BinaryStrategy(MapStrategy):
+    def __init__(self, dbf: Database, components: list[str], phases: list[str], conditions: dict[v.StateVariable, Union[float, tuple[float]]], **kwargs):
+        super().__init__(dbf, components, phases, conditions, **kwargs)
+
+        # Detect if this is a pseudobinary system
+        from pycalphad.core.utils import is_pseudobinary
+        self.is_pseudobinary = is_pseudobinary(self.dbf, self.components, self.axis_vars)
+        if self.is_pseudobinary:
+            _log.info(f"Detected pseudobinary system with components {self.components} and {len(self.elements)} pure elements")
+
     def generate_automatic_starting_points(self):
         """
         Searches axis limits to find starting points
