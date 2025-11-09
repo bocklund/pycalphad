@@ -1256,8 +1256,10 @@ class Model(object):
         # with the disordered phase.
         # Assumes first sublattice of the disordered phase is the sublattice
         # that can be come ordered:
-        disordered_subl_constituents = disordered_phase.constituents[0]
-        ordered_constituents = ordered_phase.constituents
+        # Filter disordered phase constituents to only include system components
+        disordered_subl_constituents = set(disordered_phase.constituents[0]).intersection(self.components)
+        # Use the filtered constituents from line 1250 instead of raw ordered_phase.constituents
+        ordered_constituents = constituents
         substitutional_sublattice_idxs = []
         for idx, subl_constituents in enumerate(ordered_constituents):
             # Assumes that the ordered phase sublattice describes the ordering
