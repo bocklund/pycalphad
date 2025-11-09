@@ -975,9 +975,14 @@ class Model(object):
             )
         self.TC = self.curie_temperature = self.symbol_replace(tc, self._symbols)
 
+        # Reconstruct curie_temp from self.TC for use in the magnetic energy expression
+        # This makes the expression symbolically depend on self.TC, allowing partitioning
+        # in order-disorder models to affect the magnetic energy contribution
+        curie_temp_expr = self.TC * Piecewise((afm_factor, self.TC <= 0), (1., True))
+
         # Used to prevent singularity
-        tau_positive_tc = v.T / (curie_temp + 1e-9)
-        tau_negative_tc = v.T / ((curie_temp/afm_factor) + 1e-9)
+        tau_positive_tc = v.T / (curie_temp_expr + 1e-9)
+        tau_negative_tc = v.T / ((curie_temp_expr/afm_factor) + 1e-9)
 
         # define model parameters
         p = phase.model_hints['ihj_magnetic_structure_factor']
@@ -996,15 +1001,16 @@ class Model(object):
         super_tau_neg_tc = -(1/A) * ((tau_negative_tc**-5)/10 + (tau_negative_tc**-15)/315 + (tau_negative_tc**-25)/1500)
 
         # This is an optimization to reduce the complexity of the compile-time expression
-        expr_cond_pairs = [(sub_tau_neg_tc, curie_temp/afm_factor > v.T),
-                           (sub_tau_pos_tc, curie_temp > v.T),
-                           (super_tau_pos_tc, And(curie_temp < v.T, curie_temp > 0)),
-                           (super_tau_neg_tc, And(curie_temp/afm_factor < v.T, curie_temp < 0)),
+        expr_cond_pairs = [(sub_tau_neg_tc, curie_temp_expr/afm_factor > v.T),
+                           (sub_tau_pos_tc, curie_temp_expr > v.T),
+                           (super_tau_pos_tc, And(curie_temp_expr < v.T, curie_temp_expr > 0)),
+                           (super_tau_neg_tc, And(curie_temp_expr/afm_factor < v.T, curie_temp_expr < 0)),
                            (0, True)
                            ]
         g_term = Piecewise(*expr_cond_pairs)
 
-        return v.R * v.T * log(beta+1) * \
+        # Use self.BMAG instead of beta to make the expression symbolically depend on self.BMAG
+        return v.R * v.T * log(self.BMAG+1) * \
             g_term / site_ratio_normalization
 
     def xiong_magnetic_energy(self, dbe):
@@ -1057,9 +1063,11 @@ class Model(object):
         self.NT = self.neel_temperature = self.symbol_replace(neel_temp, self._symbols)
         self.BMAG = self.beta = self.symbol_replace(beta, self._symbols)
 
-        tau_curie = v.T / curie_temp
+        # Use self.TC and self.NT instead of local variables to make the expression
+        # symbolically depend on these properties, allowing partitioning in order-disorder models
+        tau_curie = v.T / self.TC
         tau_curie = tau_curie.xreplace({zoo: 1.0e10})
-        tau_neel = v.T / neel_temp
+        tau_neel = v.T / self.NT
         tau_neel = tau_neel.xreplace({zoo: 1.0e10})
 
         # define model parameters
@@ -1084,7 +1092,8 @@ class Model(object):
                                ]
         g_term = Piecewise(*expr_cond_pairs_curie) + Piecewise(*expr_cond_pairs_neel)
 
-        return v.R * v.T * log(beta+1) * \
+        # Use self.BMAG instead of beta to make the expression symbolically depend on self.BMAG
+        return v.R * v.T * log(self.BMAG+1) * \
             g_term / site_ratio_normalization
 
     def twostate_energy(self, dbe):
