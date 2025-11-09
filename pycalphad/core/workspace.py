@@ -378,13 +378,68 @@ class Workspace:
                 multiplicity[key] = max(multiplicity[key], value)
         return multiplicity
 
+    def _expand_wildcards_only(self, args: Sequence[ComputableProperty]):
+        "Expands wildcards but not miscibility gaps. Mutates args."
+        indices_to_delete = []
+        i = 0
+        while i < len(args):
+            if hasattr(args[i], 'phase_name') and args[i].phase_name == '*':
+                indices_to_delete.append(i)
+                phase_names = sorted(self.phase_record_factory.keys())
+                additional_args = args[i].expand_wildcard(phase_names=phase_names)
+                args.extend(additional_args)
+            elif hasattr(args[i], 'sublattice_index') and args[i].sublattice_index == '*':
+                # We need to resolve sublattice_index before species to ensure we
+                # get the correct set of phase constituents for each sublattice
+                indices_to_delete.append(i)
+                sublattice_indices = sorted(set([x.sublattice_index for x in self.phase_record_factory[args[i].phase_name].variables]))
+                additional_args = args[i].expand_wildcard(sublattice_indices=sublattice_indices)
+                args.extend(additional_args)
+            elif hasattr(args[i], 'species') and args[i].species.name == '*':
+                indices_to_delete.append(i)
+                internal_to_phase = hasattr(args[i], 'sublattice_index')
+                if internal_to_phase:
+                    components = [x.species for x in self.phase_record_factory[args[i].phase_name].variables
+                                  if x.sublattice_index == args[i].sublattice_index]
+                else:
+                    components = [comp for comp in self.components if comp != v.Component('VA')]  # TODO: Special case for vacancy
+                additional_args = args[i].expand_wildcard(components=components)
+                args.extend(additional_args)
+            elif isinstance(args[i], JanssonDerivative):
+                numerator_args = [args[i].numerator]
+                self._expand_wildcards_only(numerator_args)
+                denominator_args = [args[i].denominator]
+                self._expand_wildcards_only(denominator_args)
+                if (len(numerator_args) > 1) or (len(denominator_args) > 1):
+                    for n_arg in numerator_args:
+                        for d_arg in denominator_args:
+                            args.append(JanssonDerivative(n_arg, d_arg))
+                    indices_to_delete.append(i)
+            i += 1
+
+        # Watch deletion order! Indices will change as items are deleted
+        for deletion_index in reversed(indices_to_delete):
+            del args[deletion_index]
+
     def _expand_property_arguments(self, args: Sequence[ComputableProperty]):
         "Mutates args"
         multiplicity = self._detect_phase_multiplicity()
         indices_to_delete = []
         i = 0
         while i < len(args):
-            if hasattr(args[i], 'phase_name') and args[i].phase_name == '*':
+            # Check if this is a metaproperty-wrapped property
+            if hasattr(args[i], '_wrapped_property') and hasattr(args[i], '_parent_metaproperty'):
+                wrapped_prop = args[i]._wrapped_property
+                parent_metaprop = args[i]._parent_metaproperty
+                # Expand only wildcards in the wrapped property (not miscibility gaps)
+                wrapped_args = [wrapped_prop]
+                self._expand_wildcards_only(wrapped_args)
+                # If expansion occurred, re-wrap each expanded property
+                if len(wrapped_args) > 1:
+                    indices_to_delete.append(i)
+                    for expanded_prop in wrapped_args:
+                        args.append(parent_metaprop(expanded_prop))
+            elif hasattr(args[i], 'phase_name') and args[i].phase_name == '*':
                 indices_to_delete.append(i)
                 phase_names = sorted(self.phase_record_factory.keys())
                 additional_args = args[i].expand_wildcard(phase_names=phase_names)

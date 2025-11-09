@@ -141,6 +141,8 @@ class DormantPhase:
             implementation_units = prop.implementation_units
             display_units = prop.display_units
             display_name = prop.display_name
+            _wrapped_property = prop
+            _parent_metaproperty = self
             @staticmethod
             def compute_property(equilibrium_compsets: List[CompositionSet], cur_conds: Dict[str, float],
                             chemical_potentials: npt.ArrayLike) -> float:
@@ -209,6 +211,8 @@ class IsolatedPhase:
             implementation_units = prop.implementation_units
             display_units = prop.display_units
             display_name = prop.display_name
+            _wrapped_property = prop
+            _parent_metaproperty = self
             @staticmethod
             def compute_property(equilibrium_compsets: List[CompositionSet], cur_conds: Dict[str, float],
                             chemical_potentials: npt.ArrayLike) -> float:
@@ -264,6 +268,8 @@ class ReferenceState:
             implementation_units = prop.implementation_units
             display_units = prop.display_units
             display_name = prop.display_name
+            _wrapped_property = prop
+            _parent_metaproperty = self
             @staticmethod
             def compute_property(equilibrium_compsets: List[CompositionSet], cur_conds: Dict[str, float],
                             chemical_potentials: npt.ArrayLike) -> float:
