@@ -1242,6 +1242,14 @@ class Model(object):
 
         """
         phase = dbe.phases[self.phase_name]
+
+        # Handle never disorder model
+        # For phases that never disorder, set idmix = 0 and return zero ordering energy
+        # See Lukas, Fries and Sundman, 2007, p. 145
+        if phase.model_hints.get('never_disorder', False):
+            self.models['idmix'] = S.Zero
+            return S.Zero
+
         ordered_phase_name = phase.model_hints.get('ordered_phase', None)
         disordered_phase_name = phase.model_hints.get('disordered_phase', None)
         if phase.name != ordered_phase_name:

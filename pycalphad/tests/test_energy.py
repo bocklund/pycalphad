@@ -1400,3 +1400,137 @@ def test_higher_order_reciprocal_parameter():
         v.T: T
     }
     check_output(mod, subs_dict, 'GM', -12817.416, mode='sympy')
+
+
+@select_database("never_disorder.tdb")
+def test_never_disorder_model_hints(load_database):
+    """Test that NEVER_DIS syntax is parsed correctly and sets model hints."""
+    dbf = load_database()
+
+    # Check that SIGMA phase has never_disorder hint
+    assert 'never_disorder' in dbf.phases['SIGMA'].model_hints
+    assert dbf.phases['SIGMA'].model_hints['never_disorder'] is True
+
+    # Check that MU phase has never_disorder hint with disordered reference
+    assert 'never_disorder' in dbf.phases['MU'].model_hints
+    assert dbf.phases['MU'].model_hints['never_disorder'] is True
+    assert 'disordered_phase_reference' in dbf.phases['MU'].model_hints
+    assert dbf.phases['MU'].model_hints['disordered_phase_reference'] == 'DIS_MU'
+
+    # Check that other phases do not have never_disorder hint
+    assert 'never_disorder' not in dbf.phases['FCC_A1'].model_hints
+    assert 'never_disorder' not in dbf.phases['BCC_A2'].model_hints
+
+
+@select_database("never_disorder.tdb")
+def test_never_disorder_idmix_zero(load_database):
+    """Test that phases with never_disorder have idmix = 0."""
+    dbf = load_database()
+
+    # Test SIGMA phase
+    mod_sigma = Model(dbf, ['CO', 'CR'], 'SIGMA')
+    assert mod_sigma.models['idmix'] == S.Zero, "SIGMA phase should have idmix = 0"
+
+    # Test MU phase
+    mod_mu = Model(dbf, ['CO', 'CR'], 'MU')
+    assert mod_mu.models['idmix'] == S.Zero, "MU phase should have idmix = 0"
+
+    # Test that regular phases have non-zero idmix
+    mod_fcc = Model(dbf, ['CO', 'CR'], 'FCC_A1')
+    assert mod_fcc.models['idmix'] != S.Zero, "FCC_A1 phase should have non-zero idmix"
+
+
+@select_database("never_disorder.tdb")
+def test_never_disorder_energy(load_database):
+    """Test that energy can be calculated for never disorder phases."""
+    dbf = load_database()
+
+    # Test SIGMA phase energy calculation
+    mod_sigma = Model(dbf, ['CO', 'CR'], 'SIGMA')
+    subs_dict = {
+        v.T: 1000,
+        v.SiteFraction('SIGMA', 0, v.Species('CO')): 0.6,
+        v.SiteFraction('SIGMA', 0, v.Species('CR')): 0.4,
+        v.SiteFraction('SIGMA', 1, v.Species('CO')): 0.3,
+        v.SiteFraction('SIGMA', 1, v.Species('CR')): 0.7,
+    }
+    energy = mod_sigma.GM.subs(subs_dict)
+    # Just verify it can be calculated without error
+    assert energy is not None
+    # Verify idmix contribution is zero
+    idmix_contrib = mod_sigma.models['idmix'].subs(subs_dict)
+    assert float(idmix_contrib) == 0.0
+
+    # Test MU phase energy calculation
+    mod_mu = Model(dbf, ['CO', 'CR'], 'MU')
+    subs_dict_mu = {
+        v.T: 1200,
+        v.SiteFraction('MU', 0, v.Species('CO')): 0.5,
+        v.SiteFraction('MU', 0, v.Species('CR')): 0.5,
+        v.SiteFraction('MU', 1, v.Species('CO')): 0.4,
+        v.SiteFraction('MU', 1, v.Species('CR')): 0.6,
+    }
+    energy_mu = mod_mu.GM.subs(subs_dict_mu)
+    assert energy_mu is not None
+    idmix_contrib_mu = mod_mu.models['idmix'].subs(subs_dict_mu)
+    assert float(idmix_contrib_mu) == 0.0
+
+
+@select_database("never_disorder.tdb")
+def test_never_disorder_no_ordering_energy(load_database):
+    """Test that never disorder phases return zero ordering energy."""
+    dbf = load_database()
+
+    # Test SIGMA phase
+    mod_sigma = Model(dbf, ['CO', 'CR'], 'SIGMA')
+    assert mod_sigma.models['ord'] == S.Zero, "Never disorder phases should have zero ordering energy"
+
+    # Test MU phase
+    mod_mu = Model(dbf, ['CO', 'CR'], 'MU')
+    assert mod_mu.models['ord'] == S.Zero, "Never disorder phases should have zero ordering energy"
+
+
+def test_never_disorder_write_tdb():
+    """Test that TDB files with never_disorder can be written and read back."""
+    from pycalphad import Database
+
+    # Create a simple TDB with never disorder
+    test_tdb = """
+    ELEMENT VA   VACUUM                    0.0000E+00  0.0000E+00  0.0000E+00!
+    ELEMENT A    FCC_A1                    1.0000E+00  1.0000E+03  1.0000E+01!
+    ELEMENT B    FCC_A1                    2.0000E+00  2.0000E+03  2.0000E+01!
+
+    FUNCTION GHSERA 298.15 -1000; 6000 N !
+    FUNCTION GHSERB 298.15 -2000; 6000 N !
+
+    TYPE_DEFINITION % SEQ *!
+    DEFINE_SYSTEM_DEFAULT ELEMENT 2 !
+    DEFAULT_COMMAND DEF_SYS_ELEMENT VA !
+
+    TYPE_DEFINITION N GES AMEND_PHASE_DESCRIPTION TEST_PHASE NEVER_DIS !
+    PHASE TEST_PHASE %N 2 1 1 !
+    CONSTITUENT TEST_PHASE :A,B:A,B: !
+
+    PARAMETER G(TEST_PHASE,A:A;0) 298.15 +2*GHSERA#+1000; 6000 N !
+    PARAMETER G(TEST_PHASE,A:B;0) 298.15 +GHSERA#+GHSERB#+500; 6000 N !
+    PARAMETER G(TEST_PHASE,B:A;0) 298.15 +GHSERB#+GHSERA#+500; 6000 N !
+    PARAMETER G(TEST_PHASE,B:B;0) 298.15 +2*GHSERB#+1000; 6000 N !
+    """
+
+    dbf = Database(test_tdb)
+
+    # Check that never_disorder hint is set
+    assert 'never_disorder' in dbf.phases['TEST_PHASE'].model_hints
+    assert dbf.phases['TEST_PHASE'].model_hints['never_disorder'] is True
+
+    # Write to TDB and read back
+    written_tdb = dbf.to_string(fmt='tdb')
+    dbf2 = Database(written_tdb)
+
+    # Verify the hint is preserved
+    assert 'never_disorder' in dbf2.phases['TEST_PHASE'].model_hints
+    assert dbf2.phases['TEST_PHASE'].model_hints['never_disorder'] is True
+
+    # Verify the model still has idmix = 0
+    mod = Model(dbf2, ['A', 'B'], 'TEST_PHASE')
+    assert mod.models['idmix'] == S.Zero

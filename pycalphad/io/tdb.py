@@ -286,7 +286,7 @@ def _process_typedef(targetdb, typechar, line):
     if 'IF' in tokens or 'THEN' in tokens:
         warnings.warn("Type definitions using IF/THEN logic is not supported")
         return
-    keyword = expand_keyword(['DISORDERED_PART', 'MAGNETIC'], tokens[3].upper())[0]
+    keyword = expand_keyword(['DISORDERED_PART', 'MAGNETIC', 'NEVER_DIS'], tokens[3].upper())[0]
     if len(keyword) == 0:
         raise ValueError('Unknown type definition keyword: {}'.format(tokens[3]))
     if len(matching_phases) == 0:
@@ -321,6 +321,25 @@ def _process_typedef(targetdb, typechar, line):
             targetdb.phases[disordered_phase].model_hints.update(hint)
         else:
             raise ValueError(f"The {disordered_phase} phase is not in the database, but is defined by: `TYPE_DEFINTION {typechar} {line}`")
+
+    # GES A_P_D SIGMA NEVER_DIS or GES A_P_D MU NEVER_DIS DIS_MU,,,!
+    if keyword == 'NEVER_DIS':
+        # Never disorder model: phase that does not have order-disorder transformations
+        # This sets idmix = 0 in the atomic_ordering_energy method
+        phase_name = tokens[2].upper()
+        model_hints = {
+            'never_disorder': True
+        }
+        # Optional: disordered phase reference (tokens[4] if present)
+        if len(tokens) > 4 and tokens[4].upper() != '!':
+            model_hints['disordered_phase_reference'] = tokens[4].upper()
+
+        if phase_name in targetdb.phases:
+            targetdb.phases[phase_name].model_hints.update(model_hints)
+        else:
+            # For matching_phases approach (when phase is defined by typechar)
+            for matching_phase in matching_phases:
+                targetdb.phases[matching_phase].model_hints.update(model_hints)
 
 
 phase_options = {'ionic_liquid_2SL': 'Y',
@@ -816,6 +835,18 @@ def write_tdb(dbf, fd, groupby='subsystem', if_incompatible='warn'):
                         model_hints['ihj_magnetic_structure_factor'])
             del model_hints['ihj_magnetic_afm_factor']
             del model_hints['ihj_magnetic_structure_factor']
+        if 'never_disorder' in model_hints.keys():
+            new_char = typedef_chars.pop()
+            typedefs[name].append(new_char)
+            # Write NEVER_DIS with optional disordered phase reference
+            if 'disordered_phase_reference' in model_hints:
+                output += 'TYPE_DEFINITION {} GES AMEND_PHASE_DESCRIPTION {} NEVER_DIS {} !\n'\
+                    .format(new_char, name.upper(), model_hints['disordered_phase_reference'].upper())
+                del model_hints['disordered_phase_reference']
+            else:
+                output += 'TYPE_DEFINITION {} GES AMEND_PHASE_DESCRIPTION {} NEVER_DIS !\n'\
+                    .format(new_char, name.upper())
+            del model_hints['never_disorder']
         if len(model_hints) > 0:
             # Some model hints were not properly consumed
             raise ValueError('Not all model hints are supported: {}'.format(model_hints))
