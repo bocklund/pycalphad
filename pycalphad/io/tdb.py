@@ -147,7 +147,7 @@ class TCCommand(CaselessKeyword): #pylint: disable=R0903
     def parseImpl(self, instring, loc, doActions=True):
         # Find the end of the keyword by searching for an end character
         start = loc
-        endchars = ' ():,'
+        endchars = ' ():,\''
         loc = -1
         for charx in endchars:
             locx = instring.find(charx, start)
