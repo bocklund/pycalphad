@@ -1,0 +1,40 @@
+$ Test database for pseudobinary system with compound components
+$ System: AB-AC pseudobinary (3 elements: A, B, C; 2 components: AB, AC)
+$ This represents a common pseudobinary like FeO-Fe2O3 or similar
+ELEMENT A    FCC_A1    10.0      1000.     10.0     !
+ELEMENT B    FCC_A1    20.0      2000.     20.0     !
+ELEMENT C    FCC_A1    30.0      3000.     30.0     !
+ELEMENT VA   VACUUM    0.0       0.0       0.0      !
+
+$ Define compound components
+SPECIES AB                          A1B1!
+SPECIES AC                          A1C1!
+
+FUNCTION GHSERA 298.15 -1000-10*T; 6000 N !
+FUNCTION GHSERB 298.15 -2000-20*T; 6000 N !
+FUNCTION GHSERC 298.15 -3000-30*T; 6000 N !
+
+FUNCTION GAB 298.15 +GHSERA+GHSERB-10000+15*T; 6000 N !
+FUNCTION GAC 298.15 +GHSERA+GHSERC-12000+18*T; 6000 N !
+
+$ Liquid phase - simple solution of AB and AC
+TYPE_DEFINITION & GES A_P_D LIQUID MAGNETIC  -1.0    0.4 !
+PHASE LIQUID:L %& 1 1.0 !
+CONSTITUENT LIQUID:L : AB,AC : !
+PARAMETER G(LIQUID,AB;0) 298.15 +GAB+5000-10*T; 6000 N !
+PARAMETER G(LIQUID,AC;0) 298.15 +GAC+6000-12*T; 6000 N !
+PARAMETER G(LIQUID,AB,AC;0) 298.15 -5000+2*T; 6000 N !
+
+$ Alpha phase (AB-rich solid solution)
+PHASE ALPHA % 1 1.0 !
+CONSTITUENT ALPHA : AB,AC : !
+PARAMETER G(ALPHA,AB;0) 298.15 +GAB; 6000 N !
+PARAMETER G(ALPHA,AC;0) 298.15 +GAC+3000; 6000 N !
+PARAMETER G(ALPHA,AB,AC;0) 298.15 -3000; 6000 N !
+
+$ Beta phase (AC-rich solid solution)
+PHASE BETA % 1 1.0 !
+CONSTITUENT BETA : AB,AC : !
+PARAMETER G(BETA,AB;0) 298.15 +GAB+4000; 6000 N !
+PARAMETER G(BETA,AC;0) 298.15 +GAC; 6000 N !
+PARAMETER G(BETA,AB,AC;0) 298.15 -4000+T; 6000 N !
