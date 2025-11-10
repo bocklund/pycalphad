@@ -19,6 +19,13 @@ from pycalphad.plot.eqplot import eqplot
 from pycalphad.property_framework import as_property
 from pycalphad.mapping.compat_api import binplot, ternplot
 
+# Parallel equilibrium calculation (requires Python 3.11+)
+try:
+    from pycalphad.core.parallel_equilibrium import equilibrium_threaded, equilibrium_batch_threaded
+except ImportError:
+    # Will fail if Python < 3.11 or concurrent.futures not available
+    pass
+
 # Set the version of pycalphad
 try:
     from ._dev import get_version
