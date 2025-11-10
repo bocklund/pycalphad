@@ -58,7 +58,25 @@ def _sympify_string(math_string):
         if type(node) not in _AST_WHITELIST: #pylint: disable=W1504
             raise ValueError('Expression from TDB file not in whitelist: '
                              '{}'.format(expr_string))
-    return sympify(expr_string).xreplace(get_supported_variables()).n()
+
+    expr = sympify(expr_string).xreplace(get_supported_variables())
+
+    # Try to numerically evaluate the expression
+    # If it contains undefined operations (division by zero, log(0), etc.),
+    # SymEngine's .n() may raise RuntimeError: Not Implemented
+    # In such cases, we detect and raise a more informative ValueError
+    try:
+        return expr.n()
+    except RuntimeError as e:
+        if "Not Implemented" in str(e):
+            # Check for common undefined mathematical operations
+            expr_str = str(expr)
+            if "/0" in expr_string or "ln(0)" in expr_string.lower() or "log(0)" in expr_string.lower():
+                raise ValueError(f"Expression contains undefined mathematical operation: {expr_string}") from e
+            # For other cases, raise a general error
+            raise ValueError(f"Cannot numerically evaluate expression: {expr_string}") from e
+        # Re-raise if it's a different RuntimeError
+        raise
 
 def _parse_action(func):
     """
