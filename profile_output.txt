@@ -1,0 +1,106 @@
+line_profiler not available. Install with: pip install line_profiler
+============================================================
+PyCalphad Performance Profiling
+============================================================
+
+This script profiles PyCalphad for high-throughput workflows
+common in ESPEI, kawin, and other applications.
+
+
+============================================================
+OBJECT CREATION BENCHMARKS
+============================================================
+
+Model instantiation (10 iterations):
+  Average time: 4.73ms
+
+PhaseRecordFactory creation (10 iterations):
+  Average time: 0.03ms
+
+Individual PhaseRecord creation (includes LLVM compilation):
+  LIQUID: 40.98ms
+  FCC_A1: 34.39ms
+  BCC_A2: 36.47ms
+
+============================================================
+CALCULATE vs EQUILIBRIUM comparison
+============================================================
+
+Running equilibrium() on grid...
+equilibrium() time: 0.403s
+Number of equilibria: 100
+Time per equilibrium: 4.03ms
+
+============================================================
+NAIVE WORKFLOW: 50 equilibria
+============================================================
+Total time: 0.781s
+Time per equilibrium: 15.61ms
+
+============================================================
+OPTIMIZED WORKFLOW (Workspace with reuse): 50 equilibria
+============================================================
+Initializing workspace...
+Setup time: 0.012s
+Total time (excluding setup): 0.166s
+Time per equilibrium: 3.40ms
+
+============================================================
+SUMMARY
+============================================================
+Naive workflow:      0.781s (15.61ms/eq)
+Workspace workflow:  0.166s (3.40ms/eq) [setup: 0.012s]
+
+Speedup (naive vs workspace): 4.69x
+
+============================================================
+DETAILED PROFILING (cProfile)
+============================================================
+
+Top 30 functions by cumulative time:
+         1455065 function calls (1344181 primitive calls) in 1.443 seconds
+
+   Ordered by: cumulative time
+   List reduced from 712 to 30 due to restriction <30>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+       50    0.001    0.000    1.440    0.029 /home/user/pycalphad/pycalphad/core/equilibrium.py:15(equilibrium)
+      100    0.001    0.000    0.666    0.007 /home/user/pycalphad/pycalphad/core/workspace.py:279(__get__)
+       50    0.015    0.000    0.666    0.013 /home/user/pycalphad/pycalphad/core/workspace.py:341(recompute)
+       50    0.001    0.000    0.515    0.010 /home/user/pycalphad/pycalphad/core/workspace.py:316(__init__)
+3350/2850    0.002    0.000    0.511    0.000 {built-in method builtins.setattr}
+       50    0.001    0.000    0.452    0.009 /home/user/pycalphad/pycalphad/core/workspace.py:235(__set__)
+       50    0.001    0.000    0.442    0.009 /home/user/pycalphad/pycalphad/core/utils.py:354(instantiate_models)
+      150    0.020    0.000    0.439    0.003 /home/user/pycalphad/pycalphad/model.py:193(__init__)
+       50    0.015    0.000    0.380    0.008 /home/user/pycalphad/pycalphad/core/calculate.py:362(calculate)
+       50    0.000    0.000    0.257    0.005 /home/user/pycalphad/pycalphad/core/light_dataset.py:58(get_dataset)
+       50    0.001    0.000    0.257    0.005 /usr/local/lib/python3.11/dist-packages/xarray/core/dataset.py:371(__init__)
+       50    0.001    0.000    0.256    0.005 /usr/local/lib/python3.11/dist-packages/xarray/structure/merge.py:1130(merge_data_and_coords)
+      150    0.004    0.000    0.247    0.002 /home/user/pycalphad/pycalphad/model.py:524(build_phase)
+       50    0.003    0.000    0.219    0.004 /usr/local/lib/python3.11/dist-packages/xarray/core/coordinates.py:1203(create_coords_with_default_indexes)
+       50    0.067    0.001    0.213    0.004 /home/user/pycalphad/pycalphad/core/solver.py:147(solve)
+12567/6355    0.084    0.000    0.183    0.000 {built-in method builtins.sum}
+      357    0.048    0.000    0.177    0.000 /home/user/pycalphad/pycalphad/codegen/phase_record_factory.py:48(get_phase_property)
+      150    0.013    0.000    0.177    0.001 /home/user/pycalphad/pycalphad/codegen/phase_record_factory.py:65(get)
+      900    0.006    0.000    0.167    0.000 /usr/local/lib/python3.11/dist-packages/xarray/core/indexes.py:499(safe_cast_to_index)
+     1257    0.007    0.000    0.154    0.000 /home/user/pycalphad/pycalphad/core/cache.py:124(wrapper)
+      900    0.003    0.000    0.140    0.000 /usr/local/lib/python3.11/dist-packages/xarray/core/indexes.py:487(_maybe_cast_to_cftimeindex)
+      150    0.000    0.000    0.136    0.001 /usr/local/lib/python3.11/dist-packages/xarray/coding/cftimeindex.py:260(__new__)
+      150    0.000    0.000    0.135    0.001 /usr/local/lib/python3.11/dist-packages/xarray/coding/cftimeindex.py:160(assert_all_valid_date_type)
+      150    0.001    0.000    0.135    0.001 /usr/local/lib/python3.11/dist-packages/xarray/core/utils.py:1296(attempt_import)
+      150    0.000    0.000    0.134    0.001 /usr/lib/python3.11/importlib/__init__.py:108(import_module)
+      150    0.000    0.000    0.133    0.001 <frozen importlib._bootstrap>:1192(_gcd_import)
+     1107    0.010    0.000    0.133    0.000 /home/user/pycalphad/pycalphad/model.py:580(_site_ratio_normalization)
+      150    0.001    0.000    0.133    0.001 <frozen importlib._bootstrap>:1165(_find_and_load)
+      150    0.001    0.000    0.128    0.001 <frozen importlib._bootstrap>:1120(_find_and_load_unlocked)
+      150    0.003    0.000    0.126    0.001 <frozen importlib._bootstrap>:1054(_find_spec)
+
+
+
+
+Full profile saved to: pycalphad_profile.prof
+Analyze with: python -m pstats pycalphad_profile.prof
+
+============================================================
+Profiling complete!
+============================================================
