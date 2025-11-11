@@ -22,33 +22,20 @@ CPP_INCLUDE_DIRS = [
 ]
 
 # C++ utility sources (to be compiled with Cython extensions as needed)
+# Note: These are currently not compiled as the Cython modules don't use them yet.
+# They will be added to individual extension sources during the C++ migration.
 CPP_UTIL_SOURCES = [
     'pycalphad/cpp/utils/numpy_wrapper.cpp',
     'pycalphad/cpp/utils/lapack_wrapper.cpp',
     'pycalphad/cpp/utils/memory_utils.cpp',
 ]
 
-# Find LAPACK/BLAS libraries
-def find_lapack_libs():
-    """Try to find LAPACK and BLAS libraries on the system."""
-    # For macOS, use Accelerate framework
-    if sys.platform == 'darwin':
-        return [], ['-framework', 'Accelerate']
-
-    # For other platforms, try to find libraries
-    # scipy includes lapack/blas bindings, so they should be available
-    return ['lapack', 'blas'], []
-
-LAPACK_LIBS, EXTRA_LINK_ARGS = find_lapack_libs()
-
 CYTHON_EXTENSION_INCLUDES = ['.', np.get_include()] + CPP_INCLUDE_DIRS
 CYTHON_EXTENSION_MODULES = [
     Extension('pycalphad.core.hyperplane',
               sources=['pycalphad/core/hyperplane.pyx'],
               include_dirs=CYTHON_EXTENSION_INCLUDES,
-              define_macros=CYTHON_DEFINE_MACROS,
-              libraries=LAPACK_LIBS,
-              extra_link_args=EXTRA_LINK_ARGS),
+              define_macros=CYTHON_DEFINE_MACROS),
     Extension('pycalphad.core.eqsolver',
               sources=['pycalphad/core/eqsolver.pyx'],
               include_dirs=CYTHON_EXTENSION_INCLUDES,
@@ -64,9 +51,7 @@ CYTHON_EXTENSION_MODULES = [
     Extension('pycalphad.core.minimizer',
               sources=['pycalphad/core/minimizer.pyx'],
               include_dirs=CYTHON_EXTENSION_INCLUDES,
-              define_macros=CYTHON_DEFINE_MACROS,
-              libraries=LAPACK_LIBS,
-              extra_link_args=EXTRA_LINK_ARGS),
+              define_macros=CYTHON_DEFINE_MACROS),
 ]
 
 # https://cython.readthedocs.io/en/latest/src/tutorial/appendix.html
