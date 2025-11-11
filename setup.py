@@ -21,6 +21,11 @@ CPP_INCLUDE_DIRS = [
     'pycalphad/cpp/utils',
 ]
 
+# C++ core sources (compiled with migrated modules)
+CPP_HYPERPLANE_SOURCES = [
+    'pycalphad/cpp/src/hyperplane.cpp',
+]
+
 # C++ utility sources (to be compiled with Cython extensions as needed)
 # Note: These are currently not compiled as the Cython modules don't use them yet.
 # They will be added to individual extension sources during the C++ migration.
@@ -33,9 +38,10 @@ CPP_UTIL_SOURCES = [
 CYTHON_EXTENSION_INCLUDES = ['.', np.get_include()] + CPP_INCLUDE_DIRS
 CYTHON_EXTENSION_MODULES = [
     Extension('pycalphad.core.hyperplane',
-              sources=['pycalphad/core/hyperplane.pyx'],
+              sources=['pycalphad/core/hyperplane.pyx'] + CPP_HYPERPLANE_SOURCES,
               include_dirs=CYTHON_EXTENSION_INCLUDES,
-              define_macros=CYTHON_DEFINE_MACROS),
+              define_macros=CYTHON_DEFINE_MACROS,
+              language='c++'),
     Extension('pycalphad.core.eqsolver',
               sources=['pycalphad/core/eqsolver.pyx'],
               include_dirs=CYTHON_EXTENSION_INCLUDES,
