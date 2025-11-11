@@ -6,26 +6,22 @@
 #include <algorithm>
 #include <stdexcept>
 
-// Forward declare LAPACK function
-// This will be provided by scipy.linalg.cython_lapack through the Cython wrapper
-extern "C" {
-    void dgesv_(const int* n, const int* nrhs, double* a, const int* lda,
-                int* ipiv, double* b, const int* ldb, int* info);
-}
-
 namespace pycalphad {
 namespace hyperplane {
 
-void solve(double* A, int N, double* x, int* ipiv) {
-    int info = 0;
-    int NRHS = 1;
-    dgesv_(&N, &NRHS, A, &N, ipiv, x, &N, &info);
+// Function pointer to LAPACK solve - will be set by Cython during module init
+static void (*solve_callback)(double*, int, double*, int*) = nullptr;
 
-    // Special for our case: singular matrix results get set to a special value
-    if (info != 0) {
-        for (int i = 0; i < N; ++i) {
-            x[i] = -1e19;
-        }
+// Public function to set the callback from Cython
+extern "C" void set_solve_callback(void (*callback)(double*, int, double*, int*)) {
+    solve_callback = callback;
+}
+
+void solve(double* A, int N, double* x, int* ipiv) {
+    if (solve_callback) {
+        solve_callback(A, N, x, ipiv);
+    } else {
+        throw std::runtime_error("LAPACK solve callback not initialized");
     }
 }
 

@@ -10,16 +10,32 @@ import numpy as np
 cimport cython
 cimport scipy.linalg.cython_lapack as cython_lapack
 
-# LAPACK solve function - implemented in Cython to use scipy's LAPACK
-# Exported with C linkage so C++ code can call it
-cdef public void dgesv_(int* N, int* NRHS, double* A, int* LDA, int* ipiv,
-                        double* B, int* LDB, int* info) with gil:
-    """Bridge to scipy's LAPACK dgesv for C++ code."""
-    cython_lapack.dgesv(N, NRHS, A, LDA, ipiv, B, LDB, info)
+# Declare the callback setter from C++
+cdef extern from *:
+    """
+    extern "C" void set_solve_callback(void (*callback)(double*, int, double*, int*));
+    """
+    void set_solve_callback(void (*callback)(double*, int, double*, int*))
 
-# Declare C++ functions from hyperplane.hpp (with _cpp suffix to avoid name conflicts)
+# Implement LAPACK solve using scipy
+cdef void solve_impl(double* A, int N, double* x, int* ipiv) noexcept nogil:
+    """LAPACK solve implementation using scipy's cython_lapack."""
+    cdef int info = 0
+    cdef int NRHS = 1
+    with gil:
+        cython_lapack.dgesv(&N, &NRHS, A, &N, ipiv, x, &N, &info)
+    # Special for our case: singular matrix results get set to a special value
+    if info != 0:
+        for i in range(N):
+            x[i] = -1e19
+
+# Export the solve function with C linkage so it can be passed as a callback
+cdef public void hyperplane_solve_callback(double* A, int N, double* x, int* ipiv) noexcept nogil:
+    """Public wrapper for solve_impl that can be used as a C callback."""
+    solve_impl(A, N, x, ipiv)
+
+# Declare C++ functions from hyperplane.hpp
 cdef extern from "hyperplane.hpp" namespace "pycalphad::hyperplane":
-    void solve(double* A, int N, double* x, int* ipiv) nogil
     void prodsum(const double* chempots, const double* points, double* result,
                  int n_chempots, int n_points) nogil
     double min_value(const double* a, int a_shape) nogil
@@ -208,3 +224,13 @@ cpdef double hyperplane(double[:,::1] compositions,
         &result_simplex[0],
         simplex_size
     )
+
+
+# Module initialization: Set the LAPACK solve callback
+# This is called when the module is first imported
+cdef void _init_module():
+    """Initialize the C++ module with the LAPACK solve callback."""
+    set_solve_callback(&hyperplane_solve_callback)
+
+# Call initialization
+_init_module()
