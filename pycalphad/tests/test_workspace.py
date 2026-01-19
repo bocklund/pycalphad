@@ -177,6 +177,7 @@ def test_jansson_derivative_binary_composition(load_database):
 @select_database("alzn_mey.tdb")
 def test_mass_fraction_binary_condition(load_database):
     dbf = load_database()
+    breakpoint()
     wks = Workspace(database=dbf, components=['AL', 'ZN', 'VA'], phases=['FCC_A1', 'HCP_A3', 'LIQUID'],
                     conditions={v.N: 1, v.P: 1e5, v.T: 300, v.W('AL'): 0.1})
     results = wks.get('W(AL)', 'W(ZN)', 'W(FCC_A1,AL)', 'W(HCP_A3,AL)', 'W(LIQUID,AL)',
@@ -504,6 +505,8 @@ def test_workspace_calculating_mass_variables(load_database):
     assert_allclose(wks.get("B(AL)"), M_AL)
     assert_allclose(wks.get("B(LIQUID,AL)"), wks.get("B(AL)"))
     assert_allclose(wks.get("B"), wks.get("B(AL)"))
+    assert_allclose(wks.get("B.N"), M_AL)
+    assert_allclose(wks.get("B.T"), 0.0)
 
     # Single phase binary case
     wks = Workspace(dbf, ["AL", "NI"], ["LIQUID"], {v.T: 298.15, v.P: 101325, v.N: 1, v.X("AL"): 0.25})
@@ -535,3 +538,15 @@ def test_workspace_calculating_mass_variables(load_database):
     assert_allclose(wks.get("B(*)"), [wks.get("B(AL)"), wks.get("B(NI)")])
     assert_allclose(wks.get("B(*,AL)"), [wks.get("B(FCC_A1,AL)"), wks.get("B(LIQUID,AL)")])
     assert_allclose(wks.get("B"), sum(wks.get("B(*,*)")))
+
+
+@select_database("alnipt.tdb")
+def test_workspace_mass_conditions(load_database):
+    dbf = load_database()
+    # Per TDB:
+    M_AL = 26.982 # g/mole
+    M_NI = 58.690  # g/mole
+    wks = Workspace(dbf, ["AL", "NI"], ["LIQUID"], {v.T: 298.15, v.P: 101325, v.N: 1, v.B("AL"): 20.0})
+    assert_allclose(wks.get("B(AL)"), M_AL)
+    assert_allclose(wks.get("B(LIQUID,AL)"), wks.get("B(AL)"))
+    assert_allclose(wks.get("B"), wks.get("B(AL)"))
