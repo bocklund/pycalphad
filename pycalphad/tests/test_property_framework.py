@@ -224,3 +224,15 @@ def test_chemical_potentials_for_isolated_phases(load_database):
     isolated_chempots = np.asarray([wks.get(IsolatedPhase("BCT_A5",wks=wks)(x)) for x in ["MU(PB)", "MU(SN)"]])
     np.testing.assert_allclose(isolated_chempots, np.asarray([-2992.70848448, -5280.02439881]))
     np.testing.assert_allclose(isolated_GM, np.dot(isolated_chempots, isolated_X))
+
+
+@select_database("C002_NiTiCr_LuXiaogang.tdb")
+def test_isolated_phase_issue670(load_database):
+    """See issue 670, isolated phase for B19_PRIME phase should agree with the """
+    dbf = load_database()
+    phase_name = "B19_PRIME"
+    # NOTE: this can be somewhat step size dependent, i.e. (0.499,0.52,0.002) might work, but (0.499,0.52,0.001) does not
+    wks = Workspace(dbf, components = ['NI', 'TI', 'VA'], phases = [phase_name], conditions = {v.X('NI'): (0.499,0.52,0.002), v.T: 300, v.P:101325, v.N: 1})
+    np.testing.assert_allclose(wks.get("GM"), wks.get(IsolatedPhase(phase_name, wks)(f"GM({phase_name})")))
+    wks = Workspace(dbf, components = ['NI', 'TI', 'VA'], phases = [phase_name], conditions = {v.X('NI'): (0.499,0.52,0.001), v.T: 300, v.P:101325, v.N: 1})
+    np.testing.assert_allclose(wks.get("GM"), wks.get(IsolatedPhase(phase_name, wks)(f"GM({phase_name})")))
