@@ -4,7 +4,7 @@ from pycalphad.core.composition_set import CompositionSet
 from pycalphad.property_framework import as_property, JanssonDerivative, \
     ModelComputedProperty, T0, IsolatedPhase, DormantPhase, ReferenceState
 import pycalphad.variables as v
-from pycalphad.tests.fixtures import select_database, load_database
+from pycalphad.tests.fixtures import select_database, load_database, ConvergenceFailureSolver
 import pytest
 import numpy as np
 import numpy.testing
@@ -236,3 +236,21 @@ def test_isolated_phase_issue670(load_database):
     np.testing.assert_allclose(wks.get("GM"), wks.get(IsolatedPhase(phase_name, wks)(f"GM({phase_name})")))
     wks = Workspace(dbf, components = ['NI', 'TI', 'VA'], phases = [phase_name], conditions = {v.X('NI'): (0.499,0.52,0.001), v.T: 300, v.P:101325, v.N: 1})
     np.testing.assert_allclose(wks.get("GM"), wks.get(IsolatedPhase(phase_name, wks)(f"GM({phase_name})")))
+
+
+@select_database("C002_NiTiCr_LuXiaogang.tdb")
+def test_isolated_phase_warm_start_convergence_failure_returns_nan(load_database):
+    """If the per-point isolated solve cannot converge (even after a cold-start retry),
+    IsolatedPhase should return the canonical NaN sentinel rather than a stale value.
+    See issue #670."""
+    dbf = load_database()
+    phase_name = "B19_PRIME"
+    wks = Workspace(dbf, components=['NI', 'TI', 'VA'], phases=[phase_name],
+                    conditions={v.X('NI'): (0.499, 0.52, 0.005), v.T: 300, v.P: 101325, v.N: 1})
+    iso = IsolatedPhase(phase_name, wks)
+    # The workspace converged, so a starting compset was found (not the `_compset is None` path)
+    assert iso._compset is not None
+    # Force every isolated solve (warm start and cold-start retry) to fail
+    iso.solver = ConvergenceFailureSolver()
+    result = np.asarray(wks.get(iso(f"GM({phase_name})")))
+    assert np.all(np.isnan(result))

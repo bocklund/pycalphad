@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 from pycalphad.property_framework.computed_property import as_property, ComputableProperty
 from pycalphad.property_framework import units
 import numpy as np
-from copy import copy
+from copy import copy, deepcopy
 
 def find_first_compset(phase_name: str, wks: "Workspace"):
     if phase_name in wks.phases:
@@ -197,6 +197,9 @@ class IsolatedPhase:
         else:
             compset = find_first_compset(phase, wks)  # can be None if there's a convergence failure
         self._compset = compset
+        # Pristine starting configuration used to "cold start" the solver when a
+        # warm-started solve fails to converge (see issue #670).
+        self._initial_compset = deepcopy(compset) if compset is not None else None
         self.solver = Solver()
 
     def __str__(self):
@@ -215,6 +218,14 @@ class IsolatedPhase:
                 if self._compset is None:
                     return prop.compute_property([], cur_conds, chemical_potentials)
                 res = self.solver.solve([self._compset], cur_conds)
+                if not res.converged and self._initial_compset is not None:
+                    # The warm start carried over from the previous grid point can land on
+                    # a degenerate configuration the solver cannot escape (issue #670).
+                    # Cold start: reset to the pristine starting compset and retry once.
+                    self._compset = deepcopy(self._initial_compset)
+                    res = self.solver.solve([self._compset], cur_conds)
+                if not res.converged:
+                    return prop.compute_property([], cur_conds, chemical_potentials)
                 new_chemical_potentials = res.chemical_potentials
                 return prop.compute_property([self._compset], cur_conds, new_chemical_potentials)
 
