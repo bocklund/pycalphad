@@ -58,8 +58,6 @@ class Conditions:
     def __init__(self, wks: Optional["Workspace"]):
         self._wks = wks
         self._conds = []
-        # Default to N=1
-        self.__setitem__(v.N, Q_(np.atleast_1d(1.0), 'mol'))
 
     @classmethod
     def from_dict(cls, d):
@@ -68,7 +66,7 @@ class Conditions:
         obj = cls(wks=None)
         obj.update(d)
         return obj
-    
+
     def _find_matching_index(self, prop: "ComputableProperty"):
         for idx, (key, _) in enumerate(self._conds):
             # TODO: Use more sophisticated matching
@@ -79,7 +77,7 @@ class Conditions:
     @classmethod
     def cast_from(cls, key) -> "Conditions":
         return cls.from_dict(key)
-    
+
     def __getitem__(self, item):
         key = as_property(item)
         idx = self._find_matching_index(key)
@@ -105,7 +103,7 @@ class Conditions:
         if idx is None:
             raise IndexError(f"{item} is not a condition")
         del self._conds[idx]
-    
+
     def __setitem__(self, item, value):
         prop = as_property(item)
         if isinstance(prop, (v.MoleFraction, v.MassFraction, v.SiteFraction)):
@@ -122,7 +120,7 @@ class Conditions:
 
         if len(value) == 0:
             raise ConditionError('Condition cannot be zero-length array')
-        
+
         value = as_quantity(prop, value).to(prop.implementation_units)
 
         if isinstance(prop, (v.MoleFraction, v.MassFraction, v.ChemicalPotential)) and prop.species not in self._wks.components:
@@ -152,7 +150,7 @@ class Conditions:
             self._conds.append(entry)
         else:
             self._conds[idx] = entry
-        
+
         self._conds = sorted(self._conds, key=lambda k: str(k[0]))
 
     def keys(self):
