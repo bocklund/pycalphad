@@ -135,9 +135,14 @@ class Conditions:
                 if symbol.species not in self._wks.components:
                     raise ConditionError(f'{symbol} in {item} refers to non-existent component')
 
-        if isinstance(prop, v.Moles) and getattr(prop, 'species', None) is not None \
-                and prop.species not in self._wks.components:
-            raise ConditionError('{} refers to non-existent component'.format(prop))
+        if isinstance(prop, v.Moles) and getattr(prop, "phase_name", None) is not None:
+            raise ConditionError(f"{prop}: phase-local moles conditions are not supported")
+
+        if isinstance(prop, (v.Moles, v.MassFraction, v.MoleFraction, v.ChemicalPotential)) and getattr(prop, "species", None) is not None:
+            if prop.species.number_of_atoms == 0:
+                raise ConditionError(f"{prop}: pure vacancy components cannot be conditions")
+            if prop.species not in self._wks.components:
+                raise ConditionError(f"{prop} refers to non-existent component")
 
         if isinstance(prop, v.SiteFraction) and prop not in self._wks.models[prop.phase_name].variables:
             raise ConditionError('{} refers to non-existent constituent'.format(prop))
