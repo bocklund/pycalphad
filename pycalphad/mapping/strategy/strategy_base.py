@@ -25,8 +25,8 @@ class MapStrategy:
     Derived Classes
     ---------------
     - SteppingStrategy: For single-axis diagrams.
-    - BinaryStrategy: For binary phase diagrams (1 composition, 1 potential axis).
-    - TernaryStrategy: For ternary phase diagrams (2 composition axes).
+    - TielineStrategy: For phase diagrams with tie-lines in the plane of the axis variables
+      (binary phase diagrams and ternary isothermal sections).
     - IsoplethStrategy: For isopleths (tested only for 1 composition, 1 potential axis so far).
 
     Constants

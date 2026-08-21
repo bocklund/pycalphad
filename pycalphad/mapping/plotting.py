@@ -13,8 +13,7 @@ from pycalphad.property_framework.units import Q_, ureg, to_display_units
 
 from pycalphad.mapping.primitives import _get_phase_specific_variable
 from pycalphad.mapping.strategy.step_strategy import StepStrategy
-from pycalphad.mapping.strategy.binary_strategy import BinaryStrategy
-from pycalphad.mapping.strategy.ternary_strategy import TernaryStrategy
+from pycalphad.mapping.strategy.tieline_strategy import TielineStrategy
 from pycalphad.mapping.strategy.isopleth_strategy import IsoplethStrategy
 import pycalphad.mapping.utils as map_utils
 
@@ -111,14 +110,14 @@ def plot_step(strategy: StepStrategy, x: v.StateVariable = None, y: v.StateVaria
 
     return ax
 
-def plot_invariants(ax, strategy: Union[BinaryStrategy, TernaryStrategy], x: v.StateVariable, y: v.StateVariable, phase_colors, label_end_points: bool = False, tie_triangle_color = (1, 0, 0, 1)):
+def plot_invariants(ax, strategy: TielineStrategy, x: v.StateVariable, y: v.StateVariable, phase_colors, label_end_points: bool = False, tie_triangle_color = (1, 0, 0, 1)):
     """
-    Plots node data from BinaryStrategy or TernaryStrategy onto matplotlib axis
+    Plots node data from TielineStrategy onto matplotlib axis
 
     Parameters
     ----------
     ax : matplotlib axis
-    strategy : BinaryStrategy or TernaryStrategy
+    strategy : TielineStrategy
     x : v.StateVariable
     y : v.StateVariable
     phase_colors : dict[str, color]
@@ -138,14 +137,14 @@ def plot_invariants(ax, strategy: Union[BinaryStrategy, TernaryStrategy], x: v.S
             for xp, yp, p in zip(single_invariant.x, single_invariant.y, single_invariant.phases):
                 ax.scatter([xp], [yp], color=phase_colors[p], s=8, zorder=3)
 
-def plot_tielines(ax, strategy: Union[BinaryStrategy, TernaryStrategy], x: v.StateVariable, y: v.StateVariable, phase_colors, tielines = 1, tieline_color=(0, 1, 0, 1)):
+def plot_tielines(ax, strategy: TielineStrategy, x: v.StateVariable, y: v.StateVariable, phase_colors, tielines = 1, tieline_color=(0, 1, 0, 1)):
     """
-    Plots tieline data from BinaryStrategy or TernaryStrategy onto matplotlib axis
+    Plots tieline data from TielineStrategy onto matplotlib axis
 
     Parameters
     ----------
     ax : matplotlib axis
-    strategy : BinaryStrategy or TernaryStrategy
+    strategy : TielineStrategy
     x : v.StateVariable
     y : v.StateVariable
     phase_colors : dict[str, color]
@@ -180,13 +179,13 @@ def plot_tielines(ax, strategy: Union[BinaryStrategy, TernaryStrategy], x: v.Sta
             tieline_collection = LineCollection(lines[::tielines,...], zorder=1, linewidths=0.5, capstyle="butt", colors=[tieline_color for _ in range(len(x[0]))])
             ax.add_collection(tieline_collection)
 
-def plot_binary(strategy: BinaryStrategy, x: v.StateVariable = None, y: v.StateVariable = None, ax = None, tielines = 1, label_nodes = False, legend_generator = phase_legend, tieline_color=(0, 1, 0, 1), tie_triangle_color=(1, 0, 0, 1), *args, **kwargs):
+def plot_binary(strategy: TielineStrategy, x: v.StateVariable = None, y: v.StateVariable = None, ax = None, tielines = 1, label_nodes = False, legend_generator = phase_legend, tieline_color=(0, 1, 0, 1), tie_triangle_color=(1, 0, 0, 1), *args, **kwargs):
     """
     Plots binary map using matplotlib
 
     Parameters
     ----------
-    strategy : BinaryStrategy or TernaryStrategy
+    strategy : TielineStrategy
     x : v.StateVariable
     y : v.StateVariable
     ax : matplotlib axes (optional)
@@ -250,7 +249,7 @@ def plot_binary(strategy: BinaryStrategy, x: v.StateVariable = None, y: v.StateV
 
     return ax
 
-def plot_ternary(strategy: TernaryStrategy, x: v.StateVariable = None, y: v.StateVariable = None, ax = None, tielines = 1, label_nodes = False, legend_generator = phase_legend, tieline_color=(0, 1, 0, 1), tie_triangle_color=(1, 0, 0, 1), *args, **kwargs):
+def plot_ternary(strategy: TielineStrategy, x: v.StateVariable = None, y: v.StateVariable = None, ax = None, tielines = 1, label_nodes = False, legend_generator = phase_legend, tieline_color=(0, 1, 0, 1), tie_triangle_color=(1, 0, 0, 1), *args, **kwargs):
     """
     Plots ternary map using matplotlib
 
