@@ -106,6 +106,17 @@ def test_ternary_strategy(load_database):
     new_num_nodes = len(strategy.node_queue.nodes)
     assert new_num_nodes == num_nodes + 1
 
+
+@select_database("crtiv_ghosh.tdb")
+def test_ternary_strategy_all_single_phase(load_database):
+    """ternplot should work even the entire diagram is all single phase"""
+    dbf = load_database()
+
+    conditions = {v.P: 1e5, v.N: 1, v.T: 2000, v.X("TI"): (0, 1, 0.2), v.X("V"): (0, 1, 0.2)}
+    ternplot(dbf, ["CR", "TI", "V", "VA"], ["LIQUID"], conditions)
+
+    # TODO: should LIQUID should up as single phase in the plot?
+
 @select_database("alcocrni.tdb")
 def test_step_strategy_through_single_phase(load_database):
     dbf = load_database()
