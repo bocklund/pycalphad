@@ -436,7 +436,8 @@ def test_ternary_strategy_process_metastable_node(load_database):
     This is done by purposely creating a known metastable node, which
     the TernaryStrategy should be able to detect whether a node is metastable
     and perform the following:
-        a) if node is metastable, do not add to node queue and remove zpf line
+        a) if node is metastable, do not add to node queue and end the zpf line
+           (the zpf line is kept since its points have passed their own global min checks)
         b) if node is stable, add to node queue
     """
     # Create system
@@ -466,11 +467,12 @@ def test_ternary_strategy_process_metastable_node(load_database):
     metastable_point = point_from_equilibrium(dbf, comps, metastable_phases, eq_conds, models=models, phase_record_factory=phase_record_factory)
     metastable_node = Node(metastable_point.global_conditions, metastable_point.chemical_potentials, [], metastable_point.stable_composition_sets, None)
 
-    # In _process_new_node, this will fail the global min check and remove the zpf line
+    # In _process_new_node, this will fail the global min check and end the zpf line
     num_nodes = len(strategy.node_queue.nodes)
     strategy._process_new_node(strategy.zpf_lines[0], metastable_node)
-    # Test that zpf line was removed for being a metastable node
-    assert len(strategy.zpf_lines) == 0
+    # Test that zpf line was kept, but ended for leading to a metastable node
+    assert len(strategy.zpf_lines) == 1
+    assert strategy.zpf_lines[0].status == ZPFState.FAILED
     assert len(strategy.node_queue.nodes) == num_nodes
 
     # _process_new_node with correct/stable node
@@ -481,12 +483,12 @@ def test_ternary_strategy_process_metastable_node(load_database):
     stable_node = Node(stable_point.global_conditions, stable_point.chemical_potentials, [], stable_point.stable_composition_sets, None)
 
     strategy.zpf_lines.append(ZPFLine([], point.stable_phases))
-    strategy.zpf_lines[0].axis_var = v.X('FE')
-    strategy.zpf_lines[0].axis_direction = Direction.POSITIVE
+    strategy.zpf_lines[-1].axis_var = v.X('FE')
+    strategy.zpf_lines[-1].axis_direction = Direction.POSITIVE
 
     num_nodes = len(strategy.node_queue.nodes)
     num_zpf_lines = len(strategy.zpf_lines)
-    strategy._process_new_node(strategy.zpf_lines[0], stable_node)
+    strategy._process_new_node(strategy.zpf_lines[-1], stable_node)
     assert len(strategy.zpf_lines) == num_zpf_lines
     assert len(strategy.node_queue.nodes) == 1+num_nodes
     assert strategy.node_queue.nodes[-1] == stable_node

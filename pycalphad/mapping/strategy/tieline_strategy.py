@@ -489,6 +489,9 @@ class TielineStrategy(MapStrategy):
     def _process_new_node(self, zpf_line: ZPFLine, new_node: Node):
         """
         Post global min check after finding node to ensure it's not a metastable node
+
+        If the node is metastable, the zpf line is kept (the points on it have already
+        passed their own global min checks) but ended, and the node is not added
         """
         _log.info("Checking if new node is metastable")
         cs_result = zeq._find_global_min_cs(new_node, system_info=self.system_info, pdens=self.GLOBAL_MIN_PDENS, tol=self.GLOBAL_MIN_TOL, num_candidates=self.GLOBAL_MIN_NUM_CANDIDATES)
@@ -499,8 +502,8 @@ class TielineStrategy(MapStrategy):
             _log.info("Global eq check on new node passed")
             super()._process_new_node(zpf_line, new_node)
         else:
-            _log.info("Global eq check failed. New node is metastable. Removing current zpf line.")
-            self.zpf_lines.pop(-1)
+            _log.info("Global eq check failed. New node is metastable. Ending current zpf line.")
+            zpf_line.status = ZPFState.FAILED
 
     def get_invariant_data(self, x: v.StateVariable, y: v.StateVariable, global_x: bool = False, global_y: bool = False) -> list[PhaseRegionData]:
         """
