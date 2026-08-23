@@ -94,14 +94,16 @@ class Solver(SolverBase):
             # values should all be scalar floats
             value = float(np.asarray(value).flat[0])
             if isinstance(cond, MoleFraction) and cond.phase_name is None:
-                # X(c) = k. A component whose (S^T)^-1 row is a unit vector (every pure element,
-                # and the whole trivial basis) keeps the direct form dot(e_c, x) = k: it is exact
-                # (the component total equals the atom total) and stays one-hot, which the
-                # Jansson-derivative matching in fixed_component_differential relies on. A genuine
-                # multi-element component uses the homogeneous form ((S^T)^-1[c,:] - k*colsum).x = 0
-                # because its component total differs from the atom total.
+                # X(c) = k. The direct form dot(row, x) = k is exact only when the component
+                # total identically equals the atom total, i.e. the column sum of (S^T)^-1 is
+                # all ones (always true for the trivial pure-element basis). It stays one-hot
+                # there, which the Jansson-derivative matching in fixed_component_differential
+                # relies on. Otherwise (a genuine multi-element basis) X(c) is normalized by
+                # the component total dot(colsum, x), so the condition must use the homogeneous
+                # form ((S^T)^-1[c,:] - k*colsum).x = 0 even when the component's own row is
+                # one-hot.
                 coefs = np.array(component_basis_inv_T[basis_row(cond.species)])
-                if np.count_nonzero(coefs) == 1 and np.isclose(coefs.sum(), 1.0):
+                if np.count_nonzero(coefs) == 1 and np.isclose(coefs.sum(), 1.0) and np.allclose(inv_T_colsum, 1.0):
                     prescribed_mole_fraction_rhs.append(value)
                 else:
                     coefs = coefs - value * inv_T_colsum
@@ -166,31 +168,33 @@ class Solver(SolverBase):
             prescribed_mole_amount_coefficients = np.zeros((0, num_components))
         prescribed_mole_amount_rhs = np.array(prescribed_mole_amount_rhs, dtype=np.float64)
 
-        # MU conditions. For a trivial (pure-element) basis, fix individual element chemical
-        # potentials by index (unchanged). For a redefined basis, MU(component) fixes a linear
-        # combination of element chemical potentials, sum_e constituents[e]*mu_e = value, added
-        # as a constraint row; all element chemical potentials stay free and solved.
+        # MU conditions (keyed by ChemicalPotential objects or 'MU_<NAME>' strings).
+        # A pure-element MU fixes that element's chemical potential by index (works under any
+        # basis; the basis only reinterprets amount conditions, not element potentials).
+        # MU(component) for a genuine multi-element or multiplied component (e.g. CL2) fixes a
+        # linear combination of element chemical potentials, sum_e constituents[e]*mu_e = value,
+        # added as a constraint row; the element chemical potentials stay free and solved.
         fixed_chempot_coefs = []
         fixed_chempot_rhs = []
-        if basis_is_trivial:
-            fixed_chemical_potential_indices = np.array(
-                [nonvacant_elements.index(str(key)[3:]) for key in conditions.keys() if str(key).startswith('MU_')],
-                dtype=np.int32)
-            for fixed_chempot_index in fixed_chemical_potential_indices:
-                el = nonvacant_elements[fixed_chempot_index]
-                chemical_potentials[fixed_chempot_index] = conditions.get(ChemicalPotential(el))
-        else:
-            fixed_chemical_potential_indices = np.array([], dtype=np.int32)
-            for key in conditions.keys():
-                if not isinstance(key, ChemicalPotential):
-                    continue
+        fixed_chemical_potential_indices = []
+        for key, cond_value in conditions.items():
+            if isinstance(key, str) and key.startswith('MU_'):
+                key = ChemicalPotential(key[3:])
+            elif not isinstance(key, ChemicalPotential):
+                continue
+            value = float(np.asarray(cond_value).flat[0])
+            constituents = {el: mult for el, mult in key.species.constituents.items() if el != 'VA'}
+            if len(constituents) == 1 and np.isclose(next(iter(constituents.values())), 1.0):
+                el_index = nonvacant_elements.index(next(iter(constituents)))
+                fixed_chemical_potential_indices.append(el_index)
+                chemical_potentials[el_index] = value
+            else:
                 row = np.zeros(num_components)
-                for el, mult in key.species.constituents.items():
-                    if el == 'VA':
-                        continue
+                for el, mult in constituents.items():
                     row[nonvacant_elements.index(el)] = mult
                 fixed_chempot_coefs.append(row)
-                fixed_chempot_rhs.append(float(np.asarray(conditions[key]).flat[0]))
+                fixed_chempot_rhs.append(value)
+        fixed_chemical_potential_indices = np.array(sorted(fixed_chemical_potential_indices), dtype=np.int32)
         if len(fixed_chempot_coefs) > 0:
             fixed_chempot_coefs = np.atleast_2d(fixed_chempot_coefs)
         else:

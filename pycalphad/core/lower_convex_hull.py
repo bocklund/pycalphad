@@ -104,6 +104,7 @@ def lower_convex_hull(global_grid, state_variables, conds_keys, phase_record_fac
         # into a simplex-closure row plus (k-1) scale-invariant ratio rows.
         idx_amount_coefs = []
         idx_amount_rhs = []
+        mu_placeholder_used = False
 
         for coord_idx, str_cond_key in enumerate(sorted(result_array.coords.keys())):
             try:
@@ -118,18 +119,27 @@ def lower_convex_hull(global_grid, state_variables, conds_keys, phase_record_fac
                 # Already handled above in construction of grid_index
                 continue
             elif isinstance(cond_key, ChemicalPotential):
-                if basis_is_trivial:
-                    component_idx = result_array.coords['component'].index(str(cond_key.species))
+                mu_constituents = {el: mult for el, mult in cond_key.species.constituents.items()
+                                   if el != 'VA'}
+                if len(mu_constituents) == 1 and np.isclose(next(iter(mu_constituents.values())), 1.0):
+                    # Pure-element MU fixes that element's chemical potential (any basis)
+                    component_idx = result_array.coords['component'].index(next(iter(mu_constituents)))
                     idx_fixed_chempot_indices.append(component_idx)
                     idx_result_array_MU_values[component_idx] = rhs
                 else:
-                    # MU(component) is a linear-combination chemical-potential constraint, which
-                    # the hyperplane (axis-aligned fixed chempots) cannot express directly. For
-                    # the starting point, treat it as a placeholder amount along the component's
-                    # direction so the hull returns a determined, feasible composition; the Newton
-                    # solver enforces the true MU(component) via its constraint row.
-                    idx_amount_coefs.append(component_basis_inv_T[basis_row(cond_key.species)].copy())
-                    idx_amount_rhs.append(1.0)
+                    # MU(component) is a linear-combination chemical-potential constraint,
+                    # which the hyperplane (axis-aligned fixed chempots) cannot express
+                    # directly; the Newton solver enforces the true MU(component) via its
+                    # constraint row. For the starting point: if the component is part of a
+                    # redefined basis, start with zero amount of it (e.g. on the stoichiometric
+                    # join for MU(CL2) over a chloride basis), which is consistent with the
+                    # other composition conditions. Otherwise add no row; any remaining
+                    # composition freedom is pinned at a feasible interior point below.
+                    if str(cond_key.species) in basis_component_index:
+                        idx_fixed_lincomb_molefrac_coefs.append(
+                            component_basis_inv_T[basis_row(cond_key.species)].copy())
+                        idx_fixed_lincomb_molefrac_rhs.append(0.0)
+                    mu_placeholder_used = True
             elif isinstance(cond_key, MassFraction):
                 # W(c) = k <=> (MW(c)*(S^T)^-1[c,:] - k*mass_elem) . x_elem = 0.
                 # For a pure-element basis this is (1-k)*MW_A*x_A - k*MW_B*x_B - ... = 0.
@@ -141,11 +151,12 @@ def lower_convex_hull(global_grid, state_variables, conds_keys, phase_record_fac
                 if cond_key.phase_name is not None:
                     # Phase-local condition already handled in construction of grid
                     continue
-                # X(c) = k. A unit-vector (S^T)^-1 row (every pure element, and the trivial basis)
-                # keeps the direct form dot(e_c, x) = k; a multi-element component uses the
-                # homogeneous form ((S^T)^-1[c,:] - k*colsum).x = 0. See solver.get_system_spec.
+                # X(c) = k. The direct form dot(row, x) = k is exact only when the component
+                # total identically equals the atom total (colsum of (S^T)^-1 is all ones, as in
+                # the trivial basis); otherwise use the homogeneous form
+                # ((S^T)^-1[c,:] - k*colsum).x = 0. See solver.get_system_spec.
                 coefs = np.array(component_basis_inv_T[basis_row(cond_key.species)])
-                if np.count_nonzero(coefs) == 1 and np.isclose(coefs.sum(), 1.0):
+                if np.count_nonzero(coefs) == 1 and np.isclose(coefs.sum(), 1.0) and np.allclose(inv_T_colsum, 1.0):
                     idx_fixed_lincomb_molefrac_coefs.append(coefs)
                     idx_fixed_lincomb_molefrac_rhs.append(rhs)
                 else:
@@ -198,6 +209,26 @@ def lower_convex_hull(global_grid, state_variables, conds_keys, phase_record_fac
             ratio_row = idx_amount_rhs[0] * idx_amount_coefs[m] - idx_amount_rhs[m] * idx_amount_coefs[0]
             idx_fixed_lincomb_molefrac_coefs.append(ratio_row)
             idx_fixed_lincomb_molefrac_rhs.append(0.0)
+
+        if mu_placeholder_used:
+            # A MU(component) placeholder direction can be linearly dependent with the other
+            # amount conditions (e.g. an equiatomic component alongside total N), leaving the
+            # starting composition underdetermined. Pin the leftover degrees of freedom at the
+            # projection of the uniform composition onto the solution set; the Newton solver
+            # then moves the composition to satisfy the true MU(component) constraint.
+            condition_matrix = np.atleast_2d(idx_fixed_lincomb_molefrac_coefs)
+            condition_rhs = np.atleast_1d(idx_fixed_lincomb_molefrac_rhs)
+            _, singular_values, vt = np.linalg.svd(condition_matrix)
+            rank = int(np.sum(singular_values > max(condition_matrix.shape) * np.finfo(np.float64).eps * singular_values[0]))
+            if rank < num_comps:
+                particular, *_ = np.linalg.lstsq(condition_matrix, condition_rhs, rcond=None)
+                nullspace = vt[rank:]
+                uniform = np.full(num_comps, 1.0 / num_comps)
+                pinned = particular + nullspace.T @ (nullspace @ (uniform - particular))
+                # Replace the (rank-deficient, possibly zero-row) system with the equivalent
+                # full-rank square system vt . x = vt . pinned
+                idx_fixed_lincomb_molefrac_coefs = [vt[i] for i in range(vt.shape[0])]
+                idx_fixed_lincomb_molefrac_rhs = [float(vt[i] @ pinned) for i in range(vt.shape[0])]
 
         idx_fixed_lincomb_molefrac_coefs = np.atleast_2d(idx_fixed_lincomb_molefrac_coefs)
         idx_fixed_lincomb_molefrac_rhs = np.atleast_1d(idx_fixed_lincomb_molefrac_rhs)

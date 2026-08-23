@@ -122,8 +122,18 @@ class Conditions:
 
         value = as_quantity(prop, value).to(prop.implementation_units)
 
-        if isinstance(prop, (v.MoleFraction, v.MassFraction, v.ChemicalPotential)) and prop.species not in self._wks.components:
+        if isinstance(prop, (v.MoleFraction, v.MassFraction)) and prop.species not in self._wks.components:
             raise ConditionError('{} refers to non-existent component'.format(prop))
+        if isinstance(prop, v.ChemicalPotential) and prop.species not in self._wks.components:
+            # MU(component) is well-defined for any component over the system's elements
+            # (a fixed linear combination of element chemical potentials), even if the
+            # component is not part of the (possibly redefined) component basis.
+            active_elements = set()
+            for comp in self._wks.components:
+                active_elements.update(comp.constituents.keys())
+            missing = set(prop.species.constituents.keys()) - {'VA'} - active_elements
+            if missing:
+                raise ConditionError(f'{prop} refers to non-existent elements {sorted(missing)}')
 
         if isinstance(prop, v.Moles) and getattr(prop, "phase_name", None) is not None:
             raise ConditionError(f"{prop}: phase-local moles conditions are not supported")
@@ -131,7 +141,8 @@ class Conditions:
         if isinstance(prop, (v.Moles, v.MassFraction, v.MoleFraction, v.ChemicalPotential)) and getattr(prop, "species", None) is not None:
             if prop.species.number_of_atoms == 0:
                 raise ConditionError(f"{prop}: pure vacancy components cannot be conditions")
-            if prop.species not in self._wks.components:
+            # ChemicalPotential of a non-basis component is allowed (validated above)
+            if not isinstance(prop, v.ChemicalPotential) and prop.species not in self._wks.components:
                 raise ConditionError(f"{prop} refers to non-existent component")
 
         if isinstance(prop, v.SiteFraction) and prop not in self._wks.models[prop.phase_name].variables:

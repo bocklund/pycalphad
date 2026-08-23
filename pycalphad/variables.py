@@ -9,7 +9,8 @@ from pycalphad.core.cache import lru_cache
 from pycalphad.io.grammar import parse_chemical_formula
 from pycalphad.property_framework.types import JanssonDerivativeDeltas
 from pycalphad.core.minimizer import site_fraction_differential, state_variable_differential, \
-    fixed_component_differential, chemical_potential_differential
+    fixed_component_differential, chemical_potential_differential, \
+    fixed_condition_row_differential, system_mole_fractions, prescribed_mole_fraction_condition_rows
 from pycalphad.core.errors import ConditionError
 import numpy as np
 from copy import copy
@@ -606,10 +607,17 @@ class MoleFraction(StateVariable):
         if row is not None:
             # Redefined-component mole fraction: X(c) = n_comp[c] / sum_c' n_comp[c'],
             # with n_comp = (S^T)^-1 . N(elements).
-            if self.phase_name is not None:
-                raise ConditionError(f"{self}: phase-local component mole fractions are not supported")
-            n_elem = _element_amounts(compsets)
             inv_T = np.asarray(prf.component_basis_inv_T)
+            if self.phase_name is not None:
+                # Phase-local component fraction: element amounts of just this phase
+                for _, compset in self.filtered(compsets):
+                    x_elem = np.asarray(compset.X)
+                    total_comp = float(np.dot(inv_T.sum(axis=0), x_elem))
+                    if total_comp == 0:
+                        raise ValueError(f"The phase has zero moles of components. Got composition set: {compset}")
+                    result[0] = float(np.dot(inv_T[row], x_elem)) / total_comp
+                return result
+            n_elem = _element_amounts(compsets)
             total_comp = float(np.dot(inv_T.sum(axis=0), n_elem))
             if total_comp == 0:
                 raise ValueError(f"The system has zero moles. Got composition sets: {compsets}")
@@ -643,6 +651,12 @@ class MoleFraction(StateVariable):
             phase_name = tokens[0]
             if (compset.phase_record.phase_name != phase_name):
                 return np.nan
+        row = _redefined_component_row(self.species, compset.phase_record)
+        if row is not None:
+            # Per-phase component fraction: (row . X_alpha) / (colsum . X_alpha)
+            inv_T = np.asarray(compset.phase_record.component_basis_inv_T)
+            x_elem = np.asarray(compset.X)
+            return float(np.dot(inv_T[row], x_elem)) / float(np.dot(inv_T.sum(axis=0), x_elem))
         el_idx = compset.phase_record.nonvacant_elements.index(str(self.species))
         return compset.X[el_idx]
 
@@ -650,20 +664,77 @@ class MoleFraction(StateVariable):
         "Compute partial derivatives of property with respect to degrees of freedom of given CompositionSets"
         result = [np.zeros(compset.dof.shape[0]) for compset in compsets]
         num_components = len(compsets[0].phase_record.nonvacant_elements)
+        row = _redefined_component_row(self.species, compsets[0].phase_record)
         for cs_idx, compset in self.filtered(compsets):
             masses = np.zeros((num_components, 1))
             mass_jac = np.zeros((num_components, compset.dof.shape[0]))
             for comp_idx in range(num_components):
                 compset.phase_record.formulamole_obj(masses[comp_idx, :], compset.dof, comp_idx)
                 compset.phase_record.formulamole_grad(mass_jac[comp_idx, :], compset.dof, comp_idx)
-            el_idx = compset.phase_record.nonvacant_elements.index(str(self.species))
-            result[cs_idx][:] = (mass_jac[el_idx] * masses.sum() - masses[el_idx,0] * mass_jac.sum(axis=0)) \
-                / (masses.sum(axis=0)**2)
+            if row is not None:
+                # Per-phase component fraction (row . m)/(colsum . m) by the quotient rule,
+                # where m are the per-formula element amounts.
+                inv_T = np.asarray(compset.phase_record.component_basis_inv_T)
+                colsum = inv_T.sum(axis=0)
+                numerator = float(inv_T[row] @ masses[:, 0])
+                denominator = float(colsum @ masses[:, 0])
+                numerator_jac = inv_T[row] @ mass_jac
+                denominator_jac = colsum @ mass_jac
+                result[cs_idx][:] = (numerator_jac * denominator - numerator * denominator_jac) / denominator**2
+            else:
+                el_idx = compset.phase_record.nonvacant_elements.index(str(self.species))
+                result[cs_idx][:] = (mass_jac[el_idx] * masses.sum() - masses[el_idx,0] * mass_jac.sum(axis=0)) \
+                    / (masses.sum(axis=0)**2)
         return result
 
     def jansson_derivative(self, compsets, cur_conds, chemical_potentials, deltas: JanssonDerivativeDeltas):
         "Compute Jansson derivative with self as numerator, with the given deltas"
         state_variables = compsets[0].phase_record.state_variables
+        prf = compsets[0].phase_record
+        row = _redefined_component_row(self.species, prf)
+        if row is not None and self.phase_name is None:
+            # Global redefined-component fraction X(c) = A/B with A = row.n_elem and
+            # B = colsum.n_elem (the component total). Unlike the element case, B is not
+            # held fixed along the perturbation (only the atom total N is), so use the
+            # full quotient rule: dX = (dA - (A/B) dB)/B, accumulating
+            # d(n_elem) = sum_alpha [dNP_alpha X_alpha + NP_alpha dX_alpha].
+            num_els = len(prf.nonvacant_elements)
+            inv_T = np.asarray(prf.component_basis_inv_T)
+            colsum = inv_T.sum(axis=0)
+            row_coefs = inv_T[row]
+            A = B = dA = dB = 0.0
+            nonempty = False
+            for idx, compset in enumerate(compsets):
+                if compset.NP == 0 and not compset.fixed:
+                    continue
+                nonempty = True
+                masses = np.zeros((num_els, 1))
+                mass_jac = np.zeros((num_els, compset.dof.shape[0]))
+                for el_idx in range(num_els):
+                    compset.phase_record.formulamole_obj(masses[el_idx, :], compset.dof, el_idx)
+                    compset.phase_record.formulamole_grad(mass_jac[el_idx, :], compset.dof, el_idx)
+                atoms = masses.sum()
+                x_alpha = masses[:, 0] / atoms
+                # d(X_alpha)/d(dof) by the quotient rule over the per-formula amounts
+                x_grad = (mass_jac * atoms - masses * mass_jac.sum(axis=0)) / atoms**2
+                f_A = float(row_coefs @ x_alpha)
+                f_B = float(colsum @ x_alpha)
+                g_A = row_coefs @ x_grad
+                g_B = colsum @ x_grad
+                delta_sitefracs = deltas.delta_sitefracs[idx]
+                A += compset.NP * f_A
+                B += compset.NP * f_B
+                dA += deltas.delta_phase_amounts[idx] * f_A + compset.NP * (
+                    np.dot(deltas.delta_statevars, g_A[:len(state_variables)])
+                    + np.dot(delta_sitefracs, g_A[len(state_variables):]))
+                dB += deltas.delta_phase_amounts[idx] * f_B + compset.NP * (
+                    np.dot(deltas.delta_statevars, g_B[:len(state_variables)])
+                    + np.dot(delta_sitefracs, g_B[len(state_variables):]))
+            if not nonempty:
+                return np.nan
+            if B == 0:
+                raise ValueError(f"The system has zero moles of components. Got composition sets: {compsets}")
+            return (dA - (A / B) * dB) / B
         grad_values = self.compute_property_gradient(compsets, cur_conds, chemical_potentials)
 
         # Sundman et al, 2015, Eq. 73
@@ -699,9 +770,37 @@ class MoleFraction(StateVariable):
         return jansson_derivative
 
     def jansson_deltas(self, spec, state) -> JanssonDerivativeDeltas:
-        component_idx = state.compsets[0].phase_record.nonvacant_elements.index(str(self.species))
-        delta_chemical_potentials, delta_statevars, delta_phase_amounts = \
-        fixed_component_differential(spec, state, component_idx)
+        phase_record = state.compsets[0].phase_record
+        name = str(self.species)
+        if phase_record.basis_is_trivial:
+            component_idx = phase_record.nonvacant_elements.index(name)
+            delta_chemical_potentials, delta_statevars, delta_phase_amounts = \
+                fixed_component_differential(spec, state, component_idx)
+        else:
+            # Redefined component basis: the X(component) condition is stored in the
+            # homogeneous form ((S^T)^-1[c,:] - k*colsum).x = 0 (see Solver.get_system_spec),
+            # so locate its row by reconstructing the expected coefficients from the current
+            # state (at convergence k equals the prescribed value) and perturb that row's
+            # right-hand side. A unit rhs perturbation corresponds to
+            # dX(c) = 1/(colsum . x), so rescale the deltas to be per unit dX(c).
+            inv_T = np.asarray(phase_record.component_basis_inv_T)
+            colsum = inv_T.sum(axis=0)
+            row_c = inv_T[phase_record.basis_component_index[name]]
+            x_elem = system_mole_fractions(state)
+            component_total = float(colsum @ x_elem)
+            k = float(row_c @ x_elem) / component_total
+            expected_row = row_c - k * colsum
+            condition_rows, _ = prescribed_mole_fraction_condition_rows(spec)
+            matches = [i for i in range(condition_rows.shape[0])
+                       if np.allclose(condition_rows[i], expected_row, atol=1e-6)]
+            if len(matches) != 1:
+                raise ValueError(f'Could not locate the condition row for {self} '
+                                 f'in the present calculation')
+            delta_chemical_potentials, delta_statevars, delta_phase_amounts = \
+                fixed_condition_row_differential(spec, state, matches[0])
+            delta_chemical_potentials = delta_chemical_potentials * component_total
+            delta_statevars = delta_statevars * component_total
+            delta_phase_amounts = delta_phase_amounts * component_total
 
         # Sundman et al, 2015, Eq. 73
         compsets_delta_sitefracs = []
