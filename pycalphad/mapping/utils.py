@@ -105,6 +105,11 @@ def _generate_point_with_fixed_cs(point: Point, cs_to_fix: CompositionSet, cs_to
     update_cs_phase_frac(new_point._free_composition_sets[0], 1.0)
 
     for key in new_point.global_conditions:
+        # Imposed potentials (e.g. MU conditions) are inputs, not outcomes: refreshing them
+        # from the computed state would silently absorb any solver deviation into the
+        # condition value and corrupt every descendant point.
+        if isinstance(key, v.ChemicalPotential):
+            continue
         new_point.global_conditions[key] = new_point.get_property(key)
     return new_point
 
@@ -142,5 +147,10 @@ def _generate_point_with_free_cs(point: Point, bias_towards_free : bool = False)
         cs.fixed = False
 
     for key in new_point.global_conditions:
+        # Imposed potentials (e.g. MU conditions) are inputs, not outcomes: refreshing them
+        # from the computed state would silently absorb any solver deviation into the
+        # condition value and corrupt every descendant point.
+        if isinstance(key, v.ChemicalPotential):
+            continue
         new_point.global_conditions[key] = new_point.get_property(key)
     return new_point

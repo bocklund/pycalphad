@@ -440,6 +440,8 @@ cdef class SystemSpecification:
         cdef double ALLOWED_DELTA_STATEVAR = 1e-5  # changes defined as percent change
         cdef double MASS_RESIDUAL_RTOL = 1e-4
         cdef double MASS_RESIDUAL_ATOL = 1e-11
+        cdef double CHEMPOT_RESIDUAL_RTOL = 1e-6
+        cdef double CHEMPOT_RESIDUAL_ATOL = 1e-3
         cdef int i, comp_idx, row_idx
         cdef double target, residual, scale
         cdef bint mass_residuals_converged = True
@@ -461,6 +463,18 @@ cdef class SystemSpecification:
                 scale += abs(self.prescribed_mole_fraction_coefficients[row_idx, comp_idx] * state.mole_fractions[comp_idx])
             mass_residuals_converged = mass_residuals_converged and (
                 abs(residual) < MASS_RESIDUAL_RTOL * scale + MASS_RESIDUAL_ATOL)
+        # MU(component) constraint rows must be satisfied by the solved chemical potentials.
+        # The equilibrium system is solved by least squares, so an over-determined phase
+        # assemblage (e.g. too many stoichiometric phases for the imposed potential) can
+        # otherwise "converge" while silently violating the imposed MU condition.
+        for i in range(self.fixed_chempot_rhs.shape[0]):
+            residual = -self.fixed_chempot_rhs[i]
+            scale = 0.0
+            for comp_idx in range(self.num_components):
+                residual += self.fixed_chempot_coefs[i, comp_idx] * state.chemical_potentials[comp_idx]
+                scale += abs(self.fixed_chempot_coefs[i, comp_idx] * state.chemical_potentials[comp_idx])
+            mass_residuals_converged = mass_residuals_converged and (
+                abs(residual) < CHEMPOT_RESIDUAL_RTOL * scale + CHEMPOT_RESIDUAL_ATOL)
         if self.debugging_output:
             # Recomputed with NumPy here so the converged path stays free of debugging work
             mole_fractions = np.asarray(state.mole_fractions)
