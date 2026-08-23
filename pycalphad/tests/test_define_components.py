@@ -386,3 +386,83 @@ def test_realistic_oxide_fluoride_equivalence(load_database):
     np.testing.assert_allclose(np.squeeze(wks_comp.get(v.Moles(KF))), b, atol=1e-5)
     np.testing.assert_allclose(np.squeeze(wks_comp.get(v.MU(F2))),
                                2 * float(np.squeeze(wks_comp.get('MU(F)'))), atol=1e-4)
+
+
+# ---------------------------------------------------------------------------
+# Phase 7: fixes found while combining redefined bases with mapping
+# ---------------------------------------------------------------------------
+
+@select_database("alzn_mey.tdb")
+def test_one_hot_component_fraction_condition(load_database):
+    """X(component) whose (S^T)^-1 row is one-hot but whose basis has a non-unit column
+    sum must use the homogeneous condition form. In the [ALZN, ZN] basis, (S^T)^-1 =
+    [[1, 0], [-1, 1]], so the ALZN row is one-hot while the component total (colsum
+    [0, 1] . x) differs from the atom total; the direct form would silently enforce the
+    *element* fraction x_AL instead."""
+    dbf = load_database()
+    phases = ['FCC_A1', 'HCP_A3', 'LIQUID']
+    base = {v.T: 600.0, v.P: 1e5, v.N: 1.0}
+    k = 0.3
+    wks = Workspace(dbf, ['ALZN', 'ZN', 'VA'], phases, {**base, v.X('ALZN'): k})
+    np.testing.assert_allclose(np.squeeze(wks.get('X(ALZN)')), k, atol=1e-6)
+    # equivalent element-basis equilibrium at the resulting element composition
+    x_al = float(np.squeeze(wks.get('X(AL)')))
+    wks_elem = Workspace(dbf, ['AL', 'ZN', 'VA'], phases, {**base, v.X('AL'): x_al})
+    _assert_props_match(wks, wks_elem, ['GM', 'MU(AL)', 'MU(ZN)'])
+
+
+@select_database("alzn_mey.tdb")
+def test_component_fraction_jansson_derivatives(load_database):
+    """Jansson (dot) derivatives with an X(component) condition as the denominator match
+    finite differences, and the self-derivative is exactly 1."""
+    dbf = load_database()
+    phases = ['LIQUID']
+    base = {v.T: 950.0, v.P: 1e5, v.N: 1.0}
+
+    def value(x, prop):
+        wks = Workspace(dbf, ['ALZN', 'ZN', 'VA'], phases, {**base, v.X('ALZN'): x})
+        return float(np.squeeze(wks.get(prop)))
+
+    wks = Workspace(dbf, ['ALZN', 'ZN', 'VA'], phases, {**base, v.X('ALZN'): 0.3})
+    np.testing.assert_allclose(float(np.squeeze(wks.get('X(ALZN).X(ALZN)'))), 1.0, atol=1e-10)
+    np.testing.assert_allclose(float(np.squeeze(wks.get('X(ZN).X(ALZN)'))), -1.0, atol=1e-10)
+    h = 1e-3
+    for prop in ['GM', 'MU(AL)', 'MU(ZN)']:
+        jansson = float(np.squeeze(wks.get(f'{prop}.X(ALZN)')))
+        finite_difference = (value(0.3 + h, prop) - value(0.3 - h, prop)) / (2 * h)
+        np.testing.assert_allclose(jansson, finite_difference, rtol=1e-4)
+
+
+@select_database("alzn_mey.tdb")
+def test_phase_local_component_fraction_output(load_database):
+    """Per-phase component fractions X(phase, component) are computable under a redefined
+    basis and are consistent with the phase's element composition."""
+    dbf = load_database()
+    phases = ['FCC_A1', 'HCP_A3', 'LIQUID']
+    # two-phase FCC + HCP region at low temperature
+    wks = Workspace(dbf, ['ALZN', 'ZN', 'VA'], phases,
+                    {v.T: 500.0, v.P: 1e5, v.N: 1.0, v.X('ALZN'): 0.5})
+    x_fcc_alzn = float(np.squeeze(wks.get('X(FCC_A1, ALZN)')))
+    # element fraction within the phase (AL is not a basis component, so no shadowing)
+    x_fcc_al = float(np.squeeze(wks.get('X(FCC_A1, AL)')))
+    # in the [ALZN, ZN] basis, (S^T)^-1 = [[1, 0], [-1, 1]] with colsum [0, 1], so the
+    # per-phase component fractions are X(ALZN) = x_AL/x_ZN and X(ZN cmpnt) = (x_ZN - x_AL)/x_ZN,
+    # evaluated on the phase's element fractions (x_ZN = 1 - x_AL in this two-element system)
+    np.testing.assert_allclose(x_fcc_alzn, x_fcc_al / (1 - x_fcc_al), atol=1e-8)
+    x_fcc_zn_component = float(np.squeeze(wks.get('X(FCC_A1, ZN)')))
+    np.testing.assert_allclose(x_fcc_zn_component, (1 - 2 * x_fcc_al) / (1 - x_fcc_al), atol=1e-8)
+
+
+@select_database("alzn_mey.tdb")
+def test_mu_multi_element_component_condition_trivial_basis(load_database):
+    """MU(component) of a multi-element component under the trivial element basis is
+    enforced as a linear-combination constraint row: MU(ALZN) = MU(AL) + MU(ZN)."""
+    dbf = load_database()
+    phases = ['FCC_A1', 'HCP_A3', 'LIQUID']
+    base = {v.T: 900.0, v.P: 1e5, v.N: 1.0}
+    ref = Workspace(dbf, ['AL', 'ZN', 'VA'], phases, {**base, v.X('ZN'): 0.3})
+    mu_target = float(np.squeeze(ref.get('MU(AL)'))) + float(np.squeeze(ref.get('MU(ZN)')))
+    test = Workspace(dbf, ['AL', 'ZN', 'VA'], phases, {**base, v.MU('ALZN'): mu_target})
+    mu_al = float(np.squeeze(test.get('MU(AL)')))
+    mu_zn = float(np.squeeze(test.get('MU(ZN)')))
+    np.testing.assert_allclose(mu_al + mu_zn, mu_target, atol=1e-3)

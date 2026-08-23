@@ -887,6 +887,51 @@ cpdef fixed_component_differential(SystemSpecification spec, SystemState state, 
                                                             state.free_stable_compset_indices.shape[0] + i]
     return np.asarray(delta_chemical_potentials), np.asarray(delta_statevars), np.asarray(delta_phase_amounts)
 
+cpdef fixed_condition_row_differential(SystemSpecification spec, SystemState state, int target_row_index):
+    # Like fixed_component_differential, but perturbs the right-hand side of a specific
+    # prescribed mole-fraction condition row. Needed for redefined component bases, where
+    # an X(component) condition row is a general linear combination over elements rather
+    # than a one-hot element vector, so it cannot be located by element index.
+    cdef double[::1,:] equilibrium_matrix  # Fortran ordering required by call into lapack
+    cdef double[::1] equilibrium_soln, delta_chemical_potentials, delta_statevars, delta_phase_amounts
+    cdef int num_stable_phases = state.free_stable_compset_indices.shape[0]
+    cdef int num_fixed_phases = spec.fixed_stable_compset_indices.shape[0]
+    cdef int chempot_idx, statevar_idx, cs_idx, i
+
+    if target_row_index < 0 or target_row_index >= spec.prescribed_mole_fraction_rhs.shape[0]:
+        raise ValueError('Target condition row is not part of the present calculation')
+
+    delta_chemical_potentials = np.zeros(spec.num_components)
+    delta_statevars = np.zeros(spec.num_statevars)
+    delta_phase_amounts = np.zeros(len(state.compsets))
+
+    equilibrium_matrix, equilibrium_soln = construct_equilibrium_system(spec, state, 0)
+    equilibrium_soln[:] = 0
+    equilibrium_soln[num_stable_phases + num_fixed_phases + target_row_index] = 1
+    lstsq_check_infeasible(equilibrium_matrix, equilibrium_soln, equilibrium_soln)
+    for i in range(spec.free_chemical_potential_indices.shape[0]):
+        chempot_idx = spec.free_chemical_potential_indices[i]
+        delta_chemical_potentials[chempot_idx] = equilibrium_soln[i]
+    for i in range(state.free_stable_compset_indices.shape[0]):
+        cs_idx = state.free_stable_compset_indices[i]
+        delta_phase_amounts[cs_idx] = equilibrium_soln[spec.free_chemical_potential_indices.shape[0] + i]
+    for i in range(spec.free_statevar_indices.shape[0]):
+        statevar_idx = spec.free_statevar_indices[i]
+        delta_statevars[statevar_idx] = equilibrium_soln[spec.free_chemical_potential_indices.shape[0] +
+                                                            state.free_stable_compset_indices.shape[0] + i]
+    return np.asarray(delta_chemical_potentials), np.asarray(delta_statevars), np.asarray(delta_phase_amounts)
+
+cpdef system_mole_fractions(SystemState state):
+    # Element mole fractions of the current state (normalized to sum to 1), exposed for
+    # Python callers that need to evaluate condition rows (e.g. Jansson derivatives of
+    # X(component) conditions under a redefined component basis).
+    return np.array(state.mole_fractions)
+
+cpdef prescribed_mole_fraction_condition_rows(SystemSpecification spec):
+    # Coefficient rows and right-hand sides of the prescribed mole-fraction conditions,
+    # exposed for Python callers that need to locate the row for a given condition.
+    return np.array(spec.prescribed_mole_fraction_coefficients), np.array(spec.prescribed_mole_fraction_rhs)
+
 cpdef chemical_potential_differential(SystemSpecification spec, SystemState state, int target_component_index):
     # Sundman et al 2015, Eq. 74
     cdef double[::1,:] equilibrium_matrix  # Fortran ordering required by call into lapack
