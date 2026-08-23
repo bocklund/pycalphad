@@ -103,7 +103,7 @@ def plot_step(strategy: StepStrategy, x: v.StateVariable = None, y: v.StateVaria
     # Add legend if more than 1 item in list
     if len(step_data.data) > 1:
         ax.legend(handles=handles, loc='center left', bbox_to_anchor=(1, 0.5))
-    plot_title = '-'.join([component.title() for component in sorted(strategy.components) if component != 'VA'])
+    plot_title = '-'.join([str(component).title() for component in sorted(strategy.components) if str(component) != 'VA'])
     ax.set_title(plot_title)
     ax.set_xlabel(get_label(x))
     ax.set_ylabel(get_label(y))
@@ -243,7 +243,7 @@ def plot_binary(strategy: TielineStrategy, x: v.StateVariable = None, y: v.State
         ax.set_ylim(ylim)
 
     ax.legend(handles=handles, loc='center left', bbox_to_anchor=(1, 0.5))
-    plot_title = '-'.join([component.title() for component in sorted(strategy.components) if component != 'VA'])
+    plot_title = '-'.join([str(component).title() for component in sorted(strategy.components) if str(component) != 'VA'])
     ax.set_title(plot_title)
     ax.set_xlabel(get_label(x))
     ax.set_ylabel(get_label(y))
@@ -354,7 +354,7 @@ def plot_isopleth(strategy: IsoplethStrategy, x: v.StateVariable = None, y: v.St
     ax.set_xlim(*xlim)
     ax.set_ylim(*ylim)
     ax.legend(handles=handles, loc='center left', bbox_to_anchor=(1, 0.5))
-    plot_title = '-'.join([component.title() for component in sorted(strategy.components) if component != 'VA'])
+    plot_title = '-'.join([str(component).title() for component in sorted(strategy.components) if str(component) != 'VA'])
     ax.set_title(plot_title)
     ax.set_xlabel(get_label(x))
     ax.set_ylabel(get_label(y))

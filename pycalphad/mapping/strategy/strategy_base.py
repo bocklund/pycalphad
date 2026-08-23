@@ -54,7 +54,8 @@ class MapStrategy:
         self.dbf = dbf
 
         # Don't add vacancies to components in case user needs to restrict non-stoichiometric phases
-        self.components = sorted(components)
+        # Normalize to Component objects (as Workspace does) so redefined component bases work
+        self.components = sorted(v.unpack_components(components, self.dbf))
         self.elements = get_pure_elements(self.dbf, self.components)
         self.phases = filter_phases(self.dbf, unpack_species(self.dbf, self.components), phases)
         self.conditions = copy.deepcopy(conditions)
