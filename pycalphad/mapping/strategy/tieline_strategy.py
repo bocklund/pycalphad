@@ -101,7 +101,17 @@ def _create_linear_comb_conditions(point: Point, axis_vars: list[v.StateVariable
         normal = _get_norm(point, axis_vars)
 
     # Create a linear combination that forces the stepping to be along the normal
-    c = normal[1]*point.global_conditions[axis_vars[0]] - normal[0]*point.get_property(axis_vars[1])
+    try:
+        av1_value = point.get_property(axis_vars[1])
+    except ValueError:
+        # A node can consist solely of fixed composition sets with zero phase amount, where
+        # the global composition cannot be recovered from the phases (0/0). The node's
+        # coordinates are bookkept in its conditions, so anchor the line there instead.
+        if axis_vars[1] in point.global_conditions:
+            av1_value = point.global_conditions[axis_vars[1]]
+        else:
+            raise
+    c = normal[1]*point.global_conditions[axis_vars[0]] - normal[0]*av1_value
     lc = LinearCombination(normal[1]*axis_vars[0] - normal[0]*axis_vars[1])
     return lc, c
 
