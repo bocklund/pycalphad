@@ -909,8 +909,16 @@ class Model(object):
                     pair_rule = {}
                     # Cation site fractions must always appear with vacancy site fractions
                     va_subls = [(v.Species('VA') in phase.constituents[idx]) for idx in range(len(phase.constituents))]
-                    # The last index that contains a vacancy
-                    va_subl_idx = (len(phase.constituents) - 1) - va_subls[::-1].index(True)
+                    if any(va_subls):
+                        # The last index that contains a vacancy
+                        va_subl_idx = (len(phase.constituents) - 1) - va_subls[::-1].index(True)
+                    else:
+                        # VA may be removed from the phase by the database author (e.g. to
+                        # simplify plotting in commercial software). In the 2SL ionic liquid
+                        # the vacancy/anion sublattice is always the last one; parameters over
+                        # neutral species only (no cations) are still normalized by its site
+                        # ratio Q, and there are no cation site fractions to pair with VA.
+                        va_subl_idx = len(phase.constituents) - 1
                     va_present = any((v.Species('VA') in c) for c in param['constituent_array'])
                     if va_present and (max(len(c) for c in param['constituent_array']) == 1):
                         # No need to apply pair rule for VA-containing endmember
@@ -918,6 +926,11 @@ class Model(object):
                     elif va_subl_idx > -1:
                         for sym in mixing_term.free_symbols:
                             if sym.species.charge > 0:
+                                if not any(va_subls):
+                                    raise ValueError(
+                                        f"Parameter {param['constituent_array']} of phase {self.phase_name} "
+                                        "mixes cations with neutral species only, which requires vacancies "
+                                        "in the anion sublattice, but VA is not a constituent of the phase.")
                                 pair_rule[sym] = sym * v.SiteFraction(sym.phase_name, va_subl_idx, v.Species('VA'))
                     mixing_term = mixing_term.xreplace(pair_rule)
                     # This parameter is normalized differently due to the variable charge valence of vacancies
