@@ -6,6 +6,7 @@ cdef class SystemState:
     cdef int num_statevars, iterations_since_last_phase_change
     cdef int[::1] metastable_phase_iterations
     cdef int[::1] times_compset_removed
+    cdef int[::1] iterations_since_stabilized
     cdef double largest_chemical_potential_difference
     cdef double[::1] phase_amt, previous_chemical_potentials, delta_statevars
     cdef public double[::1] chemical_potentials

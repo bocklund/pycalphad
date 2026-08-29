@@ -582,6 +582,11 @@ cdef class SystemState:
         self.iterations_since_last_phase_change = 0
         self.metastable_phase_iterations = np.zeros(len(compsets), dtype=np.int32)
         self.times_compset_removed = np.zeros(len(compsets), dtype=np.int32)
+        # Compsets entering with small amounts are treated as freshly stabilized
+        # seeds (e.g. re-added by add_new_phases at 1e-6) so they get the same
+        # nucleation grace period as compsets stabilized by change_phases.
+        self.iterations_since_stabilized = np.array(
+            [0 if ((compset.NP < 1e-4) and not compset.fixed) else 1000000 for compset in compsets], dtype=np.int32)
         # Phase fractions need to be converted to moles of formula
         self.phase_amt = np.array([compset.NP for compset in compsets])
         self.chemical_potentials = np.zeros(spec.num_components)
@@ -616,14 +621,14 @@ cdef class SystemState:
 
     def __getstate__(self):
         return (self.compsets, self.cs_states, self.dof, self.iteration, self.iterations_since_last_phase_change,
-                self.metastable_phase_iterations, self.times_compset_removed,
+                self.metastable_phase_iterations, self.times_compset_removed, np.asarray(self.iterations_since_stabilized),
                 np.array(self.phase_amt), np.array(self.chemical_potentials), np.array(self.previous_chemical_potentials),
                 np.array(self.delta_ms), np.array(self.phase_compositions), self.largest_chemical_potential_difference,
                 self.largest_statevar_change[0], self.largest_phase_amt_change[0], self.largest_y_change[0],
                 np.array(self.free_stable_compset_indices), self.system_amount, np.array(self.mole_fractions))
     def __setstate__(self, state):
         (self.compsets, self.cs_states, self.dof, self.iteration, self.iterations_since_last_phase_change,
-         self.metastable_phase_iterations, self.times_compset_removed,
+         self.metastable_phase_iterations, self.times_compset_removed, self.iterations_since_stabilized,
          self.phase_amt, self.chemical_potentials, self.previous_chemical_potentials,
          self.delta_ms, self.phase_compositions, self.largest_chemical_potential_difference, self.largest_statevar_change[0],
          self.largest_phase_amt_change[0], self.largest_y_change[0], self.free_stable_compset_indices, self.system_amount, self.mole_fractions) = state
@@ -737,6 +742,8 @@ cdef class SystemState:
         for idx in range(len(self.compsets)):
             if idx in self.free_stable_compset_indices or self.compsets[idx].fixed:
                 self.metastable_phase_iterations[idx] = 0
+                if self.iterations_since_stabilized[idx] < 1000000:
+                    self.iterations_since_stabilized[idx] += 1
             else:
                 self.metastable_phase_iterations[idx] += 1
 
@@ -1051,6 +1058,12 @@ cdef bint remove_and_consolidate_phases(SystemSpecification spec, SystemState st
     cdef bint phases_changed = False
     cdef double composition_difference
     cdef double COMPSET_CONSOLIDATE_DISTANCE = 1e-4
+    # Newton steps for a freshly seeded compset can drive its amount to the
+    # floor before its composition can relax (steps in near-bound site
+    # fractions scale with the site fraction itself), so amount-based removal
+    # must give new compsets time to nucleate. Duplicate consolidation below is
+    # intentionally not delayed.
+    cdef int NUCLEATION_GRACE_ITERATIONS = 20
 
     compset_indices_to_remove = set()
     for i in range(len(state.free_stable_compset_indices)):
@@ -1062,6 +1075,8 @@ cdef bint remove_and_consolidate_phases(SystemSpecification spec, SystemState st
             continue
         # Remove unstable phases
         if state.phase_amt[idx] < 1e-10:
+            if state.iterations_since_stabilized[idx] < NUCLEATION_GRACE_ITERATIONS:
+                continue
             compset_indices_to_remove.add(idx)
             state.phase_amt[idx] = 0
             continue
@@ -1169,6 +1184,8 @@ cdef bint change_phases(SystemSpecification spec, SystemState state):
     removed_compset_indices = set(current_free_stable_compset_indices) - set(new_free_stable_compset_indices)
     for idx in removed_compset_indices:
         state.times_compset_removed[idx] += 1
+    for idx in set(map(int, new_free_stable_compset_indices)) - set(map(int, current_free_stable_compset_indices)):
+        state.iterations_since_stabilized[idx] = 0
     for idx in range(len(state.compsets)):
         if idx in new_free_stable_compset_indices:
             # Force some amount of newly stable phases

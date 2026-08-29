@@ -1389,3 +1389,34 @@ def test_eq_mass_residual_rtol_not_too_tight(load_database):
     # component (alphabetical) order: AL, CU, MG, SI, ZN
     expected_chempots = [-21937.529, -62341.746, -52538.422, -13847.333, -32543.343]
     assert_allclose(eq.MU.values.squeeze(), expected_chempots, rtol=1e-5)
+
+
+@pytest.mark.solver
+@select_database("COST507.tdb")
+def test_eq_new_compsets_survive_long_enough_to_nucleate(load_database):
+    """Freshly stabilized composition sets are not removed before they can nucleate.
+
+    Newton steps can drive a just-added composition set's phase amount to the
+    floor before its site fractions can relax away from the seeding grid point
+    (steps in near-bound site fractions scale with the site fraction itself),
+    so amount-based removal must give new composition sets a grace period.
+    Without it, this point cycles add -> collapse -> remove on the marginal
+    BCC_B2/FCC_A1 composition sets until they are banned from re-entering, and
+    the solve fails (NaN) instead of converging.
+    """
+    dbf = load_database()
+    comps = ["AL", "CU", "MG", "SI", "ZN", "VA"]
+    phases = list(dbf.phases.keys())
+    conds = {
+        v.N: 1, v.P: 101325, v.T: 500.0,
+        v.X("CU"): 0.1170876032463588,
+        v.X("MG"): 0.028876896598581753,
+        v.X("SI"): 0.02100826895495605,
+        v.X("ZN"): 0.05175065484472783,
+    }
+    eq = equilibrium(dbf, comps, phases, conds)
+    stable_phases = set(np.unique(eq.Phase.values.squeeze())) - {""}
+    assert stable_phases == {"ALCU_THETA", "BCC_B2", "DIAMOND_A4", "FCC_A1", "MG2SI"}
+    # component (alphabetical) order: AL, CU, MG, SI, ZN
+    expected_chempots = [-15750.749, -61690.694, -48234.831, -10614.716, -23690.183]
+    assert_allclose(eq.MU.values.squeeze(), expected_chempots, rtol=1e-5)
