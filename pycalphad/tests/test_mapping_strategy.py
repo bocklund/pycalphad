@@ -12,7 +12,7 @@ from pycalphad.core.composition_set import CompositionSet
 from pycalphad.property_framework import as_property
 from pycalphad.property_framework.units import Q_, unit_conversion_context, to_display_units
 
-from pycalphad.mapping import StepStrategy, IsoplethStrategy, BinaryStrategy, TernaryStrategy, plot_step, plot_isopleth, plot_ternary
+from pycalphad.mapping import StepStrategy, IsoplethStrategy, BinaryStrategy, TernaryStrategy, TielineStrategy, plot_step, plot_isopleth, plot_ternary
 from pycalphad.mapping.starting_points import point_from_equilibrium
 from pycalphad.mapping.zpf_equilibrium import find_global_min_point
 from pycalphad.mapping.primitives import Point, Node, Direction, ZPFLine, ZPFState, _get_phase_specific_variable
@@ -643,6 +643,80 @@ def test_issue_638_degenerate_cs_binary(load_database):
 
     nodes = [set(n.stable_phases) for n in strat.node_queue.nodes]
     assert {'LIQUID', 'HCP_A3', 'AUSN_B81'} in nodes
+
+@select_database("cfe_broshe.tdb")
+def test_unary_pt_mapping_not_flagged_as_degenerate(load_database):
+    """
+    In a unary P-T diagram, every multi-phase equilibrium trivially has all phases at
+    the same pure composition, but two-phase coexistence along a univariant line is
+    allowed by the Gibbs phase rule. The degenerate tie-line detection (see
+    test_no_degenerate_edge_pinned_zpf_lines) must not end these zpf lines.
+    """
+    dbf = load_database()
+    # Window of the Fe P-T diagram containing the bcc-fcc-hcp triple point
+    # (~799 K, ~9.7 GPa in this database) and its three univariant lines
+    conds = {v.N: 1, v.T: (600, 1300, 50), v.P: (0, 20e9, 2e9)}
+    strategy = TielineStrategy(dbf, ["FE", "VA"], ["BCC_A2", "FCC_A1", "HCP_A3", "LIQUID"], conds)
+    strategy.do_map()
+
+    mapped_sets = [set(zl.stable_phases) for zl in strategy.zpf_lines if len(zl.points) > 1]
+    for pair in [{"BCC_A2", "FCC_A1"}, {"BCC_A2", "HCP_A3"}, {"FCC_A1", "HCP_A3"}]:
+        assert pair in mapped_sets, f"No univariant line mapped for {pair}"
+
+@select_database("cumg.tdb")
+def test_no_degenerate_edge_pinned_zpf_lines(load_database):
+    """
+    Mapping over a temperature range extending above a pure-element melting point
+    should not produce spurious two-phase ZPF lines pinned to the pure-element edge.
+
+    At a pure-element composition, a "two-phase" equilibrium is degenerate: the second
+    phase has vanishing amount and both phases have essentially the pure-element
+    composition, so the ZPF conditions are trivially satisfiable at any temperature.
+    Without detecting this, the mapper follows these zero-width lines from the melting
+    point up to the temperature axis limit (e.g. HCP_A3+LIQUID above the melting point
+    of Mg and FCC_A1+LIQUID above the melting point of Cu in Cu-Mg).
+    """
+    dbf = load_database()
+    # A window around the melting point of Mg (923 K) is sufficient to reproduce the
+    # bug and keeps the test fast. Without the degenerate equilibrium detection, the
+    # HCP_A3+LIQUID zpf line follows the x(MG)=1 edge from 923 K to the T axis limit.
+    conds = {v.P: 101325, v.N: 1, v.T: (850, 1100, 20), v.X("MG"): (0.9, 1, 0.05)}
+    strategy = TielineStrategy(dbf, ["CU", "MG", "VA"], ["HCP_A3", "LIQUID"], conds)
+    strategy.do_map()
+
+    for zpf_line in strategy.zpf_lines:
+        num_degenerate_points = 0
+        for point in zpf_line.points:
+            comp_sets = point.stable_composition_sets
+            if len(comp_sets) < 2:
+                continue
+            comps = np.array([np.asarray(cs.X, dtype=float) for cs in comp_sets])
+            all_pure = np.all(np.max(comps, axis=1) > 1 - 1e-5)
+            same_component = len(set(np.argmax(comps, axis=1))) == 1
+            if all_pure and same_component:
+                num_degenerate_points += 1
+        # A real boundary may legitimately end at a pure-element melting point, so a
+        # single point at the pure composition is fine, but a line tracking a
+        # degenerate equilibrium along the pure-element edge is not
+        assert num_degenerate_points <= 1, (
+            f"ZPF line {zpf_line.stable_phases_with_multiplicity} has "
+            f"{num_degenerate_points} points pinned at a pure-element composition"
+        )
+
+    # The real phase boundaries should be unaffected, including the ones that
+    # terminate at the pure-element melting points
+    def _composition_extent(zpf_line):
+        comps = [
+            point.get_local_property(cs, v.X("MG"))
+            for point in zpf_line.points
+            for cs in point.stable_composition_sets
+        ]
+        return np.nanmax(comps) - np.nanmin(comps)
+
+    matching_lines = [zl for zl in strategy.zpf_lines if set(zl.stable_phases) == {"HCP_A3", "LIQUID"}]
+    assert any(_composition_extent(zl) > 0.02 for zl in matching_lines), (
+        "No non-degenerate HCP_A3+LIQUID ZPF line found"
+    )
 
 @select_database("Al-Cu-Y.tdb")
 def test_issue_662_phase_boundary_loop(load_database):

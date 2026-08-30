@@ -377,6 +377,7 @@ class MapStrategy:
             zchk.check_global_min,
             zchk.check_axis_values,
             zchk.check_similar_phase_composition,
+            zchk.check_degenerate_pure_composition,
             zchk.check_circular_loop,
             ]
         axis_data = {
@@ -570,8 +571,13 @@ class MapStrategy:
                 "global_num_candidates": self.GLOBAL_MIN_NUM_CANDIDATES,
             }
 
-            # Check valid equilibrium, global min and change in phases
-            check_functions = [zchk.simple_check_valid_point, zchk.simple_check_change_in_phases, zchk.simple_check_global_min]
+            # Check valid equilibrium, global min, change in phases and degenerate equilibria
+            check_functions = [
+                zchk.simple_check_valid_point,
+                zchk.simple_check_change_in_phases,
+                zchk.simple_check_global_min,
+                zchk.simple_check_degenerate_pure_composition,
+            ]
             valid_point = True
             for checks in check_functions:
                 if not checks(step_results, **extra_args):

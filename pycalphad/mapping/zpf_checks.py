@@ -7,7 +7,7 @@ from pycalphad import variables as v
 from pycalphad.core.constants import COMP_DIFFERENCE_TOL
 from pycalphad.core.composition_set import CompositionSet
 
-from pycalphad.mapping.primitives import ZPFLine, Point, ZPFState
+from pycalphad.mapping.primitives import ZPFLine, Point, ZPFState, MIN_COMPOSITION
 import pycalphad.mapping.zpf_equilibrium as zeq
 
 _log = logging.getLogger(__name__)
@@ -19,6 +19,7 @@ Simple checks
     simple_check_valid_point
     simple_check_change_in_phases
     simple_check_global_min
+    simple_check_degenerate_pure_composition
 
     These quickly check a step result and returns
     a bool whether the step result is valid or not
@@ -32,11 +33,34 @@ Normal checks
     check_change_in_phases
     check_global_min
     check_similar_phase_composition
+    check_degenerate_pure_composition
 
     These will check whether the step result is valid or
     if not valid, then will modify the zpf line or create
     a new node
 """
+
+def _all_comp_sets_same_pure_composition(comp_sets: list[CompositionSet], tol: float = 10*MIN_COMPOSITION):
+    """
+    Returns True if there are multiple composition sets and all of them are (nearly)
+    the same pure component, i.e. the tie-line has collapsed onto a vertex of the
+    composition simplex.
+
+    Multiple phases of the same pure component can only be in equilibrium at discrete
+    conditions (e.g. the melting point of an element), never along a line. However,
+    with a phase fixed at zero amount and all compositions pinned at a pure component,
+    the ZPF conditions become degenerate and are satisfiable by the solver at any
+    temperature, so without this detection, mapping can follow a spurious zero-width
+    ZPF line along the pure-component edge of the diagram (e.g. tracking a
+    solid+liquid "boundary" of the pure element far above its melting point).
+    """
+    if len(comp_sets) < 2:
+        return False
+    # Unary system (single non-vacant component)
+    if len(comp_sets[0].X) < 2:
+        return False
+    pure_comp_index = np.argmax(comp_sets[0].X)
+    return all(cs.X[pure_comp_index] > 1 - tol for cs in comp_sets)
 
 def simple_check_valid_point(step_results: tuple[Point, list[CompositionSet]], **kwargs):
     """
@@ -106,6 +130,30 @@ def simple_check_global_min(step_results: tuple[Point, list[CompositionSet]], **
         _log.info(f"Point is not global minimum. Current CS: {new_point.stable_phases}, new CS: {global_test_point.stable_phases}")
 
     return global_test_point is None
+
+def simple_check_degenerate_pure_composition(step_results: tuple[Point, list[CompositionSet]], **kwargs):
+    """
+    Returns True or False for whether the step result is a non-degenerate equilibrium,
+    i.e. the composition sets have not all collapsed onto the same pure composition
+
+    Parameters
+    ----------
+    step_results : [Point, [CompositionSet]]
+        Results from zpf_equilibrium.update_equilibrium_with_new_conditions
+
+    Returns
+    -------
+    bool whether step result is non-degenerate
+    """
+    if step_results is None:
+        return False
+
+    new_point, orig_cs = step_results
+    degenerate = _all_comp_sets_same_pure_composition(new_point.stable_composition_sets)
+    if degenerate:
+        _log.info(f"All composition sets of {new_point.stable_phases} are pinned at the same pure composition")
+
+    return not degenerate
 
 def check_valid_point(zpf_line: ZPFLine, step_results: tuple[Point, list[CompositionSet]], axis_data: Mapping, **kwargs):
     """
@@ -443,6 +491,40 @@ def check_similar_phase_composition(zpf_line: ZPFLine, step_results: tuple[Point
                 zpf_line.status = ZPFState.REACHED_LIMIT
                 _log.info(f"Two composition sets have the same composition. Ending ZPF line. {comp_sets[i]} = {comp_sets[j]}")
                 return None
+    return None
+
+def check_degenerate_pure_composition(zpf_line: ZPFLine, step_results: tuple[Point, list[CompositionSet]], axis_data: Mapping, **kwargs):
+    """
+    If all composition sets have collapsed onto the same pure composition, then the
+    equilibrium is degenerate and the ZPF conditions are trivially satisfiable at any
+    temperature, so we stop the zpf line to avoid tracking a spurious zero-width
+    boundary along the pure-component edge of the diagram
+
+    2 possible outcomes
+        a) Composition sets are not all the same pure composition -> pass
+        b) Composition sets collapsed onto a pure composition -> end zpf line gracefully
+
+    Parameters
+    ----------
+    zpf_line : ZPFLine
+        ZPFLine that the point is stepping in
+    step_results : [Point, [CompositionSet]]
+        Results from zpf_equilibrium.update_equilibrium_with_new_conditions
+    axis_data : dict
+        Axis variable data from a map strategy class
+
+    Returns
+    -------
+    None : this check does not attempt to make a new node
+    However, the zpf line will end if this check fails
+    """
+    if step_results is None:
+        return None
+
+    new_point, orig_cs = step_results
+    if _all_comp_sets_same_pure_composition(new_point.stable_composition_sets):
+        zpf_line.status = ZPFState.REACHED_LIMIT
+        _log.info(f"All composition sets of {new_point.stable_phases} are pinned at the same pure composition. Ending ZPF line.")
     return None
 
 def check_circular_loop(zpf_line: ZPFLine, step_results: tuple[Point, list[CompositionSet]], axis_data: Mapping, **kwargs):
