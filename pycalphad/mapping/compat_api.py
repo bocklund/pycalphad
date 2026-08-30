@@ -50,7 +50,6 @@ def binplot(database, components, phases, conditions, return_strategy=False, plo
         raise ValueError('binplot() requires exactly one composition coordinate and one potential coordinate')
 
     strategy = TielineStrategy(database, components, phases, conditions, **map_kwargs)
-    strategy.do_map()
 
     plot_kwargs = plot_kwargs if plot_kwargs is not None else dict()
     ax = plot_binary(strategy, **plot_kwargs)
@@ -114,7 +113,6 @@ def ternplot(dbf, comps, phases, conds, x=None, y=None, return_strategy=False, m
 
     map_kwargs = map_kwargs if map_kwargs is not None else dict()
     strategy = TielineStrategy(dbf, comps, phases, conds, **map_kwargs)
-    strategy.do_map()
 
     ax = plot_ternary(strategy, x, y, **plot_kwargs)
     ax.set_xlim(0, 1)

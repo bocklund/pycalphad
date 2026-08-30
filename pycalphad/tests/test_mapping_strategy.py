@@ -644,6 +644,39 @@ def test_issue_638_degenerate_cs_binary(load_database):
     nodes = [set(n.stable_phases) for n in strat.node_queue.nodes]
     assert {'LIQUID', 'HCP_A3', 'AUSN_B81'} in nodes
 
+@select_database("cumg.tdb")
+def test_mapping_runs_just_in_time_on_data_retrieval(load_database):
+    """
+    Data retrieval (get_* methods, and therefore plotting) should run mapping just in
+    time, so users do not need to call do_map() explicitly. Adding starting points
+    after mapping resets the mapping complete flag so the new points are processed on
+    the next data retrieval.
+    """
+    dbf = load_database()
+    conds = {v.P: 101325, v.N: 1, v.T: (850, 1000, 20), v.X("MG"): (0.9, 1, 0.05)}
+    strategy = BinaryStrategy(dbf, ["CU", "MG", "VA"], ["HCP_A3", "LIQUID"], conds)
+    assert not strategy._mapping_complete
+
+    # Retrieving data without calling do_map() runs the mapping
+    tieline_data = strategy.get_tieline_data(v.X("MG"), v.T)
+    assert strategy._mapping_complete
+    assert len(tieline_data) > 0
+    assert len(strategy.zpf_lines) > 0
+    num_zpf_lines = len(strategy.zpf_lines)
+
+    # Retrieving data again does not re-run the mapping
+    strategy.get_tieline_data(v.X("MG"), v.T)
+    assert len(strategy.zpf_lines) == num_zpf_lines
+
+    # Adding a starting point (here, inside the HCP_A3+LIQUID two-phase region)
+    # resets the flag, and the next retrieval maps the new starting points
+    added = strategy.add_nodes_from_conditions({v.T: 900, v.P: 101325, v.X("MG"): 0.99})
+    assert added
+    assert not strategy._mapping_complete
+    strategy.get_tieline_data(v.X("MG"), v.T)
+    assert strategy._mapping_complete
+    assert len(strategy.zpf_lines) > num_zpf_lines
+
 @select_database("cfe_broshe.tdb")
 def test_unary_pt_mapping_not_flagged_as_degenerate(load_database):
     """

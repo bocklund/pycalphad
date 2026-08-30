@@ -267,6 +267,8 @@ class TielineStrategy(MapStrategy):
         When mapping with only composition axes, this is all 2-phase and 3-phase regions,
         with a global min check to make sure these phase regions are truly the phases they say they are
         """
+        # New starting points need to be processed by mapping before the next data retrieval
+        self._mapping_complete = False
         if self.num_potential_condition > 0:
             self._add_starting_points_from_step_potential_axis(step)
         else:
@@ -537,6 +539,7 @@ class TielineStrategy(MapStrategy):
         list of PhaseRegionData, which stores of list of SinglePhaseData with
         x, y coordinates for each phase in the invariant reaction
         """
+        self._ensure_mapped()
         if hasattr(x, 'phase_name') and x.phase_name is None:
             if not global_x:
                 x = copy.deepcopy(x)
@@ -583,6 +586,7 @@ class TielineStrategy(MapStrategy):
         list of PhaseRegionData, which stores of list of SinglePhaseData with
         x, y coordinates of the phase boundary for each phase
         """
+        self._ensure_mapped()
         if hasattr(x, 'phase_name') and x.phase_name is None:
             if not global_x:
                 x = copy.deepcopy(x)
