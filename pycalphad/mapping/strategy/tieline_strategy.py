@@ -192,14 +192,10 @@ class TielineStrategy(MapStrategy):
     def __init__(self, dbf: Database, components: list[str], phases: list[str], conditions: dict[v.StateVariable, Union[float, tuple[float]]], **kwargs):
         super().__init__(dbf, components, phases, conditions, **kwargs)
         if self.num_potential_condition == 0:
-            # The remaining (dependent) composition variable of the mapping simplex: exclude
-            # vacancies, the axis components, and any component fixed by a chemical potential
-            # condition (e.g. MU(CL2) in a pseudo-ternary), which is not part of the simplex.
+            # The remaining (dependent) composition variable of the mapping simplex
             axis_species = {str(av.species) for av in self.axis_vars}
-            mu_species = {str(key.species) for key in self.conditions
-                          if isinstance(key, v.ChemicalPotential)}
-            unlisted_components = [c for c in self.components
-                                   if str(c) not in {'VA'} | axis_species | mu_species]
+            mu_species = {str(key.species) for key in self.conditions if isinstance(key, v.ChemicalPotential)}
+            unlisted_components = [c for c in self.components if str(c) not in {'VA'} | axis_species | mu_species]
             self.all_vars = self.axis_vars + [v.X(unlisted_components[0])]
 
     def generate_automatic_starting_points(self):
