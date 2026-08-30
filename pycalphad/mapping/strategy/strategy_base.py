@@ -396,7 +396,7 @@ class MapStrategy:
             zchk.check_global_min,
             zchk.check_axis_values,
             zchk.check_similar_phase_composition,
-            zchk.check_degenerate_pure_composition,
+            zchk.check_degenerate_tieline,
             zchk.check_circular_loop,
             ]
         axis_data = {
@@ -595,7 +595,7 @@ class MapStrategy:
                 zchk.simple_check_valid_point,
                 zchk.simple_check_change_in_phases,
                 zchk.simple_check_global_min,
-                zchk.simple_check_degenerate_pure_composition,
+                zchk.simple_check_degenerate_tieline,
             ]
             valid_point = True
             for checks in check_functions:

@@ -19,7 +19,7 @@ Simple checks
     simple_check_valid_point
     simple_check_change_in_phases
     simple_check_global_min
-    simple_check_degenerate_pure_composition
+    simple_check_degenerate_tieline
 
     These quickly check a step result and returns
     a bool whether the step result is valid or not
@@ -33,34 +33,46 @@ Normal checks
     check_change_in_phases
     check_global_min
     check_similar_phase_composition
-    check_degenerate_pure_composition
+    check_degenerate_tieline
 
     These will check whether the step result is valid or
     if not valid, then will modify the zpf line or create
     a new node
 """
 
-def _all_comp_sets_same_pure_composition(comp_sets: list[CompositionSet], tol: float = 10*MIN_COMPOSITION):
+def _degenerate_zero_width_tieline(comp_sets: list[CompositionSet], tol: float = 10*MIN_COMPOSITION):
     """
-    Returns True if there are multiple composition sets and all of them are (nearly)
-    the same pure component, i.e. the tie-line has collapsed onto a vertex of the
-    composition simplex.
+    Returns True if there are multiple composition sets and all of them have (nearly)
+    the same composition, i.e. the tie-line has collapsed to zero width.
 
-    Multiple phases of the same pure component can only be in equilibrium at discrete
-    conditions (e.g. the melting point of an element), never along a line. However,
-    with a phase fixed at zero amount and all compositions pinned at a pure component,
-    the ZPF conditions become degenerate and are satisfiable by the solver at any
-    temperature, so without this detection, mapping can follow a spurious zero-width
-    ZPF line along the pure-component edge of the diagram (e.g. tracking a
-    solid+liquid "boundary" of the pure element far above its melting point).
+    Distinct phases of the same composition can only be in equilibrium at discrete
+    conditions (a pure-element melting point, a congruent melting point, a polymorphic
+    transition), never along a line, so a converged multi-phase step result with a
+    zero-width tie-line is degenerate.
+
+    Some pathological cases:
+    - a solid+liquid "boundary" pinned to a pure-element edge of the diagram, tracked
+      far above the element's melting point (mole fraction of the dilute component -> 0)
+    - a compound+liquid "boundary" pinned at the compound's stoichiometry, tracked
+      above its congruent melting point, when the liquid has an associate species at
+      that stoichiometry (site fractions of the non-associate species -> 0)
+
+    The tolerance is far below the composition width of any resolvable two-phase
+    region (spurious converged results have widths ~1e-9 or less), so real ZPF lines
+    passing near congruent points are not affected.
+
+    Unary systems are exempt: with a single component, multi-phase coexistence along
+    a univariant line (e.g. in a P-T diagram) is allowed by the Gibbs phase rule, and
+    without a dilute degree of freedom the pathology cannot occur.
     """
     if len(comp_sets) < 2:
         return False
     # Unary system (single non-vacant component)
     if len(comp_sets[0].X) < 2:
         return False
-    pure_comp_index = np.argmax(comp_sets[0].X)
-    return all(cs.X[pure_comp_index] > 1 - tol for cs in comp_sets)
+    comps = np.array([np.asarray(cs.X) for cs in comp_sets])
+    width = np.amax(np.amax(comps, axis=0) - np.amin(comps, axis=0))
+    return width < tol
 
 def simple_check_valid_point(step_results: tuple[Point, list[CompositionSet]], **kwargs):
     """
@@ -131,10 +143,10 @@ def simple_check_global_min(step_results: tuple[Point, list[CompositionSet]], **
 
     return global_test_point is None
 
-def simple_check_degenerate_pure_composition(step_results: tuple[Point, list[CompositionSet]], **kwargs):
+def simple_check_degenerate_tieline(step_results: tuple[Point, list[CompositionSet]], **kwargs):
     """
     Returns True or False for whether the step result is a non-degenerate equilibrium,
-    i.e. the composition sets have not all collapsed onto the same pure composition
+    i.e. the tie-line between the composition sets has not collapsed to zero width
 
     Parameters
     ----------
@@ -149,9 +161,9 @@ def simple_check_degenerate_pure_composition(step_results: tuple[Point, list[Com
         return False
 
     new_point, orig_cs = step_results
-    degenerate = _all_comp_sets_same_pure_composition(new_point.stable_composition_sets)
+    degenerate = _degenerate_zero_width_tieline(new_point.stable_composition_sets)
     if degenerate:
-        _log.info(f"All composition sets of {new_point.stable_phases} are pinned at the same pure composition")
+        _log.info(f"All composition sets of {new_point.stable_phases} have the same composition (zero-width tie-line)")
 
     return not degenerate
 
@@ -493,16 +505,17 @@ def check_similar_phase_composition(zpf_line: ZPFLine, step_results: tuple[Point
                 return None
     return None
 
-def check_degenerate_pure_composition(zpf_line: ZPFLine, step_results: tuple[Point, list[CompositionSet]], axis_data: Mapping, **kwargs):
+def check_degenerate_tieline(zpf_line: ZPFLine, step_results: tuple[Point, list[CompositionSet]], axis_data: Mapping, **kwargs):
     """
-    If all composition sets have collapsed onto the same pure composition, then the
+    If the tie-line between the composition sets has collapsed to zero width, then the
     equilibrium is degenerate and the ZPF conditions are trivially satisfiable at any
     temperature, so we stop the zpf line to avoid tracking a spurious zero-width
-    boundary along the pure-component edge of the diagram
+    boundary (e.g. along a pure-component edge above the element's melting point, or
+    at a compound stoichiometry above its congruent melting point)
 
     2 possible outcomes
-        a) Composition sets are not all the same pure composition -> pass
-        b) Composition sets collapsed onto a pure composition -> end zpf line gracefully
+        a) Composition sets have distinct compositions -> pass
+        b) Tie-line collapsed to zero width -> end zpf line gracefully
 
     Parameters
     ----------
@@ -522,9 +535,9 @@ def check_degenerate_pure_composition(zpf_line: ZPFLine, step_results: tuple[Poi
         return None
 
     new_point, orig_cs = step_results
-    if _all_comp_sets_same_pure_composition(new_point.stable_composition_sets):
+    if _degenerate_zero_width_tieline(new_point.stable_composition_sets):
         zpf_line.status = ZPFState.REACHED_LIMIT
-        _log.info(f"All composition sets of {new_point.stable_phases} are pinned at the same pure composition. Ending ZPF line.")
+        _log.info(f"All composition sets of {new_point.stable_phases} have the same composition (zero-width tie-line). Ending ZPF line.")
     return None
 
 def check_circular_loop(zpf_line: ZPFLine, step_results: tuple[Point, list[CompositionSet]], axis_data: Mapping, **kwargs):

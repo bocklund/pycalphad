@@ -677,6 +677,48 @@ def test_mapping_runs_just_in_time_on_data_retrieval(load_database):
     assert strategy._mapping_complete
     assert len(strategy.zpf_lines) > num_zpf_lines
 
+@select_database("AlTe-19Shi.tdb")
+def test_degenerate_tieline_rejected_above_congruent_melting(load_database):
+    """
+    ZPF line for AL2TE3_BETA+LIQUID should not extent above a congruent melting point
+
+    This constructs the ZPF line configuration (compound fixed at zero amount, liquid
+    free) and steps it just past the congruent point, where the solver converges to
+    the degenerate zero-width result, and checks that the degenerate tie-line check
+    rejects it while accepting the real result below the congruent point.
+    """
+    from pycalphad.mapping.zpf_equilibrium import update_equilibrium_with_new_conditions
+    from pycalphad.mapping.zpf_checks import simple_check_degenerate_tieline
+    import pycalphad.mapping.utils as map_utils
+
+    dbf = load_database()
+    comps = ["AL", "TE", "VA"]
+    phases = list(dbf.phases.keys())
+
+    # Two-phase point on the Te-rich branch of the AL2TE3_BETA+LIQUID region
+    # (congruent melting of AL2TE3_BETA is at ~1138.7 K, x(TE)=0.6)
+    pt = point_from_equilibrium(dbf, comps, phases, {v.P: 101325, v.N: 1, v.T: 1100, v.X("TE"): 0.61})
+    assert set(pt.stable_phases) == {"AL2TE3_BETA", "LIQUID"}
+    beta = [cs for cs in pt.stable_composition_sets if cs.phase_record.phase_name == "AL2TE3_BETA"][0]
+    liquid = [cs for cs in pt.stable_composition_sets if cs.phase_record.phase_name == "LIQUID"][0]
+    zpf_point = map_utils._generate_point_with_fixed_cs(pt, beta, liquid)
+
+    # Below the congruent point, the boundary is real (finite tie-line width)
+    conds = copy.deepcopy(zpf_point.global_conditions)
+    conds[v.T] = 1135
+    below_results = update_equilibrium_with_new_conditions(zpf_point, conds, v.X("TE"))
+    assert below_results is not None
+    assert simple_check_degenerate_tieline(below_results)
+
+    # Just above the congruent point, the solver converges to the degenerate
+    # zero-width solution (liquid collapsed onto the AL2TE3 associate), which
+    # must be rejected so mapping does not track it
+    conds = copy.deepcopy(below_results[0].global_conditions)
+    conds[v.T] = 1140
+    above_results = update_equilibrium_with_new_conditions(below_results[0], conds, v.X("TE"))
+    if above_results is not None:
+        assert not simple_check_degenerate_tieline(above_results)
+
 @select_database("cfe_broshe.tdb")
 def test_unary_pt_mapping_not_flagged_as_degenerate(load_database):
     """
