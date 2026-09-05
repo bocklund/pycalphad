@@ -94,16 +94,17 @@ class Solver(SolverBase):
             # values should all be scalar floats
             value = float(np.asarray(value).flat[0])
             if isinstance(cond, MoleFraction) and cond.phase_name is None:
-                # X(c) = k. The direct form dot(row, x) = k is exact only when the component
-                # total identically equals the atom total, i.e. the column sum of (S^T)^-1 is
-                # all ones (always true for the trivial pure-element basis). It stays one-hot
-                # there, which the Jansson-derivative matching in fixed_component_differential
-                # relies on. Otherwise (a genuine multi-element basis) X(c) is normalized by
-                # the component total dot(colsum, x), so the condition must use the homogeneous
-                # form ((S^T)^-1[c,:] - k*colsum).x = 0 even when the component's own row is
-                # one-hot.
+                # X(c) = k. The direct form dot(row, x) = k stays one-hot for the trivial
+                # pure-element basis, which the Jansson-derivative matching in
+                # fixed_component_differential relies on. Any redefined basis uses the
+                # homogeneous form ((S^T)^-1[c,:] - k*colsum).x = 0 even when the
+                # component's own row is one-hot and the colsum is all ones (e.g. a
+                # pure-element basis component alongside a unit-atom multi-element
+                # component): MoleFraction.jansson_deltas locates the condition row by
+                # reconstructing the homogeneous coefficients, so the stored form must
+                # match it.
                 coefs = np.array(component_basis_inv_T[basis_row(cond.species)])
-                if np.count_nonzero(coefs) == 1 and np.isclose(coefs.sum(), 1.0) and np.allclose(inv_T_colsum, 1.0):
+                if basis_is_trivial and np.count_nonzero(coefs) == 1 and np.isclose(coefs.sum(), 1.0):
                     prescribed_mole_fraction_rhs.append(value)
                 else:
                     coefs = coefs - value * inv_T_colsum
