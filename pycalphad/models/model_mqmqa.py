@@ -4,7 +4,7 @@ from collections import OrderedDict
 from functools import partial
 from symengine import log, S, Symbol
 from tinydb import where
-from pycalphad.model import _MAX_PARAM_NESTING
+from pycalphad.model import _MAX_PARAM_NESTING, _canonical_expression, _canonical_parameter_order
 import pycalphad.variables as v
 from pycalphad.core.utils import unpack_species, wrap_symbol
 from pycalphad import Model
@@ -115,12 +115,12 @@ class ModelMQMQA(Model):
 
         # Convert string symbol names to symengine Symbol objects
         # This makes xreplace work with the symbols dict
-        symbols = {Symbol(s): val for s, val in dbe.symbols.items()}
+        symbols = {Symbol(s): _canonical_expression(val) for s, val in dbe.symbols.items()}
 
         if parameters is not None:
             self._parameters_arg = parameters
             if isinstance(parameters, dict):
-                symbols.update([(wrap_symbol(s), val) for s, val in parameters.items()])
+                symbols.update([(wrap_symbol(s), _canonical_expression(val)) for s, val in parameters.items()])
             else:
                 # Lists of symbols that should remain symbolic
                 for s in parameters:
@@ -567,7 +567,7 @@ class ModelMQMQA(Model):
             (where("parameter_type") == "MQMG") & \
             (where("constituent_array").test(self._pair_test))
         )
-        params = dbe._parameters.search(pair_query)
+        params = _canonical_parameter_order(dbe._parameters.search(pair_query))
         terms = S.Zero
         for param in params:
             a = i = param["constituent_array"][0][0]
@@ -576,7 +576,7 @@ class ModelMQMQA(Model):
             for b in self.cations:
                 for y in self.anions:
                     X_ax += self._X_ijkl(a,b,x,y) * ((a == i) + (b == i)) * ((x == k) + (y == k)) / (2 * self.Z(dbe, a, a,b,x,y))
-            G_ax = param["parameter"]
+            G_ax = _canonical_expression(param["parameter"])
             terms += X_ax * G_ax / param["stoichiometry"][0]
         return terms
 
@@ -616,11 +616,11 @@ class ModelMQMQA(Model):
         return Sid * v.T * v.R
 
     def excess_mixing_energy(self, dbe):
-        params = dbe._parameters.search(
+        params = _canonical_parameter_order(dbe._parameters.search(
             (where("phase_name") == self.phase_name) &
             (where("parameter_type") == "MQMX") &
             (where("constituent_array").test(self._array_validity))
-        )
+        ))
 
         cations = self.cations
         anions = self.anions
@@ -700,7 +700,7 @@ class ModelMQMQA(Model):
                 mixing_term += quadruplet_mole ** mix_term_exponent
             else:
                 mixing_term = S.One  # No mixing, this is a modification to the formation energy of this quadruplet
-            g = param["parameter"] * mixing_term
+            g = _canonical_expression(param["parameter"]) * mixing_term
 
             # Poschmann Eq. 17
             cation_factor = S.Zero

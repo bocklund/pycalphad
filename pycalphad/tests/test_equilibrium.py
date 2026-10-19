@@ -1247,6 +1247,20 @@ def test_eq_issue652_dilute_species_converges(load_database):
     assert_allclose(actual_energies, expected_energies)
 
 
+def _assert_gm_matches_chempots(eq, comps, conds, expected_chempots):
+    """Check the equilibrium GM against GM = sum_i X_i MU_i from reference chemical potentials
+
+    The chemical potential of a trace component is resolved only to the extent that the
+    hyperplane is, divided by the trace mole fraction: with X(CR)~1e-7, round-off moves MU(CR)
+    by ~1 J/mol between iterations and platforms. GM weights each chemical potential by its
+    mole fraction, so it tests the reference values without that noise.
+    """
+    elements = [comp for comp in comps if comp != "VA"]
+    mole_fractions = [conds[v.X(el)] for el in elements[1:]]
+    mole_fractions.insert(0, 1 - sum(mole_fractions))
+    assert_allclose(eq.GM.values.squeeze(), np.dot(mole_fractions, expected_chempots), rtol=1e-6)
+
+
 @pytest.mark.solver
 @select_database("COST507.tdb")
 def test_eq_issue641_trace_composition_conditions_converge(load_database):
@@ -1278,9 +1292,9 @@ def test_eq_issue641_trace_composition_conditions_converge(load_database):
     eq = equilibrium(dbf, comps, phases, conds, calc_opts=dict(pdens=60))
     stable_phases = set(np.unique(eq.Phase.values.squeeze())) - {""}
     assert stable_phases == {"LIQUID", "FCC_A1", "ALFESI_BETA", "ALMNSI_ALPHA"}
-    # component (alphabetical) order: AL, CR, CU, FE, MG, MN, SI, TI, ZN
+    # Thermo-Calc chemical potentials, component (alphabetical) order: AL, CR, CU, FE, MG, MN, SI, TI, ZN
     expected_chempots = [-33919.533, -150735.76, -101571.65, -138093.12, -64870.783, -127532.8, -32012.164, -258465.82, -96667.985]
-    assert_allclose(eq.MU.values.squeeze(), expected_chempots, rtol=1e-5)
+    _assert_gm_matches_chempots(eq, comps, conds, expected_chempots)
 
 
 @pytest.mark.solver
@@ -1317,9 +1331,9 @@ def test_eq_issue641_unstable_compset_jitter_does_not_block_convergence(load_dat
     eq = equilibrium(dbf, comps, phases, conds, calc_opts=dict(pdens=60))
     stable_phases = set(np.unique(eq.Phase.values.squeeze())) - {""}
     assert stable_phases == {"LIQUID", "FCC_A1", "ALFESI_BETA", "ALMNSI_ALPHA", "MG2SI"}
-    # component (alphabetical) order: AL, CR, CU, FE, MG, MN, SI, TI, ZN
+    # Thermo-Calc chemical potentials, component (alphabetical) order: AL, CR, CU, FE, MG, MN, SI, TI, ZN
     expected_chempots = [-32552.373, -161719.44, -95882.234, -141119.8, -62706.455, -129909.47, -26732.757, -261540.58, -90886.89]
-    assert_allclose(eq.MU.values.squeeze(), expected_chempots, rtol=1e-5)
+    _assert_gm_matches_chempots(eq, comps, conds, expected_chempots)
 
 
 @pytest.mark.solver

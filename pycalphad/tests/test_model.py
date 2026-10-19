@@ -2,9 +2,16 @@
 The test_model module contains unit tests for the Model object.
 """
 from pycalphad import Database, Model, variables as v, equilibrium
+from pycalphad.codegen.phase_record_factory import PhaseRecordFactory
+from pycalphad.codegen.sympydiff_utils import build_functions, build_constraint_functions
 from pycalphad.tests.fixtures import select_database, load_database
 from pycalphad.core.errors import DofError
 from symengine import Piecewise
+import copy
+import os
+import subprocess
+import sys
+import textwrap
 import numpy as np
 import pickle
 import pytest
@@ -342,3 +349,116 @@ def test_inconsistent_charge_balance_constraint_is_kept():
     mod = Model(dbf, ["LA", "O", "VA"], "IMPOSSIBLE")
     constraints = mod.get_internal_constraints()
     assert len(constraints) == len(mod.constituents) + 1
+
+
+def _phase_record_outputs(dbf, comps, phase_name, num_points=10):
+    """Everything a PhaseRecord evaluates, at reproducible random points
+
+    The functions are compiled from scratch (not taken from the build_functions cache), as in a new process.
+    """
+    build_functions.cache_clear()
+    build_constraint_functions.cache_clear()
+    mod = Model(dbf, comps, phase_name)
+    prx = PhaseRecordFactory(dbf, comps, {v.N, v.P, v.T}, {phase_name: mod}).get(phase_name)
+    num_vars = prx.num_statevars + prx.phase_dof
+    rng = np.random.default_rng(1769)
+    outputs = []
+    for _ in range(num_points):
+        dof = rng.uniform(size=num_vars)
+        dof[:3] = [1.0, 101325.0, 300.0 + 2000.0 * dof[2]]  # N, P, T
+        sublattice_indices = np.array([site_fraction.sublattice_index for site_fraction in mod.site_fractions])
+        for sublattice_index in np.unique(sublattice_indices):
+            columns = 3 + np.nonzero(sublattice_indices == sublattice_index)[0]
+            dof[columns] /= dof[columns].sum()
+        for func, shape in [(prx.obj, (1,)), (prx.formulaobj, (1,)), (prx.formulagrad, (num_vars,)),
+                            (prx.formulahess, (num_vars, num_vars)), (prx.internal_cons_func, (prx.num_internal_cons,)),
+                            (prx.internal_cons_jac, (prx.num_internal_cons, num_vars)),
+                            (prx.internal_cons_hess, (prx.num_internal_cons, num_vars, num_vars))]:
+            out = np.zeros(shape)
+            func(out, dof)
+            outputs.append(out)
+        for comp_idx in range(len(prx.nonvacant_elements)):
+            for func, shape in [(prx.mass_obj, (1,)), (prx.formulamole_obj, (1,)), (prx.formulamole_grad, (num_vars,)),
+                                (prx.formulamole_hess, (num_vars, num_vars))]:
+                out = np.zeros(shape)
+                func(out, dof, comp_idx)
+                outputs.append(out)
+    return outputs
+
+
+def _assert_same_phase_records(dbf, other_dbf, comps):
+    for phase_name in sorted(dbf.phases.keys()):
+        expected = _phase_record_outputs(dbf, comps, phase_name)
+        actual = _phase_record_outputs(other_dbf, comps, phase_name)
+        for expected_values, actual_values in zip(expected, actual):
+            np.testing.assert_array_equal(actual_values, expected_values, err_msg=phase_name)
+
+
+@pytest.mark.filterwarnings("ignore:The order-disorder model for .* has a contribution from the physical property model:UserWarning")
+@pytest.mark.parametrize("load_database, comps", [
+    ("alni_dupin_2001.tdb", ["AL", "NI", "VA"]),
+    ("Al-Fe_sundman2009.tdb", ["AL", "FE", "VA"]),
+    ("Ocadiz-Flores.dat", ["F", "K", "LI", "NA", "NI", "VA"]),  # MQMQA liquids
+], indirect=["load_database"])
+def test_parameter_order_does_not_change_phase_records(load_database, comps):
+    """Databases that differ only in the order of their parameters give bit-identical phase records
+
+    Compiled functions add terms in the order that SymEngine stores them, which follows the order the Model
+    added them. Since build_functions caches by equality, which ignores that order, the result for one
+    database could otherwise also depend on whether an equal energy from another database was compiled first.
+    """
+    dbf = load_database()
+    reordered_dbf = copy.deepcopy(dbf)
+    parameters = reordered_dbf._parameters.all()
+    reordered_dbf._parameters.truncate()
+    reordered_dbf._parameters.insert_multiple([dict(param) for param in reversed(parameters)])
+    _assert_same_phase_records(dbf, reordered_dbf, comps)
+
+
+@pytest.mark.filterwarnings("ignore:The order-disorder model for .* has a contribution from the physical property model:UserWarning")
+@pytest.mark.parametrize("load_database, comps", [
+    ("alni_dupin_2001.tdb", ["AL", "NI", "VA"]),
+    ("Al-Fe_sundman2009.tdb", ["AL", "FE", "VA"]),
+    ("crtiv_ghosh.tdb", ["CR", "TI", "V", "VA"]),
+], indirect=["load_database"])
+def test_tdb_roundtrip_does_not_change_phase_records(load_database, comps):
+    """A database written to and read from a TDB gives bit-identical phase records
+
+    The TDB writer orders parameters and the terms of expressions differently than the original file.
+    """
+    dbf = load_database()
+    roundtrip_dbf = Database.from_string(dbf.to_string(fmt='tdb', if_incompatible='ignore'), fmt='tdb')
+    assert roundtrip_dbf == dbf
+    _assert_same_phase_records(dbf, roundtrip_dbf, comps)
+
+
+def test_phase_records_do_not_depend_on_hash_seed():
+    """Phase records are bit-identical between processes with different PYTHONHASHSEED values
+
+    Covers parameters generated from sublattice symmetry options (Al-Fe BCC_4SL) and the multiple
+    Einstein temperatures of LNTHETA parameters (graphite), which were added in set iteration order.
+    """
+    code = textwrap.dedent("""
+        import hashlib, warnings
+        from importlib.resources import files
+        from pycalphad import Database
+        import pycalphad.tests.databases
+        from pycalphad.tests.test_model import _phase_record_outputs
+        warnings.filterwarnings("ignore")
+        digest = hashlib.sha256()
+        for db_name, comps, phase_name in [("Al-Fe_sundman2009.tdb", ["AL", "FE", "VA"], "BCC_4SL"),
+                                           ("WC-22He-3g.tdb", ["C", "VA", "W"], "GRAPHITE_A9")]:
+            dbf = Database(files(pycalphad.tests.databases).joinpath(db_name))
+            for values in _phase_record_outputs(dbf, comps, phase_name):
+                digest.update(values.tobytes())
+        print(digest.hexdigest())
+    """)
+    processes = [subprocess.Popen([sys.executable, "-c", code], stdout=subprocess.PIPE, text=True,
+                                  env={**os.environ, "PYTHONHASHSEED": str(seed)})
+                 for seed in range(3)]
+    digests = set()
+    for process in processes:
+        stdout, _ = process.communicate()
+        assert process.returncode == 0
+        digests.add(stdout.strip())
+    assert len(digests) == 1
