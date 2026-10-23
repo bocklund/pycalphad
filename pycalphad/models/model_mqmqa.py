@@ -525,15 +525,14 @@ class ModelMQMQA(Model):
 
         Divide by this normalization factor to convert from J/mole-formula to J/mole-atoms
         """
-        return sum(self._n_i(self._dbe, i) for i in self.cations + self.anions if "VA" not in i.constituents)
+        return sum(self._n_i(self._dbe, i) * i.number_of_atoms for i in self.cations + self.anions)
 
     def moles(self, species, per_formula_unit=False):
-        "Number of moles of species or elements."
-        species = v.Species(species)
+        "Number of moles of an element, counting the stoichiometry of each constituent (e.g. two Al per Al2)."
+        element = list(v.Species(species).constituents.keys())[0]
         result = S.Zero
         for i in self.cations + self.anions:
-            if list(species.constituents.keys())[0] in i.constituents:
-                result += self._n_i(self._dbe, i)
+            result += self._n_i(self._dbe, i) * i.constituents.get(element, 0)
         if per_formula_unit:
             return result
         else:

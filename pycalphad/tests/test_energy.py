@@ -1332,6 +1332,43 @@ def test_MQMQA_SUBQ_Q_mixing_Fe2_Fe3_Sb_O(load_database):
     assert np.isclose(float(mod.moles("O").subs(subs_dict)), 0.56666667, 1e-5)
 
 
+@select_database("Be-F-Li.dat")
+def test_MQMQA_species_of_different_moles(load_database):
+    """Be2 dimer cations (pycalphad#496): moles count two Be per Be2, at Thermochimica's equilibrium constitution."""
+    dbf = load_database()
+    mod = ModelMQMQA(dbf, ["BE", "F", "LI", "VA"], "MSFL")
+    sp = {s.name: s for s in mod.cations + mod.anions}
+    LI, BE, BE2, F = sp["LI+1.0"], sp["BE+2.0"], sp["BE2+4.0"], sp["F-1.0"]
+    subs = {  # Thermochimica 0c35c8d (R = 8.3145) equilibrium of MSFL alone, 1200 K, x(Li) = x(Be) = 0.2
+        mod._X_ijkl(LI, LI, F, F): 9.8365626895813602E-02,
+        mod._X_ijkl(BE, BE, F, F): 5.4836494340423978E-05,
+        mod._X_ijkl(BE2, BE2, F, F): 2.1381368735661857E-01,
+        mod._X_ijkl(BE, LI, F, F): 2.6582723167128827E-02,
+        mod._X_ijkl(BE2, LI, F, F): 6.5433482905491736E-01,
+        mod._X_ijkl(BE, BE2, F, F): 6.8482970311813636E-03,
+        v.T: 1200.0,
+    }
+    assert np.isclose(float(mod.GM.subs(subs)), -3.7574285295477702E+05, rtol=0, atol=1e-3)
+    for element, x in (("BE", 0.2), ("LI", 0.2), ("F", 0.6)):
+        assert np.isclose(float(mod.moles(element).subs(subs)), x, rtol=0, atol=1e-8)
+
+
+@pytest.mark.parametrize("database, phase, comps, pair, expected", [
+    ("ClAlNa.dat", "MSSOLN", ["AL", "CL", "NA", "VA"], ("AL2+6.0", "CL-1.0"), {"AL": 2 / 8, "CL": 6 / 8}),  # Al2Cl6
+    ("Be-F-Li.dat", "MSFL", ["BE", "F", "LI", "VA"], ("BE2+4.0", "F-1.0"), {"BE": 2 / 6, "F": 4 / 6}),  # Be2F4
+])
+def test_MQMQA_dimer_pair_composition(database, phase, comps, pair, expected):
+    """A pure dimer pair has the composition of its pair formula."""
+    dbf = Database(files(pycalphad.tests.databases).joinpath(database))
+    mod = ModelMQMQA(dbf, comps, phase)
+    sp = {s.name: s for s in mod.cations + mod.anions}
+    A, X = sp[pair[0]], sp[pair[1]]
+    subs = {y: 0.0 for y in mod.site_fractions}
+    subs[mod._X_ijkl(A, A, X, X)] = 1.0
+    for element, x in expected.items():
+        assert np.isclose(float(mod.moles(element).xreplace(subs)), x, rtol=0, atol=1e-12)
+
+
 def _dat_text(name):
     return files(pycalphad.tests.databases).joinpath(name).read_text()
 
