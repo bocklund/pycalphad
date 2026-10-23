@@ -1507,6 +1507,21 @@ def _without_clalna_excess(text):
     return "\n".join(lines[:start] + lines[end:])
 
 
+@pytest.mark.parametrize("record, reversed_record, span, count", [
+    ("   1   2   4   4  4.0000000", "   2   1   4   4  4.0000000", (0, 1), "   6   7\n"),  # coordination numbers
+    (" G   1   2   4   4   1   0", " G   2   1   4   4   1   0", (-1, 5), "   6   8\n"),  # excess, with its type line
+])
+def test_MQMQA_records_with_decreasing_indices_are_ignored(record, reversed_record, span, count):
+    """A quadruplet or excess record whose constituent indices decrease within a sublattice is ignored, as if absent."""
+    text = _dat_text("ClAlNa.dat")
+    lines = text.split("\n")
+    i = next(i for i, line in enumerate(lines) if line.startswith(record))
+    removed = "\n".join(lines[:i + span[0]] + lines[i + span[1]:]).replace("   6   8\n", count, 1)
+    with pytest.warns(UserWarning, match="Ignoring the record for quadruplet 2 1 4 4 of phase MSSOLN"):
+        reversed_GM = _mqmqa_at(text.replace(record, reversed_record, 1), *CLALNA_MSSOLN)[0]
+    assert np.isclose(reversed_GM, _mqmqa_at(removed, *CLALNA_MSSOLN)[0], rtol=0, atol=1e-6)
+    assert not np.isclose(reversed_GM, _mqmqa_at(text, *CLALNA_MSSOLN)[0], rtol=0, atol=1)
+
 @pytest.mark.parametrize("T, GM", [(1000.0, -196708.05487237978), (1400.0, -234096.73294217885)])
 def test_MQMQA_pair_reference_energy_with_vacancy_anion(T, GM):
     """Quadruplet references average their pair energies (Pelton Eq. 17.38); Al has Z = 4.8 towards Cl and 6 towards Va.
