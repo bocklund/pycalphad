@@ -1509,6 +1509,17 @@ def test_MQMQA_reciprocal_excess_terms(exponents, additional, term):
     assert np.isclose(with_R - base, L * term(quads[0, 1, 0, 1], quads[0, 0, 0, 0]), rtol=1e-10, atol=1e-12)
 
 
+@pytest.mark.parametrize("T, GM", [(1000.0, -199336.9094164812), (1400.0, -236685.61974774176)])
+def test_MQMQA_SUBG_pair_entropy_uses_zeta(T, GM):
+    """The SUBG phase zeta weights the pair entropy as in SUBQ, which matters in reciprocal phases.
+
+    ClAlNa with its liquid entered as SUBG (one zeta for the phase); Thermochimica 0c35c8d with pycalphad's R."""
+    text = _dat_text("ClAlNa.dat")
+    assert text.count("\n  2.40000\n") == 6
+    subg = text.replace("\n  2.40000\n", "\n").replace("\n SUBQ\n", "\n SUBG\n  2.40000\n", 1)
+    assert np.isclose(_mqmqa_at(subg, *CLALNA_MSSOLN, T=T)[0], GM, rtol=0, atol=1e-3)
+
+
 def _bragg_williams(Y_i, Y_j, Y_k, xi_ij, xi_ji, p, q):
     """L-free Bragg-Williams term: random pair probabilities with Kohler/Toop exponents."""
     return Y_i * Y_j / Y_k * (xi_ij / (xi_ij + xi_ji)) ** p * (xi_ji / (xi_ij + xi_ji)) ** q

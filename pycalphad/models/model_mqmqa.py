@@ -603,13 +603,9 @@ class ModelMQMQA(Model):
             Sid += n_i(A) * log(X_i(A))
         for X in self.anions:
             Sid += n_i(X) * log(X_i(X))
-        # Pairs
-        if soln_type == "SUBG":
-            for i, k in self._pairs:
-                Sid += self._n_ik(i, k) * log(X_ik(i, k) / (F_i(i) * F_i(k)))
-        elif soln_type == "SUBQ":
-            for i, k in self._pairs:
-                Sid += self._n_ik_star(i, k) * log(self._X_ik_star(i, k) / (F_i(i) * F_i(k)))
+        # Pairs, weighted by zeta in SUBG as in SUBQ (Thermochimica); this only matters in reciprocal phases
+        for i, k in self._pairs:
+            Sid += self._n_ik_star(i, k) * log(self._X_ik_star(i, k) / (F_i(i) * F_i(k)))
         # Quadruplets
         for i, j, k, l in self._quadruplets:
             C_ijkl = (2 - (i == j)) * (2 - (k == l))
