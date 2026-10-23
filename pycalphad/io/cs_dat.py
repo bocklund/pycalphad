@@ -655,11 +655,63 @@ class SUBQExcessQuadruplet:
             )
 
 
-def _species(el_chg):
-    el, chg = el_chg
-    name = rename_element_charge(el, chg)
-    constituents = dict(parse_chemical_formula(el)[0])
-    return v.Species(name, constituents=constituents, charge=chg)
+def _element_hints(label: str, pure_elements: List[str]) -> set:
+    """Element symbols in an MQMQA constituent label, ignoring bracketed text, charges and counts."""
+    s = re.sub(r"\[.*?\]", "", label.upper())
+    found, i = set(), 0
+    while i < len(s):
+        for width in (2, 1):
+            if s[i:i + width] in pure_elements:
+                found.add(s[i:i + width])
+                i += width
+                break
+        else:
+            i += 1
+    return found
+
+
+def _mqmqa_constituent_compositions(labels, pair_idxs, pairs, pure_elements):
+    """Element amounts of each MQMQA sublattice constituent from the pair records (labels are only names).
+
+    Pair record k fills pair-index column k, so nu_c c_i + nu_a a_j = s_k for each element. Amounts
+    moved between the sublattices in proportion to the charges satisfy every record and leave the phase's mass
+    balance unchanged; that freedom is fixed by keeping each element in as few constituents as possible, then by
+    the labels.
+    """
+    n_cat = len(labels[0])
+    flat = labels[0] + labels[1]
+    M = np.zeros((len(pairs), len(flat)))
+    for k, ((i, j), pair) in enumerate(zip(pair_idxs, pairs)):
+        M[k, i - 1], M[k, n_cat + j - 1] = pair.stoichiometry_quadruplet[:2]
+    null = np.linalg.svd(M)[2][np.linalg.matrix_rank(M):]
+    hints = [_element_hints(label, pure_elements) for label in flat]
+    compositions = [{} for _ in flat]
+    for e, el in enumerate(pure_elements):
+        rhs = np.array([pair.stoichiometry_pure_elements[e] for pair in pairs])
+        if not rhs.any():
+            continue
+        x = np.linalg.lstsq(M, rhs, rcond=None)[0]
+        if len(null) == 1:
+            g = null[0]
+            candidates = [x] + [x - x[t] / g[t] * g for t in range(len(g)) if abs(g[t]) > 1e-12]
+            x = max(candidates, key=lambda c: (np.sum(np.abs(c) < 1e-9),
+                                               sum(abs(c[t]) > 1e-9 and el in hints[t] for t in range(len(c))),
+                                               -np.sum(c < -1e-9)))
+        elif len(null) > 1:
+            raise ValueError(f"MQMQA constituent compositions of {flat} are not determined by their pair records")
+        for t, amount in enumerate(x):
+            if abs(amount) > 1e-9:
+                compositions[t][el] = round(float(amount), 9)
+    return compositions[:n_cat], compositions[n_cat:]
+
+
+def _mqmqa_species(label, charge, composition, pure_elements):
+    """Species named after its label, unless the label names other elements than the pair records give it."""
+    if not composition:  # no element in any pair record: a vacancy, whatever its label
+        return v.Species(rename_element_charge(label, charge), constituents={"VA": 1.0}, charge=charge)
+    if _element_hints(label, pure_elements) != set(composition):
+        label = "".join(el + (f"{n:g}" if n != 1 else "") for el, n in composition.items())
+    return v.Species(rename_element_charge(label, charge), constituents=composition, charge=charge)
 
 
 def _process_chemical_group_override_string(s):
@@ -720,6 +772,21 @@ class Phase_SUBQ(PhaseBase):
     excess_parameters: List[SUBQExcessQuadruplet]
     chemical_group_overrides: List[str]
 
+    def _warn_inconsistent_pair_records(self, cation_species, anion_species):
+        """Warn when a pair record's formula disagrees with its pure quadruplet, e.g. records out of pair-index order."""
+        n_cat = len(cation_species)
+        Z = {tuple(q.quadruplet_idxs): q.quadruplet_coordinations for q in self.quadruplets}
+        for (i, j), pair in zip(self.subl_const_idx_pairs, self.endmembers):
+            A, X = cation_species[i - 1], anion_species[j - 1]
+            Z_A, _, Z_X, _ = Z.get((i, i, n_cat + j, n_cat + j), (0, 0, 0, 0))
+            nu_A, nu_X = pair.stoichiometry_quadruplet[:2]
+            if "VA" in A.constituents or "VA" in X.constituents or not (Z_A and Z_X and nu_A and nu_X):
+                continue
+            if abs(nu_A / nu_X - Z_X / Z_A) > 1e-4:
+                warnings.warn(f"Pair record {pair.species_name} of phase {self.phase_name} fills pair-index column "
+                              f"({A.name}, {X.name}) with {nu_A:g}:{nu_X:g} ions, but its quadruplet coordination numbers "
+                              f"imply {Z_X:g}:{Z_A:g}. Records fill the pair-index columns in order, whatever their names.")
+
     def insert(self, dbf: Database, pure_elements: List[str], gibbs_coefficient_idxs: List[int], excess_coefficient_idxs: List[int]):
         # First: get the pair and quadruplet species added to the database:
         # Here we rename the species names according to their charges, to avoid creating duplicate pairs/quadruplets
@@ -737,19 +804,23 @@ class Phase_SUBQ(PhaseBase):
         # do that by adding the charge to the name (without +/-), i.e. CU_1 or
         # CU_1.0. This mangling frees us from worrying about Species name
         # collisions within the Database.
-        cations = [rename_element_charge(el, chg) for el, chg in cation_el_chg_pairs]
-        anions = [rename_element_charge(el, chg) for el, chg in anion_el_chg_pairs]
-        # Add the (renamed) species to the database so the phase constituents can be added
-        dbf.species.update(map(_species, cation_el_chg_pairs))
-        dbf.species.update(map(_species, anion_el_chg_pairs))
+        # The element content of each constituent comes from the pair records, not from its label
+        cation_compositions, anion_compositions = _mqmqa_constituent_compositions(
+            [self.subl_1_const, self.subl_2_const], self.subl_const_idx_pairs, self.endmembers, pure_elements)
+        cation_species = [_mqmqa_species(el, chg, comp, pure_elements) for (el, chg), comp in zip(cation_el_chg_pairs, cation_compositions)]
+        anion_species = [_mqmqa_species(el, chg, comp, pure_elements) for (el, chg), comp in zip(anion_el_chg_pairs, anion_compositions)]
+        cations = [sp.name for sp in cation_species]
+        anions = [sp.name for sp in anion_species]
+        dbf.species.update(cation_species + anion_species)
+        self._warn_inconsistent_pair_records(cation_species, anion_species)
 
         # Second: add the phase and phase constituents
         model_hints = {
             "mqmqa": {
                 "type": self.phase_type,
                 "chemical_groups": {
-                    "cations": dict(zip(map(_species, cation_el_chg_pairs), self.subl_1_chemical_groups)),
-                    "anions": dict(zip(map(_species, anion_el_chg_pairs), self.subl_2_chemical_groups)),
+                    "cations": dict(zip(cation_species, self.subl_1_chemical_groups)),
+                    "anions": dict(zip(anion_species, self.subl_2_chemical_groups)),
                 }
             }
         }
