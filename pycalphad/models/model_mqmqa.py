@@ -637,6 +637,12 @@ class ModelMQMQA(Model):
             p_alpha = exponents[0]
             q_alpha = exponents[1]
             r_alpha = param["additional_mixing_exponent"]
+            if mixing_code == "H":
+                raise NotImplementedError(f"MQMQA excess parameters with code H are not supported: {param}")
+            if mixing_code != "R" and isinstance(m, list):
+                raise NotImplementedError(f"MQMQA excess parameter with two additional constituents: {param}")
+            if mixing_code in ("G", "Q") and m != v.Species(None) and r_alpha == 0:
+                raise NotImplementedError(f"MQMQA ternary excess parameter with a zero third exponent: {param}")
             # Poschmann Eq. 23-26
             mixing_term = S.Zero
             if A != B and X == Y:

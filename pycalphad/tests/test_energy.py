@@ -1415,13 +1415,18 @@ def test_MQMQA_ternary_factor_without_chemical_group_asymmetry(r):
     assert np.isclose((ternary - base) / (binary - base), factor, rtol=1e-10)
 
 
-def test_MQMQA_unsupported_additional_constituent_layouts_raise():
-    """Layouts with no known meaning raise rather than evaluate a guess."""
-    for exponents, additional in [((0, 0, 0, 2), (3, 0)),  # third exponent zero
-                                  ((0, 0, 2, 0), (3, 5)),  # two additional constituents
-                                  ((0, 0, 2, 0), (0, 5))]:  # anion as the additional constituent of a cation term
-        with pytest.raises(NotImplementedError):
-            _shishin_slag(lambda t: _add_shishin_slag_excess(t, _excess_record("Q", (1, 2, 4, 4), exponents, additional)))
+@pytest.mark.parametrize("code, exponents, additional", [
+    ("Q", (0, 0, 0, 2), (3, 0)),  # ternary with a zero third exponent
+    ("Q", (0, 0, 2, 0), (3, 5)),  # two additional constituents
+    ("Q", (0, 0, 2, 0), (0, 5)),  # anion as the additional constituent of a cation term
+    ("H", (0, 0, 0, 0), (0, 0)),  # meaning not established
+])
+def test_MQMQA_unsupported_excess_parameters_raise_when_building_the_phase(code, exponents, additional):
+    """Excess parameters with no verified meaning load, but building the phase raises rather than evaluating a guess."""
+    text = _add_shishin_slag_excess(_dat_text("Shishin_Fe-Sb-O-S_slag.dat"), _excess_record(code, (1, 2, 4, 4), exponents, additional))
+    dbf = Database.from_string(text, fmt="dat")
+    with pytest.raises(NotImplementedError):
+        ModelMQMQA(dbf, ["FE", "SB", "O", "S", "VA"], "SLAG-LIQ")
 
 
 def _bragg_williams(Y_i, Y_j, Y_k, xi_ij, xi_ji, p, q):
