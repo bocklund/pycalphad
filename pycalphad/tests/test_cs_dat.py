@@ -84,3 +84,13 @@ def test_mqmqa_pair_records_out_of_pair_index_order_warn():
     with pytest.warns(UserWarning, match="Pair record (KF|NIF2) of phase LIQUID2"):
         dbf = Database.from_string(swapped, fmt="dat")
     assert _mqmqa_constituents(dbf, "LIQUID2")["K+2.0"] == {"K": 1.0}  # the KF record in the Ni2+ column
+
+
+def test_text_after_a_species_name_is_ignored():
+    """Name records are one line; numbers after the name are ignored (MSTDB-TC writes non-zero ones)."""
+    text = files(pycalphad.tests.databases).joinpath("Shishin_Fe-Sb-O-S_slag.dat").read_text()
+    assert text.count("\n FeO\n") == 1
+    edited = Database.from_string(text.replace("\n FeO\n", "\n FeO                       0.500000    0.418400E+07\n"), fmt="dat")
+    original = Database.from_string(text, fmt="dat")
+    assert edited.phases["SLAG-LIQ"].constituents == original.phases["SLAG-LIQ"].constituents
+    assert len(edited._parameters) == len(original._parameters)
