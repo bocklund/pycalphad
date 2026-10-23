@@ -1522,6 +1522,15 @@ def test_MQMQA_records_with_decreasing_indices_are_ignored(record, reversed_reco
     assert np.isclose(reversed_GM, _mqmqa_at(removed, *CLALNA_MSSOLN)[0], rtol=0, atol=1e-6)
     assert not np.isclose(reversed_GM, _mqmqa_at(text, *CLALNA_MSSOLN)[0], rtol=0, atol=1)
 
+@pytest.mark.parametrize("written, neutral", [("6.0 6.0 3.0 3.0", "6.0 6.0 6.0 6.0"), ("3.0 3.0 6.0 6.0", "3.0 3.0 3.0 3.0")])
+def test_MQMQA_pure_quadruplet_anion_coordination_follows_charge_neutrality(written, neutral):
+    """The anion Z written for a pure quadruplet A2/X2 is ignored for Z_X = Z_A q_X / q_A, here Na+ Cl-."""
+    record = "   1   1   4   4  6.0000000      6.0000000      6.0000000      6.0000000"
+    text = _dat_text("ClAlNa.dat")
+    with pytest.warns(UserWarning, match="Quadruplet 1 1 4 4 of phase MSSOLN has anion coordination number"):
+        GM = _mqmqa_at(text.replace(record, "   1   1   4   4  " + written, 1), *CLALNA_MSSOLN)[0]
+    assert np.isclose(GM, _mqmqa_at(text.replace(record, "   1   1   4   4  " + neutral, 1), *CLALNA_MSSOLN)[0], rtol=0, atol=1e-6)
+
 @pytest.mark.parametrize("T, GM", [(1000.0, -196708.05487237978), (1400.0, -234096.73294217885)])
 def test_MQMQA_pair_reference_energy_with_vacancy_anion(T, GM):
     """Quadruplet references average their pair energies (Pelton Eq. 17.38); Al has Z = 4.8 towards Cl and 6 towards Va.
