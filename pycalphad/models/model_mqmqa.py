@@ -322,13 +322,19 @@ class ModelMQMQA(Model):
         the symmetric_species and asymmetric with the asymmetric_species.
         """
         # sublattice should be "cations" or "anions"
-        chem_group_dict = dbe.phases[self.phase_name].model_hints["mqmqa"]["chemical_groups"][sublattice]
+        hints = dbe.phases[self.phase_name].model_hints["mqmqa"]
+        chem_group_dict = hints["chemical_groups"][sublattice]
+        pair = frozenset((symmetric_species, asymmetric_species))
         def _f(species):
             if species == symmetric_species:
                 return False
             elif species == asymmetric_species:
                 return False
-            elif chem_group_dict[species] == chem_group_dict[symmetric_species] and chem_group_dict[species] != chem_group_dict[asymmetric_species]:
+            for override in hints.get("chemical_group_overrides", []):
+                if override["ternary"] == pair | {species} and pair in override["binaries"]:
+                    # Kohler (None): the third constituent mixes with neither; Toop: it mixes with the Toop constituent
+                    return override["binaries"][pair] == symmetric_species
+            if chem_group_dict[species] == chem_group_dict[symmetric_species] and chem_group_dict[species] != chem_group_dict[asymmetric_species]:
                 return True  # This chemical group should be mixed
             else:
                 return False
