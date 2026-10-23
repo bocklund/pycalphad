@@ -832,6 +832,41 @@ def test_MQMQA_equilibrium_binary_G_mixing(load_database):
     assert np.allclose(eq.Y.values.squeeze()[0, :], [0.25, 0.5, 0.25])  # Thermochimica result
 
 
+@select_database("MQMQA-tern-tests.dat")
+def test_MQMQA_equilibrium_binary_excess_same_chemical_groups(load_database):
+    """Binary excess terms with the same chemical group (from pycalphad#496)"""
+    eq = equilibrium(load_database(), ['CU', 'NI', 'VA'], ['XS_SAME_CG'], {v.P: 101325, v.T: 1000, v.N: 1, v.X('NI'): 0.5})
+    assert np.isclose(eq.GM.values.squeeze(), -9.29581E+03)  # Thermochimica result
+    assert np.all(eq.Phase.squeeze() == ['XS_SAME_CG', '', ''])
+    assert_allclose(eq.Y.values.squeeze()[0, :], [0.12442, 0.50078, 0.37481], atol=1e-5)  # Thermochimica result
+
+
+@select_database("Be-F-Li.dat")
+def test_MQMQA_equilibrium_species_of_different_moles(load_database):
+    """Be2 dimer cations (from pycalphad#496), against Thermochimica 0c35c8d with pycalphad's R"""
+    from pycalphad.models.model_mqmqa import ModelMQMQA
+    dbf = load_database()
+    comps = ['F', 'LI', 'BE', 'VA']
+    eq = equilibrium(dbf, comps, ['MSFL'], {v.N: 1, v.P: 101325, v.T: 1200, v.X('LI'): 0.2, v.X('BE'): 0.2})
+    assert np.all(eq.Phase.squeeze() == ['MSFL', '', '', ''])
+    assert np.isclose(eq.GM.values.squeeze(), -3.7574285295477702E+05, rtol=0, atol=1e-2)
+    mod = ModelMQMQA(dbf, comps, 'MSFL')
+    sp = {s.name: s for s in mod.cations + mod.anions}
+    LI, BE, BE2, F = sp['LI+1.0'], sp['BE+2.0'], sp['BE2+4.0'], sp['F-1.0']
+    expected = {mod._X_ijkl(LI, LI, F, F): 9.8365626895813602E-02, mod._X_ijkl(BE, BE, F, F): 5.4836494340423978E-05,
+                mod._X_ijkl(BE2, BE2, F, F): 2.1381368735661857E-01, mod._X_ijkl(BE, LI, F, F): 2.6582723167128827E-02,
+                mod._X_ijkl(BE2, LI, F, F): 6.5433482905491736E-01, mod._X_ijkl(BE, BE2, F, F): 6.8482970311813636E-03}
+    assert_allclose(eq.Y.values.squeeze()[0, :len(mod.site_fractions)], [expected[y] for y in mod.site_fractions], atol=1e-5)
+
+
+@select_database("ClAlNa.dat")
+def test_MQMQA_equilibrium_vacancy_anion_miscibility_gap(load_database):
+    """Na, Al, Al2 // Cl, Va liquid splits into a salt and a metal (from pycalphad#496)"""
+    eq = equilibrium(load_database(), ['CL', 'AL', 'NA', 'VA'], ['MSSOLN'], {v.N: 1, v.P: 101325, v.T: 1400, v.X('NA'): 0.5, v.X('CL'): 0.375})
+    assert np.isclose(eq.GM.values.squeeze(), -2.44826E+05)  # Thermochimica result
+    assert np.all(eq.Phase.squeeze() == ['MSSOLN', 'MSSOLN', '', ''])
+
+
 def test_MQMQA_equilibrium_binary_B_mixing():
     """Binary mixing with mixing code `B`: L_SUBG_1 of MQMQA-tern-tests.dat with its G parameter changed to B.
 
@@ -1148,7 +1183,7 @@ def test_MQMQA_reciprocal_interaction_parameter_Dixon(load_database):
     print('GM', eq.GM.values.squeeze())
     print('Y', eq.Y.values.squeeze())
     print('Phase', eq.Phase.values.squeeze())
-    assert_allclose(eq.GM.values.squeeze(), -229356.0, atol=5)  # FactSage result
+    assert_allclose(eq.GM.values.squeeze(), -229356.0, atol=1)  # FactSage result
 
 @pytest.mark.solver
 @select_database("TiO-17Yan.tdb")

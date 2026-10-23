@@ -1486,6 +1486,14 @@ def test_MQMQA_pair_reference_energy_with_vacancy_anion(T, GM):
     assert np.isclose(_mqmqa_at(_without_clalna_excess(_dat_text("ClAlNa.dat")), *CLALNA_MSSOLN, T=T)[0], GM, rtol=0, atol=1e-3)
 
 
+@pytest.mark.parametrize("T, GM", [(1000.0, -199254.64488609423), (1400.0, -236567.97036683914)])
+def test_MQMQA_chi_counts_mixed_quadruplets_once(T, GM):
+    """Poschmann Eq. 22: in a SUBQ chi, a quadruplet with one other anion counts 1/2 (ClAlNa, Va mixes with Cl).
+
+    Reference values from Thermochimica 0c35c8d with pycalphad's R."""
+    assert np.isclose(_mqmqa_at(_dat_text("ClAlNa.dat"), *CLALNA_MSSOLN, T=T)[0], GM, rtol=0, atol=1e-3)
+
+
 def _bragg_williams(Y_i, Y_j, Y_k, xi_ij, xi_ji, p, q):
     """L-free Bragg-Williams term: random pair probabilities with Kohler/Toop exponents."""
     return Y_i * Y_j / Y_k * (xi_ij / (xi_ij + xi_ji)) ** p * (xi_ji / (xi_ij + xi_ji)) ** q
