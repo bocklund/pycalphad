@@ -1494,6 +1494,21 @@ def test_MQMQA_chi_counts_mixed_quadruplets_once(T, GM):
     assert np.isclose(_mqmqa_at(_dat_text("ClAlNa.dat"), *CLALNA_MSSOLN, T=T)[0], GM, rtol=0, atol=1e-3)
 
 
+@pytest.mark.parametrize("exponents, additional, term", [
+    ((0, 0, 0, 0), (0, 0), lambda X_q, X_mm: X_q),  # without additional constituents (Piao et al. 2013)
+    ((1, 0, 0, 0), (0, 0), lambda X_q, X_mm: 0.0),
+    ((0, 0, 0, 0), (1, 4), lambda X_q, X_mm: X_q / 2),
+    ((2, 0, 0, 0), (1, 4), lambda X_q, X_mm: X_q * X_mm ** 2 / 2),  # Dixon et al. 2026 form
+    ((0, 2, 0, 0), (1, 4), lambda X_q, X_mm: X_q / 2),  # only the first exponent counts
+])
+def test_MQMQA_reciprocal_excess_terms(exponents, additional, term):
+    """R terms on Fe2+-Fe3+/O-S; additional constituents Fe2+ (1) and O (4)."""
+    L = -20000.0
+    _, base, quads = _shishin_slag()
+    with_R = _shishin_slag(lambda t: _add_shishin_slag_excess(t, _excess_record("R", (1, 2, 4, 5), exponents, additional, L)))[1]
+    assert np.isclose(with_R - base, L * term(quads[0, 1, 0, 1], quads[0, 0, 0, 0]), rtol=1e-10, atol=1e-12)
+
+
 def _bragg_williams(Y_i, Y_j, Y_k, xi_ij, xi_ji, p, q):
     """L-free Bragg-Williams term: random pair probabilities with Kohler/Toop exponents."""
     return Y_i * Y_j / Y_k * (xi_ij / (xi_ij + xi_ji)) ** p * (xi_ji / (xi_ij + xi_ji)) ** q
