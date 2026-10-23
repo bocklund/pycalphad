@@ -4,7 +4,9 @@ correct abstract syntax tree for the energy.
 """
 
 import pytest
+from collections import defaultdict
 from importlib.resources import files
+from itertools import combinations_with_replacement
 from symengine import S
 from pycalphad import Database, Model, ReferenceState
 from pycalphad.tests.fixtures import select_database, load_database
@@ -1330,11 +1332,45 @@ def test_MQMQA_SUBQ_Q_mixing_Fe2_Fe3_Sb_O(load_database):
     assert np.isclose(float(mod.moles("O").subs(subs_dict)), 0.56666667, 1e-5)
 
 
-# Shishin slag (Fe2+, Fe3+, Sb3+ // O, S; one cation and one anion chemical group) at an uneven
-# reciprocal configuration, as (cation i, cation j, anion k, anion l, weight) with indices into the lists below.
-SHISHIN_SLAG_CONFIG = [(a, b, x, y, w) for (a, b), ws in zip(((0, 0), (1, 1), (2, 2), (0, 1), (0, 2), (1, 2)),
-                                                              ((3, 1, 7), (2, 9, 4), (5, 1, 2), (8, 3, 6), (1, 4, 2), (7, 5, 3)))
-                       for (x, y), w in zip(((0, 0), (1, 1), (0, 1)), ws)]
+def _dat_text(name):
+    return files(pycalphad.tests.databases).joinpath(name).read_text()
+
+
+def _mqmqa_at(text, comps, phase, cations, anions, weights, T=1500.0):
+    """GM and G per mole of quadruplets of an MQMQA phase given as DAT text, at quadruplet fractions proportional
+    to `weights` (cation pairs, then anion pairs, of the named constituents in itertools order), and the fractions
+    keyed by constituent indices."""
+    mod = ModelMQMQA(Database.from_string(text, fmt="dat"), comps, phase)
+    sp = {s.name: s for s in mod.cations + mod.anions}
+    keys = [(a, b, x, y) for a, b in combinations_with_replacement(range(len(cations)), 2)
+            for x, y in combinations_with_replacement(range(len(anions)), 2)]
+    assert len(keys) == len(weights)
+    quads = {k: w / sum(weights) for k, w in zip(keys, weights)}
+    subs = {mod._X_ijkl(sp[cations[a]], sp[cations[b]], sp[anions[x]], sp[anions[y]]): q for (a, b, x, y), q in quads.items()}
+    subs.update({v.T: T, v.P: 1e5})
+    return float(mod.GM.xreplace(subs)), float(mod.ast.xreplace(subs)), quads
+
+
+def _equivalent_fractions(quads):
+    """Closed-form cation, anion and pair equivalent fractions Y_i, Y_k, Y_i/k from quadruplet fractions."""
+    Y_cat, Y_an, Y_pair = defaultdict(float), defaultdict(float), defaultdict(float)
+    for (a, b, x, y), q in quads.items():
+        for i in (a, b):
+            Y_cat[i] += q / 2
+            for k in (x, y):
+                Y_pair[i, k] += q / 4
+        for k in (x, y):
+            Y_an[k] += q / 2
+    return Y_cat, Y_an, Y_pair
+
+
+# Shishin slag: Fe2+, Fe3+, Sb3+ (one chemical group) // O, S (one group); uneven reciprocal configuration
+SHISHIN_SLAG = (["FE", "SB", "O", "S", "VA"], "SLAG-LIQ", ["FE2++2.0", "FE3++3.0", "SB3++3.0"], ["O-2.0", "S-2.0"],
+                [3, 1, 7, 8, 3, 6, 1, 4, 2, 2, 9, 4, 7, 5, 3, 5, 1, 2])
+
+
+def _shishin_slag(edit=lambda text: text, T=1500.0):
+    return _mqmqa_at(edit(_dat_text("Shishin_Fe-Sb-O-S_slag.dat")), *SHISHIN_SLAG, T=T)
 
 
 def _add_shishin_slag_excess(text, record):
@@ -1344,65 +1380,129 @@ def _add_shishin_slag_excess(text, record):
     return text.replace(end, "   3\n" + record + end)
 
 
-def _ternary_record(code, exponents, additional, L=-30000.0):
-    return (f" {code}   1   2   4   4   {'   '.join(map(str, exponents))}\n"
+def _excess_record(code, const, exponents, additional=(0, 0), L=-30000.0):
+    return (f" {code}   {'   '.join(map(str, const))}   {'   '.join(map(str, exponents))}\n"
             " 0.00000000       0.00 0.00000000       0.00 0.00000000       0.00\n"
             " 0.00000000       0.00 0.00000000       0.00 0.00000000       0.00\n"
             f"   {additional[0]}   {additional[1]} {L}     0.00000000     0.00000000     0.00000000\n"
             " 0.00000000     0.00000000\n")
 
 
-def _shishin_slag_GM(edit=lambda text: text, T=1500.0):
-    """GM of the (edited) Shishin slag at SHISHIN_SLAG_CONFIG, and the quadruplet fractions used."""
-    text = files(pycalphad.tests.databases).joinpath("Shishin_Fe-Sb-O-S_slag.dat").read_text()
-    dbf = Database.from_string(edit(text), fmt="dat")
-    mod = ModelMQMQA(dbf, ["FE", "SB", "O", "S", "VA"], "SLAG-LIQ")
-    sp = {s.name: s for s in mod.cations + mod.anions}
-    cats, ans = [sp["FE2++2.0"], sp["FE3++3.0"], sp["SB3++3.0"]], [sp["O-2.0"], sp["S-2.0"]]
-    total = sum(w for *_, w in SHISHIN_SLAG_CONFIG)
-    quads = {(a, b, x, y): w / total for a, b, x, y, w in SHISHIN_SLAG_CONFIG}
-    subs = {mod._X_ijkl(cats[a], cats[b], ans[x], ans[y]): q for (a, b, x, y), q in quads.items()}
-    subs.update({v.T: T, v.P: 1e5})
-    return float(mod.GM.xreplace(subs)), quads
-
-
 def test_MQMQA_additional_constituent_naming_a_pair_member_is_ignored():
     """An additional-constituent index naming a member of the term's own pair is ignored (Piao 2013 has one)."""
-    base, _ = _shishin_slag_GM()
-    pair_member, _ = _shishin_slag_GM(lambda t: t.replace("   0   0 -20957.656", "   0   2 -20957.656", 1))
+    base = _shishin_slag()[0]
+    pair_member = _shishin_slag(lambda t: t.replace("   0   0 -20957.656", "   0   2 -20957.656", 1))[0]
     assert np.isclose(pair_member, base, rtol=0, atol=1e-6)
 
 
 def test_MQMQA_additional_constituent_slots_are_equivalent():
     """Either integer of the additional-constituent record names the ternary constituent; r is the third exponent."""
-    slot1, _ = _shishin_slag_GM(lambda t: _add_shishin_slag_excess(t, _ternary_record("Q", (0, 0, 2, 0), (3, 0))))
-    slot2, _ = _shishin_slag_GM(lambda t: _add_shishin_slag_excess(t, _ternary_record("Q", (0, 0, 2, 0), (0, 3))))
-    fourth_exponent, _ = _shishin_slag_GM(lambda t: _add_shishin_slag_excess(t, _ternary_record("Q", (0, 0, 2, 3), (0, 3))))
-    assert np.isclose(slot2, slot1, rtol=0, atol=1e-6)
-    assert np.isclose(fourth_exponent, slot1, rtol=0, atol=1e-6)
+    def with_term(exponents, additional):
+        return _shishin_slag(lambda t: _add_shishin_slag_excess(t, _excess_record("Q", (1, 2, 4, 4), exponents, additional)))[0]
+    slot1 = with_term((0, 0, 2, 0), (3, 0))
+    assert np.isclose(with_term((0, 0, 2, 0), (0, 3)), slot1, rtol=0, atol=1e-6)
+    assert np.isclose(with_term((0, 0, 2, 3), (0, 3)), slot1, rtol=0, atol=1e-6)
 
 
 @pytest.mark.parametrize("r", [1, 2, 3])
 def test_MQMQA_ternary_factor_without_chemical_group_asymmetry(r):
     """Ternary factor (Y_m/k / Y_k) (1 - (Y_A/k + Y_B/k) / Y_k)^(r-1) of a Q term in a reciprocal phase."""
-    base, quads = _shishin_slag_GM()
-    binary, _ = _shishin_slag_GM(lambda t: _add_shishin_slag_excess(t, _ternary_record("Q", (0, 0, 0, 0), (0, 0))))
-    ternary, _ = _shishin_slag_GM(lambda t: _add_shishin_slag_excess(t, _ternary_record("Q", (0, 0, r, 0), (3, 0))))
-    # closed form from the quadruplet fractions: Fe2+ (0) - Fe3+ (1) on O (0), additional Sb3+ (2)
-    Y_O = sum(q * ((x == 0) + (y == 0)) / 2 for (a, b, x, y), q in quads.items())
-    Y_pair = lambda i: sum(q * ((a == i) + (b == i)) * ((x == 0) + (y == 0)) / 4 for (a, b, x, y), q in quads.items())
-    factor = Y_pair(2) / Y_O * (1 - (Y_pair(0) + Y_pair(1)) / Y_O) ** (r - 1)
+    _, base, quads = _shishin_slag()
+    binary = _shishin_slag(lambda t: _add_shishin_slag_excess(t, _excess_record("Q", (1, 2, 4, 4), (0, 0, 0, 0))))[1]
+    ternary = _shishin_slag(lambda t: _add_shishin_slag_excess(t, _excess_record("Q", (1, 2, 4, 4), (0, 0, r, 0), (3, 0))))[1]
+    _, Y_an, Y_pair = _equivalent_fractions(quads)  # Fe2+ (0) - Fe3+ (1) on O (0), additional Sb3+ (2)
+    factor = Y_pair[2, 0] / Y_an[0] * (1 - (Y_pair[0, 0] + Y_pair[1, 0]) / Y_an[0]) ** (r - 1)
     assert np.isclose((ternary - base) / (binary - base), factor, rtol=1e-10)
 
 
 def test_MQMQA_unsupported_additional_constituent_layouts_raise():
     """Layouts with no known meaning raise rather than evaluate a guess."""
-    with pytest.raises(NotImplementedError):  # third exponent zero
-        _shishin_slag_GM(lambda t: _add_shishin_slag_excess(t, _ternary_record("Q", (0, 0, 0, 2), (3, 0))))
-    with pytest.raises(NotImplementedError):  # two additional constituents
-        _shishin_slag_GM(lambda t: _add_shishin_slag_excess(t, _ternary_record("Q", (0, 0, 2, 0), (3, 5))))
-    with pytest.raises(NotImplementedError):  # anion as the additional constituent of a cation-mixing term
-        _shishin_slag_GM(lambda t: _add_shishin_slag_excess(t, _ternary_record("Q", (0, 0, 2, 0), (0, 5))))
+    for exponents, additional in [((0, 0, 0, 2), (3, 0)),  # third exponent zero
+                                  ((0, 0, 2, 0), (3, 5)),  # two additional constituents
+                                  ((0, 0, 2, 0), (0, 5))]:  # anion as the additional constituent of a cation term
+        with pytest.raises(NotImplementedError):
+            _shishin_slag(lambda t: _add_shishin_slag_excess(t, _excess_record("Q", (1, 2, 4, 4), exponents, additional)))
+
+
+def _bragg_williams(Y_i, Y_j, Y_k, xi_ij, xi_ji, p, q):
+    """L-free Bragg-Williams term: random pair probabilities with Kohler/Toop exponents."""
+    return Y_i * Y_j / Y_k * (xi_ij / (xi_ij + xi_ji)) ** p * (xi_ji / (xi_ij + xi_ji)) ** q
+
+
+@pytest.mark.parametrize("const, exponents, additional", [
+    ((1, 2, 4, 4), (0, 0, 0, 0), (0, 0)),  # cations Fe2+-Fe3+ on O
+    ((1, 2, 4, 4), (2, 1, 0, 0), (0, 0)),
+    ((1, 1, 4, 5), (1, 2, 0, 0), (0, 0)),  # anions O-S on Fe2+
+    ((1, 2, 4, 4), (1, 0, 2, 0), (3, 0)),  # cations Fe2+-Fe3+ on O, additional Sb3+ (no group asymmetry)
+])
+def test_MQMQA_bragg_williams_closed_form(const, exponents, additional):
+    """B terms are L times the closed form per mole of quadruplets, in a reciprocal phase."""
+    L = -30000.0
+    _, base, quads = _shishin_slag()
+    with_B = _shishin_slag(lambda t: _add_shishin_slag_excess(t, _excess_record("B", const, exponents, additional, L)))[1]
+    Y_cat, Y_an, Y_pair = _equivalent_fractions(quads)
+    p, q, r = exponents[:3]
+    if const[2] == const[3]:  # one chemical group per sublattice, so xi_ij = Y_i/k
+        f = _bragg_williams(Y_pair[0, 0], Y_pair[1, 0], Y_an[0], Y_pair[0, 0], Y_pair[1, 0], p, q)
+    else:
+        f = _bragg_williams(Y_pair[0, 0], Y_pair[0, 1], Y_cat[0], Y_pair[0, 0], Y_pair[0, 1], p, q)
+    if additional[0]:
+        f *= Y_pair[2, 0] / Y_an[0] * (1 - (Y_pair[0, 0] + Y_pair[1, 0]) / Y_an[0]) ** (r - 1)
+    assert np.isclose(with_B - base, L * f, rtol=1e-10)
+
+
+STARYKH = "Starykh_Cu-O-Si-Sn.dat"
+STARYKH_SLAG = (["CU", "SI", "SN", "O", "VA"], "SLAG-LIQ", ["SI+4.0", "SN2++2.0", "CU1++1.0", "SN4++4.0"], ["O-2.0"],
+                [5, 1, 3, 2, 4, 6, 2, 3, 7, 1])
+STARYKH_MATTE = (["CU", "SI", "SN", "O", "VA"], "LIQ(MATTE_METAL)", ["CU+1.0", "O+1.0", "CU2++1.0", "SI+1.0", "SN+1.0"],
+                 ["VA-1.0"], [6, 1, 2, 1, 5, 2, 1, 1, 2, 3, 2, 1, 1, 2, 7])
+
+
+@pytest.mark.filterwarnings("ignore:Phase SLAG-LIQ overrides the ternary extrapolation")
+def test_MQMQA_bragg_williams_Starykh_2021_ternary_term():
+    """Real slag B term on Sn2+-Cu+ with additional Si (neither group), r = 15, L = -502.08 T (Starykh 2021)."""
+    T = 1500.0
+    text = _dat_text(STARYKH)
+    full, quads = _mqmqa_at(text, *STARYKH_SLAG, T=T)[1:]
+    zeroed = _mqmqa_at(text.replace("   1   0     0.00000000 -502.08000", "   1   0     0.00000000     0.00000000"),
+                       *STARYKH_SLAG, T=T)[1]
+    _, Y_an, Y_pair = _equivalent_fractions(quads)  # Si 0, Sn2+ 1, Cu+ 2 on O 0
+    f = _bragg_williams(Y_pair[1, 0], Y_pair[2, 0], Y_an[0], Y_pair[1, 0], Y_pair[2, 0], 0, 0)
+    f *= Y_pair[0, 0] / Y_an[0] * (1 - (Y_pair[1, 0] + Y_pair[2, 0]) / Y_an[0]) ** 14
+    assert np.isclose(full - zeroed, -502.08 * T * f, rtol=1e-10)
+
+
+@pytest.mark.filterwarnings("ignore:Phase SLAG-LIQ overrides the ternary extrapolation")
+def test_MQMQA_bragg_williams_Starykh_2021_Toop_term():
+    """Real metal-liquid (SUBG) B term on Cu-Sn, q = 1: Cu2+ sits with Cu and O with Sn in the Toop xi (Starykh 2021)."""
+    T = 1500.0
+    text = _dat_text(STARYKH)
+    full, quads = _mqmqa_at(text, *STARYKH_MATTE, T=T)[1:]
+    zeroed = _mqmqa_at(text.replace("   0   0  27438.133     -2.4244000", "   0   0     0.00000000     0.00000000"),
+                       *STARYKH_MATTE, T=T)[1]
+    _, Y_an, Y_pair = _equivalent_fractions(quads)  # Cu 0, O 1, Cu2+ 2, Si 3, Sn 4 on Va 0
+    xi_CuSn, xi_SnCu = Y_pair[0, 0] + Y_pair[2, 0], Y_pair[4, 0] + Y_pair[1, 0]
+    f = _bragg_williams(Y_pair[0, 0], Y_pair[4, 0], Y_an[0], xi_CuSn, xi_SnCu, 0, 1)
+    assert np.isclose(full - zeroed, (27438.133 - 2.4244 * T) * f, rtol=1e-10)
+
+
+def test_MQMQA_bragg_williams_anion_term_at_thermochimica_point():
+    """Anion B term (Fe3+ // O, S) at a Thermochimica equilibrium, where the earlier X* form and this one agree.
+
+    Shishin slag with `G 1 1 4 5` replaced by `B 2 2 4 5`; Thermochimica gives -1.31637E5 J/mol at
+    Fe0.2 Sb0.2 O0.3 S0.3, 1000 K (from pycalphad#700)."""
+    text = _dat_text("Shishin_Fe-Sb-O-S_slag.dat").replace(" G   1   1   4   5", " B   2   2   4   5", 1)
+    weights = {("FE3++3.0", "FE3++3.0", "O-2.0", "O-2.0"): 4.638728e-03, ("SB3++3.0", "SB3++3.0", "O-2.0", "O-2.0"): 2.793684e-01,
+               ("FE3++3.0", "SB3++3.0", "O-2.0", "O-2.0"): 7.199762e-02, ("FE3++3.0", "FE3++3.0", "S-2.0", "S-2.0"): 2.793684e-01,
+               ("SB3++3.0", "SB3++3.0", "S-2.0", "S-2.0"): 4.638728e-03, ("FE3++3.0", "SB3++3.0", "S-2.0", "S-2.0"): 7.199762e-02,
+               ("FE3++3.0", "FE3++3.0", "O-2.0", "S-2.0"): 7.199762e-02, ("SB3++3.0", "SB3++3.0", "O-2.0", "S-2.0"): 7.199762e-02,
+               ("FE3++3.0", "SB3++3.0", "O-2.0", "S-2.0"): 1.439952e-01}
+    mod = ModelMQMQA(Database.from_string(text, fmt="dat"), ["FE", "SB", "O", "S", "VA"], "SLAG-LIQ")
+    sp = {s.name: s for s in mod.cations + mod.anions}
+    subs = {y: 1e-30 for y in mod.site_fractions}
+    subs.update({mod._X_ijkl(*(sp[n] for n in k)): w for k, w in weights.items()})
+    subs[v.T] = 1000.0
+    check_energy(mod, subs, -1.31637E+05, mode="sympy")
 
 
 @select_database("Kaye_Pd-Ru-Tc-Mo.dat")

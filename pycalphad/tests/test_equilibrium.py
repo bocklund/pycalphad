@@ -6,6 +6,7 @@ correct solution for thermodynamic equilibrium.
 import warnings
 import os
 import pytest
+from importlib.resources import files
 from symengine import Symbol
 from numpy.testing import assert_allclose
 import numpy as np
@@ -15,6 +16,7 @@ from pycalphad.core.solver import SolverBase, Solver
 from pycalphad.core.utils import get_state_variables, instantiate_models
 import pycalphad.variables as v
 from pycalphad.tests.fixtures import load_database, select_database
+import pycalphad.tests.databases
 
 warnings.simplefilter("always", UserWarning) # so we can test warnings
 
@@ -828,6 +830,20 @@ def test_MQMQA_equilibrium_binary_G_mixing(load_database):
     assert np.isclose(eq.GM.values.squeeze(), -2.26381E+04)  # Thermochimica result
     assert np.all(eq.Phase.squeeze() == ['L_SUBG_1', '', ''])
     assert np.allclose(eq.Y.values.squeeze()[0, :], [0.25, 0.5, 0.25])  # Thermochimica result
+
+
+def test_MQMQA_equilibrium_binary_B_mixing():
+    """Binary mixing with mixing code `B`: L_SUBG_1 of MQMQA-tern-tests.dat with its G parameter changed to B.
+
+    With two cations the earlier X* form and this one agree, so Thermochimica is a valid reference here
+    (from pycalphad#700)."""
+    text = files(pycalphad.tests.databases).joinpath("MQMQA-tern-tests.dat").read_text()
+    head, tail = text.split("L_SUBG_1", 1)
+    dbf = Database.from_string(head + "L_SUBG_1" + tail.replace(" G   1   2   3   3   1   0   0   0",
+                                                                " B   1   2   3   3   1   0   0   0", 1), fmt="dat")
+    eq = equilibrium(dbf, ['CU', 'NI', 'VA'], ['L_SUBG_1'], {v.P: 101325, v.T: 1000, v.N: 1, v.X('NI'): 0.5})
+    assert np.all(eq.Phase.squeeze() == ['L_SUBG_1', '', ''])
+    assert np.isclose(eq.GM.values.squeeze(), -2.45131E+04)  # Thermochimica result
 
 
 @select_database("MQMQA-tern-tests.dat")

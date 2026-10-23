@@ -649,6 +649,12 @@ class ModelMQMQA(Model):
                     Xi_jik = self._Xi_mix(dbe, B, A, X, X)
                     # Poschmann Eq. 24
                     mixing_term += Xi_ijk**p_alpha * Xi_jik**q_alpha / (Xi_ijk + Xi_jik)**(p_alpha + q_alpha)
+                elif mixing_code == "B":
+                    # Bragg-Williams: random pair probabilities Y_A/X Y_B/X / Y_X with Kohler/Toop exponents
+                    Xi_ijk = self._Xi_mix(dbe, A, B, X, X)
+                    Xi_jik = self._Xi_mix(dbe, B, A, X, X)
+                    mixing_term += (self._Y_ik(A, X) * self._Y_ik(B, X) / self._Y_i(X)
+                                    * (Xi_ijk / (Xi_ijk + Xi_jik))**p_alpha * (Xi_jik / (Xi_ijk + Xi_jik))**q_alpha)
                 else:
                     raise ValueError(f"Unknown mixing code {mixing_code} for parameter {param}")
                 if m != v.Species(None):
@@ -677,6 +683,12 @@ class ModelMQMQA(Model):
                     Xi_ilk = self._Xi_mix(dbe, A, A, Y, X)
                     # Poschmann Eq. 24
                     mixing_term += Xi_ikl**p_alpha * Xi_ilk**q_alpha / (Xi_ikl + Xi_ilk)**(p_alpha + q_alpha)
+                elif mixing_code == "B":
+                    # Bragg-Williams: random pair probabilities Y_A/X Y_A/Y / Y_A with Kohler/Toop exponents
+                    Xi_ikl = self._Xi_mix(dbe, A, A, X, Y)
+                    Xi_ilk = self._Xi_mix(dbe, A, A, Y, X)
+                    mixing_term += (self._Y_ik(A, X) * self._Y_ik(A, Y) / self._Y_i(A)
+                                    * (Xi_ikl / (Xi_ikl + Xi_ilk))**p_alpha * (Xi_ilk / (Xi_ikl + Xi_ilk))**q_alpha)
                 else:
                     raise ValueError(f"Unknown mixing code {mixing_code} for parameter {param}")
                 if m != v.Species(None):
@@ -705,8 +717,13 @@ class ModelMQMQA(Model):
                 mix_term_exponent = [num for num in exponents if num != 0][0]
                 mixing_term += quadruplet_mole ** mix_term_exponent
             else:
+                if mixing_code == "B":
+                    raise ValueError(f"Bragg-Williams parameter {param} needs mixing on one sublattice")
                 mixing_term = S.One  # No mixing, this is a modification to the formation energy of this quadruplet
             g = param["parameter"] * mixing_term
+            if mixing_code == "B":
+                energy += g  # per mole of quadruplets, not distributed over quadruplets like G and Q
+                continue
 
             # Poschmann Eq. 17
             cation_factor = S.Zero
