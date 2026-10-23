@@ -618,7 +618,17 @@ class SUBQExcessQuadruplet:
 
         addtl_cation_mixing_const = linear_species[self.additional_cation_mixing_const]
         addtl_anion_mixing_const = linear_species[self.additional_anion_mixing_const]
-        if addtl_cation_mixing_const is not None and addtl_anion_mixing_const is not None:
+        if mixing_code != "R":
+            # Both integers are constituent indices on either sublattice; 0 and members of the term's own
+            # quadruplet are ignored and the ternary exponent is always the third.
+            addtl_idxs = [i for i in (self.additional_cation_mixing_const, self.additional_anion_mixing_const)
+                          if i != 0 and i not in self.mixing_const]
+            if len(addtl_idxs) > 1 or (addtl_idxs and exponents[2] == 0):
+                raise NotImplementedError(f"MQMQA excess parameter {mixing_code} {self.mixing_const} of {phase_name}: "
+                                          f"additional constituents {addtl_idxs} with exponents {exponents}")
+            addtl_mixing_const = linear_species[addtl_idxs[0]] if addtl_idxs else None
+            addtl_mixing_expon = exponents[2] if addtl_idxs else 0
+        elif addtl_cation_mixing_const is not None and addtl_anion_mixing_const is not None:
             addtl_mixing_const = [addtl_cation_mixing_const, addtl_anion_mixing_const]
             addtl_mixing_expon = exponents
         elif addtl_cation_mixing_const is not None:
