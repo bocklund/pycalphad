@@ -715,14 +715,22 @@ class ModelMQMQA(Model):
                         Y_A = self._Y_i(A)
                         mixing_term *= Y_im / Y_A * (1 - (Xi_ikl + Xi_ilk) / Y_A)**(r_alpha - 1)
             elif A != B and X != Y:
-                # Reciprocal mixing
+                # Reciprocal mixing: with additional constituents m, n the term is
+                # 1/2 L X_AB/XY X_mm/nn^e, e from the first exponent only; without them it is L X_AB/XY
+                # for zero exponents and nothing for a nonzero first exponent.
                 if mixing_code != "R":
                     raise ValueError(f"Unknown mixing code {mixing_code} for parameter {param}. Expected 'R'.")
+                if m == v.Species(None):
+                    if any(exponents[1:]):
+                        raise NotImplementedError(f"Reciprocal excess parameter with these exponents is not supported: {param}")
+                    if exponents[0] == 0:
+                        energy += param["parameter"] * X_ijkl(A, B, X, Y)
+                    continue
+                if not isinstance(m, list):
+                    raise NotImplementedError(f"Reciprocal excess parameter with one additional constituent: {param}")
                 pos_m = [spec for spec in m if spec.charge > 0][0]
                 neg_m = [spec for spec in m if spec.charge < 0][0]
-                quadruplet_mole = X_ijkl(pos_m, pos_m, neg_m, neg_m)
-                mix_term_exponent = [num for num in exponents if num != 0][0]
-                mixing_term += quadruplet_mole ** mix_term_exponent
+                mixing_term += X_ijkl(pos_m, pos_m, neg_m, neg_m) ** exponents[0]
             else:
                 if mixing_code == "B":
                     raise ValueError(f"Bragg-Williams parameter {param} needs mixing on one sublattice")
