@@ -56,7 +56,7 @@ def calculate_output(model, variables, output, mode='sympy'):
     return prop(*[float(x) for x in variables.values()])
 
 
-def check_output(model, variables, output, known_value, mode='sympy'):
+def check_output(model, variables, output, known_value, mode='sympy', rtol=1e-5, atol=1e-8):
     "Check that our calculated quantity matches the known value."
     desired = calculate_output(model, variables, output, mode)
     known_value = np.array(known_value, dtype=np.complex128)
@@ -65,12 +65,12 @@ def check_output(model, variables, output, known_value, mode='sympy'):
     # we set it to a reasonably small number for energies and derivatives (in Joules)
     # An example where expected = 0, but known != 0 is for ideal mix xlogx terms
     # This 1e-8 value is also used in hyperplane, motivating the use here.
-    np.testing.assert_allclose(known_value, desired, rtol=1e-5, atol=1e-8)
+    np.testing.assert_allclose(known_value, desired, rtol=rtol, atol=atol)
 
 
-def check_energy(model, variables, known_value, mode='sympy'):
+def check_energy(model, variables, known_value, mode='sympy', rtol=1e-5, atol=1e-8):
     "Check that our calculated energy matches the known value."
-    check_output(model, variables, 'GM', known_value, mode=mode)
+    check_output(model, variables, 'GM', known_value, mode=mode, rtol=rtol, atol=atol)
 
 # PURE COMPONENT TESTS
 @select_database("alcrni.tdb")
@@ -868,6 +868,8 @@ def test_order_disorder_magnetic_ordering(load_database):
     check_energy(mod, subs_dict, 34659.484, mode='sympy')
 
 
+# "Thermochimica" references below: Thermochimica 0c35c8d at pycalphad's R, with pure-quadruplet anion coordination
+# numbers made charge-neutral as pycalphad reads them (Thermochimica keeps the written values)
 @select_database("Viitala.dat")
 def test_MQMQA_site_fraction_energy(load_database):
     dbf = load_database()
@@ -898,7 +900,7 @@ def test_MQMQA_site_fraction_energy(load_database):
                 v.T: 800
                 }
 
-    check_energy(mod, subs_dict, -1.47867E+05, mode="sympy")
+    check_energy(mod, subs_dict, -147866.81252565808, mode="sympy", rtol=0, atol=1e-3)  # Thermochimica
     assert np.isclose(float(mod.moles("CU").subs(subs_dict)), 0.07692307692,1e-5)
     assert np.isclose(float(mod.moles("CL").subs(subs_dict)), 0.6923076923,1e-5)
     assert np.isclose(float(mod.moles("ZN").subs(subs_dict)), 0.07692307692,1e-5)
@@ -944,7 +946,7 @@ def test_MQMQA_SUBQ_Q_mixing_1000K(load_database):
         v.T: 1000.0,
     }
 
-    check_energy(mod, subs_dict, -1.31831E+05, mode="sympy")  # Thermochimica energy
+    check_energy(mod, subs_dict, -131831.08376621327, mode="sympy", rtol=0, atol=1e-3)  # Thermochimica
     assert np.isclose(float(mod.moles("FE").subs(subs_dict)), 0.2, 1e-5)
     assert np.isclose(float(mod.moles("SB").subs(subs_dict)), 0.2, 1e-5)
     assert np.isclose(float(mod.moles("O").subs(subs_dict)), 0.3, 1e-5)
@@ -989,7 +991,7 @@ def test_MQMQA_SUBQ_Q_mixing_1000K_FACTSAGE(load_database):
         v.T: 1000.0,
     }
     print(mod.GM.subs(subs_dict))
-    check_energy(mod, subs_dict, -131831.0, mode="sympy")  # FactSage energy, from Max
+    check_energy(mod, subs_dict, -131831.0, mode="sympy", rtol=0, atol=0.5)  # FactSage energy, from Max
     assert np.isclose(float(mod.moles("FE").subs(subs_dict)), 0.2, 1e-5)
     assert np.isclose(float(mod.moles("SB").subs(subs_dict)), 0.2, 1e-5)
     assert np.isclose(float(mod.moles("O").subs(subs_dict)), 0.3, 1e-5)
@@ -1035,7 +1037,7 @@ def test_MQMQA_SUBQ_Q_mixing_400K(load_database):
         v.T: 400.0,
     }
 
-    check_energy(mod, subs_dict, -9.60740E+04, mode="sympy")  # Thermochimica energy
+    check_energy(mod, subs_dict, -96074.0362577415, mode="sympy", rtol=0, atol=1e-3)  # Thermochimica
     assert np.isclose(float(mod.moles("FE").subs(subs_dict)), 0.2, 1e-5)
     assert np.isclose(float(mod.moles("SB").subs(subs_dict)), 0.2, 1e-5)
     assert np.isclose(float(mod.moles("O").subs(subs_dict)), 0.3, 1e-5)
@@ -1066,7 +1068,7 @@ def test_MQMQA_SUBQ_Q_mixing_Sb_O_S_400K(load_database):
         v.T: 400.0,
     }
 
-    check_energy(mod, subs_dict, -8.04978E+04, mode="sympy")  # Thermochimica energy
+    check_energy(mod, subs_dict, -80497.81927905652, mode="sympy", rtol=0, atol=1e-3)  # Thermochimica
     assert np.isclose(float(mod.moles("SB").subs(subs_dict)), 0.4, 1e-5)
     assert np.isclose(float(mod.moles("O").subs(subs_dict)), 0.3, 1e-5)
     assert np.isclose(float(mod.moles("S").subs(subs_dict)), 0.3, 1e-5)
@@ -1095,7 +1097,7 @@ def test_DAT_coordination_numbers_are_order_invariant(load_database):
               mod._X_ijkl(K,K,F,F):0.10462262121293306,
               v.T: 1600}
 
-    check_energy(mod, subs_dict, -3.35720E+05, mode="sympy")  # Thermochimica energy
+    check_energy(mod, subs_dict, -335720.42659295164, mode="sympy", rtol=0, atol=1e-3)  # Thermochimica
     assert np.isclose(float(mod.moles("K").subs(subs_dict)), 0.2, 1e-5)
     assert np.isclose(float(mod.moles("NI").subs(subs_dict)), 0.2, 1e-5)
     assert np.isclose(float(mod.moles("F").subs(subs_dict)), 0.6, 1e-5)
@@ -1124,7 +1126,7 @@ def test_MQMQA_SUBQ_Q_mixing_Sb_O_S_1000K(load_database):
         v.T: 1000.0,
     }
 
-    check_energy(mod, subs_dict, -1.18391E+05, mode="sympy")  # Thermochimica energy
+    check_energy(mod, subs_dict, -118391.48437701706, mode="sympy", rtol=0, atol=1e-3)  # Thermochimica
     assert np.isclose(float(mod.moles("SB").subs(subs_dict)), 0.4, 1e-5)
     assert np.isclose(float(mod.moles("O").subs(subs_dict)), 0.3, 1e-5)
     assert np.isclose(float(mod.moles("S").subs(subs_dict)), 0.3, 1e-5)
@@ -1160,7 +1162,7 @@ def test_MQMQA_SUBQ_Q_mixing_Fe_O_S(load_database):
         v.T: 1000.0,
     }
 
-    check_energy(mod, subs_dict, -1.37905E+05, mode="sympy")  # Thermochimica energy
+    check_energy(mod, subs_dict, -137904.79685056745, mode="sympy", rtol=0, atol=1e-3)  # Thermochimica
     assert np.isclose(float(mod.moles("FE").subs(subs_dict)), 0.4, 1e-5)
     assert np.isclose(float(mod.moles("O").subs(subs_dict)), 0.3, 1e-5)
     assert np.isclose(float(mod.moles("S").subs(subs_dict)), 0.3, 1e-5)
@@ -1195,7 +1197,7 @@ def test_MQMQA_SUBQ_Q_mixing_Fe_O_S_2(load_database):
         v.T: 1000.0,
     }
 
-    check_energy(mod, subs_dict, -1.39362E+05, mode="sympy")  # Thermochimica energy
+    check_energy(mod, subs_dict, -139361.37026143455, mode="sympy", rtol=0, atol=1e-3)  # Thermochimica
     assert np.isclose(float(mod.moles("FE").subs(subs_dict)), 0.45, 1e-5)
     assert np.isclose(float(mod.moles("O").subs(subs_dict)), 0.275, 1e-5)
     assert np.isclose(float(mod.moles("S").subs(subs_dict)), 0.275, 1e-5)
@@ -1228,7 +1230,7 @@ def test_MQMQA_SUBQ_Q_mixing_Fe3_Sb_S(load_database):
         v.T: 1000.0,
     }
 
-    check_energy(mod, subs_dict, -6.76687E+04, mode="sympy")  # Thermochimica energy
+    check_energy(mod, subs_dict, -67668.66668189518, mode="sympy", rtol=0, atol=1e-3)  # Thermochimica
     assert np.isclose(float(mod.moles("FE").subs(subs_dict)), 0.2, 1e-5)
     assert np.isclose(float(mod.moles("SB").subs(subs_dict)), 0.2, 1e-5)
     assert np.isclose(float(mod.moles("S").subs(subs_dict)), 0.6, 1e-5)
@@ -1261,7 +1263,7 @@ def test_MQMQA_SUBQ_Q_mixing_Fe3_Sb_O(load_database):
         v.T: 1000.00,
     }
 
-    check_energy(mod, subs_dict, -1.86322E+05, mode="sympy")  # Thermochimica energy
+    check_energy(mod, subs_dict, -186322.34565258535, mode="sympy", rtol=0, atol=1e-3)  # Thermochimica
     assert np.isclose(float(mod.moles("FE").subs(subs_dict)), 0.2, 1e-5)
     assert np.isclose(float(mod.moles("SB").subs(subs_dict)), 0.2, 1e-5)
     assert np.isclose(float(mod.moles("O").subs(subs_dict)), 0.6, 1e-5)
@@ -1294,7 +1296,7 @@ def test_MQMQA_SUBQ_Q_mixing_Fe2_Fe3_Sb_S(load_database):
         v.T: 1000.0,
     }
 
-    check_energy(mod, subs_dict, -7.82909E+04, mode="sympy")  # Thermochimica energy
+    check_energy(mod, subs_dict, -78290.94927074689, mode="sympy", rtol=0, atol=1e-3)  # Thermochimica
     assert np.isclose(float(mod.moles("FE").subs(subs_dict)), 3.0000E-01, 1e-5)
     assert np.isclose(float(mod.moles("SB").subs(subs_dict)), 0.13333333, 1e-5)
     assert np.isclose(float(mod.moles("S").subs(subs_dict)), 0.56666667, 1e-5)
@@ -1326,7 +1328,7 @@ def test_MQMQA_SUBQ_Q_mixing_Fe2_Fe3_Sb_O(load_database):
         v.T: 1000.00,
     }
 
-    check_energy(mod, subs_dict, -1.83603E+05, mode="sympy")  # Thermochimica energy
+    check_energy(mod, subs_dict, -183603.35342218526, mode="sympy", rtol=0, atol=1e-3)  # Thermochimica
     assert np.isclose(float(mod.moles("FE").subs(subs_dict)), 3.0000E-01, 1e-5)
     assert np.isclose(float(mod.moles("SB").subs(subs_dict)), 0.13333333, 1e-5)
     assert np.isclose(float(mod.moles("O").subs(subs_dict)), 0.56666667, 1e-5)
@@ -1672,7 +1674,7 @@ def test_MQMQA_bragg_williams_anion_term_at_thermochimica_point():
     subs = {y: 1e-30 for y in mod.site_fractions}
     subs.update({mod._X_ijkl(*(sp[n] for n in k)): w for k, w in weights.items()})
     subs[v.T] = 1000.0
-    check_energy(mod, subs, -1.31637E+05, mode="sympy")
+    check_energy(mod, subs, -1.31637E+05, mode="sympy", rtol=0, atol=0.5)
 
 
 @select_database("Kaye_Pd-Ru-Tc-Mo.dat")
