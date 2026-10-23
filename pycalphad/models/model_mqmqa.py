@@ -560,23 +560,29 @@ class ModelMQMQA(Model):
     def reference_energy(self, dbe):
         """
         Returns energies contributed by pairs.
+
+        The reference of quadruplet AB/XY averages its four pair energies weighted by the anion charges and the
+        quadruplet's coordination numbers (Pelton, Phase Diagrams and Thermodynamic Modeling of Solutions, Eq. 17.38),
+        as in Thermochimica. It differs from weighting each pair energy by 1/Z_A of the quadruplet only
+        when an ion's coordination numbers differ between quadruplets, e.g. a cation towards Cl and Va.
         """
         pair_query = (
             (where("phase_name") == self.phase_name) & \
             (where("parameter_type") == "MQMG") & \
             (where("constituent_array").test(self._pair_test))
         )
-        params = dbe._parameters.search(pair_query)
+        # pair energies per pair of ions: twice the record's energy per cation
+        g = {}
+        for param in dbe._parameters.search(pair_query):
+            (a,), (x,) = param["constituent_array"]
+            g[a, x] = 2 * param["parameter"] / param["stoichiometry"][0]
         terms = S.Zero
-        for param in params:
-            a = i = param["constituent_array"][0][0]
-            x = k = param["constituent_array"][1][0]
-            X_ax = S.Zero
-            for b in self.cations:
-                for y in self.anions:
-                    X_ax += self._X_ijkl(a,b,x,y) * ((a == i) + (b == i)) * ((x == k) + (y == k)) / (2 * self.Z(dbe, a, a,b,x,y))
-            G_ax = param["parameter"]
-            terms += X_ax * G_ax / param["stoichiometry"][0]
+        for A, B, X, Y in self._quadruplets:
+            Z_A, Z_B, Z_X, Z_Y = (self.Z(dbe, s, A, B, X, Y) for s in (A, B, X, Y))
+            q_X, q_Y = abs(X.charge), abs(Y.charge)
+            g_ref = (q_X * g[A, X] / (2 * Z_A * Z_X) + q_X * g[B, X] / (2 * Z_B * Z_X)
+                     + q_Y * g[A, Y] / (2 * Z_A * Z_Y) + q_Y * g[B, Y] / (2 * Z_B * Z_Y)) / (q_X / Z_X + q_Y / Z_Y)
+            terms += self._X_ijkl(A, B, X, Y) * g_ref
         return terms
 
     def ideal_mixing_energy(self, dbe):

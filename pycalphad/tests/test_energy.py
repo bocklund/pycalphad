@@ -1466,6 +1466,26 @@ def test_MQMQA_unsupported_excess_parameters_raise_when_building_the_phase(code,
         ModelMQMQA(dbf, ["FE", "SB", "O", "S", "VA"], "SLAG-LIQ")
 
 
+# ClAlNa (Thermochimica data): Na, Al, Al2 // Cl, Va; uneven reciprocal configuration
+CLALNA_MSSOLN = (["AL", "CL", "NA", "VA"], "MSSOLN", ["NA+1.0", "AL+3.0", "AL2+6.0"], ["CL-1.0", "VA-1.0"],
+                 [4, 1, 3, 2, 5, 1, 6, 2, 7, 3, 1, 2, 5, 4, 2, 1, 3, 6])
+
+
+def _without_clalna_excess(text):
+    lines = text.split("\n")
+    start = next(i for i in range(len(lines) - 1) if lines[i].strip() == "3" and lines[i + 1].startswith(" G   1   2   4   4"))
+    end = next(i for i in range(start, len(lines)) if lines[i].strip() == "0")
+    return "\n".join(lines[:start] + lines[end:])
+
+
+@pytest.mark.parametrize("T, GM", [(1000.0, -196708.05487237978), (1400.0, -234096.73294217885)])
+def test_MQMQA_pair_reference_energy_with_vacancy_anion(T, GM):
+    """Quadruplet references average their pair energies (Pelton Eq. 17.38); Al has Z = 4.8 towards Cl and 6 towards Va.
+
+    ClAlNa without its excess parameters; reference values from Thermochimica 0c35c8d with pycalphad's R."""
+    assert np.isclose(_mqmqa_at(_without_clalna_excess(_dat_text("ClAlNa.dat")), *CLALNA_MSSOLN, T=T)[0], GM, rtol=0, atol=1e-3)
+
+
 def _bragg_williams(Y_i, Y_j, Y_k, xi_ij, xi_ji, p, q):
     """L-free Bragg-Williams term: random pair probabilities with Kohler/Toop exponents."""
     return Y_i * Y_j / Y_k * (xi_ij / (xi_ij + xi_ji)) ** p * (xi_ji / (xi_ij + xi_ji)) ** q
