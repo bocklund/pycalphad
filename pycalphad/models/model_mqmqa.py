@@ -357,10 +357,9 @@ class ModelMQMQA(Model):
                     if soln_type == "SUBG":
                         mixing_term_numerator += X_ijkl(a, b, k, k)
                     elif soln_type == "SUBQ":
-                        # Eq. 22 loop over anions
-                        for x in anions:
-                            for y in anions:
-                                mixing_term_numerator += X_ijkl(a, b, x, y) * ((k == x) + (k == y)) / 2
+                        # Eq. 22 loop over anion pairs, each quadruplet once
+                        for x, y in itertools.combinations_with_replacement(anions, 2):
+                            mixing_term_numerator += X_ijkl(a, b, x, y) * ((k == x) + (k == y)) / 2
                     else:
                         raise ValueError(f"Unknown solution type: {soln_type}")
             for idx, a in enumerate([i, j] + nu + gamma):  # enumerate to avoid double counting
@@ -368,10 +367,9 @@ class ModelMQMQA(Model):
                     if soln_type == "SUBG":
                         mixing_term_denominator += X_ijkl(a, b, k, k)
                     elif soln_type == "SUBQ":
-                        # Eq. 22 loop over anions
-                        for x in anions:
-                            for y in anions:
-                                mixing_term_denominator += X_ijkl(a, b, x, y) * ((k == x) + (k == y)) / 2
+                        # Eq. 22 loop over anion pairs, each quadruplet once
+                        for x, y in itertools.combinations_with_replacement(anions, 2):
+                            mixing_term_denominator += X_ijkl(a, b, x, y) * ((k == x) + (k == y)) / 2
                     else:
                         raise ValueError(f"Unknown solution type: {soln_type}")
             return mixing_term_numerator / mixing_term_denominator
@@ -384,10 +382,9 @@ class ModelMQMQA(Model):
                     if soln_type == "SUBG":
                         mixing_term_numerator += X_ijkl(i, i, x, y)
                     elif soln_type == "SUBQ":
-                        # Eq. 22 loop over cations
-                        for a in cations:
-                            for b in cations:
-                                mixing_term_numerator += X_ijkl(a, b, x, y) * ((i == a) + (i == b)) / 2
+                        # Eq. 22 loop over cation pairs, each quadruplet once
+                        for a, b in itertools.combinations_with_replacement(cations, 2):
+                            mixing_term_numerator += X_ijkl(a, b, x, y) * ((i == a) + (i == b)) / 2
                     else:
                         raise ValueError(f"Unknown solution type: {soln_type}")
             for idx, x in enumerate([k, l] + nu + gamma):  # enumerate to avoid double counting
@@ -395,10 +392,9 @@ class ModelMQMQA(Model):
                     if soln_type == "SUBG":
                         mixing_term_denominator += X_ijkl(i, i, x, y)
                     elif soln_type == "SUBQ":
-                        # Eq. 22 loop over cations
-                        for a in cations:
-                            for b in cations:
-                                mixing_term_denominator += X_ijkl(a, b, x, y) * ((i == a) + (i == b)) / 2
+                        # Eq. 22 loop over cation pairs, each quadruplet once
+                        for a, b in itertools.combinations_with_replacement(cations, 2):
+                            mixing_term_denominator += X_ijkl(a, b, x, y) * ((i == a) + (i == b)) / 2
                     else:
                         raise ValueError(f"Unknown solution type: {soln_type}")
             return mixing_term_numerator / mixing_term_denominator
