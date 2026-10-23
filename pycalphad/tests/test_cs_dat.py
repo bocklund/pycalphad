@@ -48,7 +48,6 @@ def _load(name):
     return Database(files(pycalphad.tests.databases).joinpath(name))
 
 
-@pytest.mark.filterwarnings("ignore:Phase .* overrides the ternary extrapolation")
 @pytest.mark.parametrize("database, phase, expected", [
     ("Shishin_Fe-Sb-O-S_slag.dat", "SLAG-LIQ", {"FE2++2.0": {"FE": 1.0}, "FE3++3.0": {"FE": 1.0}, "SB3++3.0": {"SB": 1.0}}),
     ("ClAlNa.dat", "MSSOLN", {"AL+3.0": {"AL": 1.0}, "AL2+6.0": {"AL": 2.0}, "VA-1.0": {"VA": 1.0}}),

@@ -844,15 +844,18 @@ class Phase_SUBQ(PhaseBase):
         for excess_param in self.excess_parameters:
             excess_param.insert(dbf, self.phase_name, cations, anions, excess_coefficient_idxs)
 
-        # Process chemical group overrides - for now we simply warn with the affected species if any overrides are detected.
+        # Chemical group overrides: how each binary of a ternary extrapolates towards the third constituent
+        linear_species = [None] + cation_species + anion_species
+        overrides = []
         for override_string in self.chemical_group_overrides:
-            override_dict = _process_chemical_group_override_string(override_string)
-            overriden_species_indices = override_dict["ternary_element_indices"] + [override_dict["non_mixing_element_index"]]
-            dummy_xs = ExcessBase(overriden_species_indices)
-            override_constituents = []
-            for subl_constituents in dummy_xs.constituent_array([self.subl_1_const, self.subl_2_const]):
-                override_constituents.extend(subl_constituents)
-            warnings.warn(f"Phase {self.phase_name} overrides the ternary extrapolation models for the system {override_constituents}. Use caution as extrapolated energies may be incorrect.")
+            override = _process_chemical_group_override_string(override_string)
+            binaries = {}
+            for binary in override["binary_interactions"]:
+                pair = frozenset(linear_species[i] for i in binary["interacting_element_indices"])
+                binaries[pair] = linear_species[binary.get("toop_element_index", 0)]  # None for Kohler
+            overrides.append({"ternary": frozenset(linear_species[i] for i in override["ternary_element_indices"]),
+                              "binaries": binaries})
+        model_hints["mqmqa"]["chemical_group_overrides"] = overrides
 
 
 # TODO: not yet supported

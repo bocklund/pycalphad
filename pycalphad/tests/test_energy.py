@@ -1554,7 +1554,6 @@ STARYKH_MATTE = (["CU", "SI", "SN", "O", "VA"], "LIQ(MATTE_METAL)", ["CU+1.0", "
                  ["VA-1.0"], [6, 1, 2, 1, 5, 2, 1, 1, 2, 3, 2, 1, 1, 2, 7])
 
 
-@pytest.mark.filterwarnings("ignore:Phase SLAG-LIQ overrides the ternary extrapolation")
 def test_MQMQA_bragg_williams_Starykh_2021_ternary_term():
     """Real slag B term on Sn2+-Cu+ with additional Si (neither group), r = 15, L = -502.08 T (Starykh 2021)."""
     T = 1500.0
@@ -1568,7 +1567,6 @@ def test_MQMQA_bragg_williams_Starykh_2021_ternary_term():
     assert np.isclose(full - zeroed, -502.08 * T * f, rtol=1e-10)
 
 
-@pytest.mark.filterwarnings("ignore:Phase SLAG-LIQ overrides the ternary extrapolation")
 def test_MQMQA_bragg_williams_Starykh_2021_Toop_term():
     """Real metal-liquid (SUBG) B term on Cu-Sn, q = 1: Cu2+ sits with Cu and O with Sn in the Toop xi (Starykh 2021)."""
     T = 1500.0
@@ -1580,6 +1578,29 @@ def test_MQMQA_bragg_williams_Starykh_2021_Toop_term():
     xi_CuSn, xi_SnCu = Y_pair[0, 0] + Y_pair[2, 0], Y_pair[4, 0] + Y_pair[1, 0]
     f = _bragg_williams(Y_pair[0, 0], Y_pair[4, 0], Y_an[0], xi_CuSn, xi_SnCu, 0, 1)
     assert np.isclose(full - zeroed, (27438.133 - 2.4244 * T) * f, rtol=1e-10)
+
+
+def test_MQMQA_chemical_group_override_Starykh_2021():
+    """Starykh's override extrapolates Si-Cu+ Toop-like with Cu+, so Sn4+ mixes with Cu+ rather than with Si (its group)."""
+    T = 1500.0
+    text = _dat_text(STARYKH)
+    full, quads = _mqmqa_at(text, *STARYKH_SLAG, T=T)[1:]
+    zeroed = _mqmqa_at(text.replace("   0   0  27279.680", "   0   0     0.00000000", 1), *STARYKH_SLAG, T=T)[1]
+    _, Y_an, Y_pair = _equivalent_fractions(quads)  # Si 0, Sn2+ 1, Cu+ 2, Sn4+ 3 on O 0
+    xi_SiCu, xi_CuSi = Y_pair[0, 0], Y_pair[2, 0] + Y_pair[1, 0] + Y_pair[3, 0]
+    f = _bragg_williams(Y_pair[0, 0], Y_pair[2, 0], Y_an[0], xi_SiCu, xi_CuSi, 7, 0)  # B 1 3 5 5 7 0 0 0
+    assert np.isclose(full - zeroed, 27279.68 * f, rtol=1e-10)
+
+
+def test_MQMQA_chemical_group_overrides_matching_the_groups_change_nothing():
+    """FeTiVO's slag (one chemical group) overrides every ternary with Kohler, which is what the groups give."""
+    text = _dat_text("FeTiVO.dat")
+    lines = text.split("\n")
+    start = next(i for i, line in enumerate(lines) if line.strip() == "-9")
+    without = "\n".join(lines[:start] + ["   0"] + lines[start + 10:])
+    slag = (["FE", "O", "TI", "V", "VA"], "SLAGBSOLN", ["FE[3+]+3.0", "FE[2+]+2.0", "V2O3+4.0", "TI[4+]+4.0", "TI[3+]+3.0"], ["O-2.0"],
+            [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9])
+    assert np.isclose(_mqmqa_at(text, *slag)[0], _mqmqa_at(without, *slag)[0], rtol=1e-12)
 
 
 def test_MQMQA_bragg_williams_anion_term_at_thermochimica_point():
