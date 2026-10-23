@@ -781,19 +781,28 @@ class Phase_SUBQ(PhaseBase):
     chemical_group_overrides: List[str]
 
     def _warn_inconsistent_pair_records(self, cation_species, anion_species):
-        """Warn when a pair record's formula disagrees with its pure quadruplet, e.g. records out of pair-index order."""
-        n_cat = len(cation_species)
-        Z = {tuple(q.quadruplet_idxs): q.quadruplet_coordinations for q in self.quadruplets}
+        """Warn when a pair record's formula is not charge-balanced for its column, e.g. records out of pair-index order."""
         for (i, j), pair in zip(self.subl_const_idx_pairs, self.endmembers):
             A, X = cation_species[i - 1], anion_species[j - 1]
-            Z_A, _, Z_X, _ = Z.get((i, i, n_cat + j, n_cat + j), (0, 0, 0, 0))
             nu_A, nu_X = pair.stoichiometry_quadruplet[:2]
-            if "VA" in A.constituents or "VA" in X.constituents or not (Z_A and Z_X and nu_A and nu_X):
+            if "VA" in A.constituents or "VA" in X.constituents or not (nu_A and nu_X):
                 continue
-            if abs(nu_A / nu_X - Z_X / Z_A) > 1e-4:
+            if not np.isclose(nu_A * abs(A.charge), nu_X * abs(X.charge), rtol=1e-4):
                 warnings.warn(f"Pair record {pair.species_name} of phase {self.phase_name} fills pair-index column "
-                              f"({A.name}, {X.name}) with {nu_A:g}:{nu_X:g} ions, but its quadruplet coordination numbers "
-                              f"imply {Z_X:g}:{Z_A:g}. Records fill the pair-index columns in order, whatever their names.")
+                              f"({A.name}, {X.name}) with {nu_A:g}:{nu_X:g} ions, which is not charge-balanced. "
+                              f"Records fill the pair-index columns in order, whatever their names.")
+
+    def _charge_neutral(self, quadruplet):
+        """The anion coordination numbers of a pure quadruplet A2/X2 follow from charge neutrality, Z_X = Z_A*q_X/q_A."""
+        i, j, k, l = quadruplet.quadruplet_idxs
+        if i != j or k != l:
+            return quadruplet
+        Z_A, Z_X = quadruplet.quadruplet_coordinations[0], quadruplet.quadruplet_coordinations[2]
+        Z_X_neutral = Z_A * self.subl_2_charges[k - self.num_subl_1_const - 1] / self.subl_1_charges[i - 1]
+        if not np.isclose(Z_X, Z_X_neutral, rtol=1e-6, atol=0):
+            warnings.warn(f"Quadruplet {i} {j} {k} {l} of phase {self.phase_name} has anion coordination number {Z_X:g}, "
+                          f"which is not charge-neutral with its cation's {Z_A:g}; using {Z_X_neutral:g}.")
+        return SUBQQuadrupletCoordinations(quadruplet.quadruplet_idxs, [Z_A, Z_A, Z_X_neutral, Z_X_neutral])
 
     def _in_index_order(self, records, quadruplet_idxs):
         """Records whose constituent indices do not decrease within a sublattice, as Thermochimica keeps them."""
@@ -858,7 +867,7 @@ class Phase_SUBQ(PhaseBase):
 
         # Fourth: add parameters for coordinations
         for quadruplet in self._in_index_order(self.quadruplets, lambda q: q.quadruplet_idxs):
-            quadruplet.insert(dbf, self.phase_name, cations, anions)
+            self._charge_neutral(quadruplet).insert(dbf, self.phase_name, cations, anions)
 
         # Fifth: add excess parameters
         for excess_param in self._in_index_order(self.excess_parameters, lambda x: x.mixing_const):
