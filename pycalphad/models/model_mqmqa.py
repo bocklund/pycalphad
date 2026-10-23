@@ -577,6 +577,8 @@ class ModelMQMQA(Model):
         g = {}
         for param in dbe._parameters.search(pair_query):
             (a,), (x,) = param["constituent_array"]
+            if any(param["stoichiometry"][2:5]) and len(self.cations) > 1 and len(self.anions) > 1:
+                raise NotImplementedError(f"MQMQA pair coefficients 3-5 in a reciprocal phase are not supported: {param}")
             g[a, x] = 2 * param["parameter"] / param["stoichiometry"][0]
         terms = S.Zero
         for A, B, X, Y in self._quadruplets:
