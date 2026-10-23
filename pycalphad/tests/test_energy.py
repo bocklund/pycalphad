@@ -1373,7 +1373,7 @@ def _dat_text(name):
     return files(pycalphad.tests.databases).joinpath(name).read_text()
 
 
-def _mqmqa_at(text, comps, phase, cations, anions, weights, T=1500.0):
+def _mqmqa_at(text, comps, phase, cations, anions, weights, T=1500.0, P=1e5):
     """GM and G per mole of quadruplets of an MQMQA phase given as DAT text, at quadruplet fractions proportional
     to `weights` (cation pairs, then anion pairs, of the named constituents in itertools order), and the fractions
     keyed by constituent indices."""
@@ -1384,7 +1384,7 @@ def _mqmqa_at(text, comps, phase, cations, anions, weights, T=1500.0):
     assert len(keys) == len(weights)
     quads = {k: w / sum(weights) for k, w in zip(keys, weights)}
     subs = {mod._X_ijkl(sp[cations[a]], sp[cations[b]], sp[anions[x]], sp[anions[y]]): q for (a, b, x, y), q in quads.items()}
-    subs.update({v.T: T, v.P: 1e5})
+    subs.update({v.T: T, v.P: P})
     return float(mod.GM.xreplace(subs)), float(mod.ast.xreplace(subs)), quads
 
 
@@ -1406,8 +1406,8 @@ SHISHIN_SLAG = (["FE", "SB", "O", "S", "VA"], "SLAG-LIQ", ["FE2++2.0", "FE3++3.0
                 [3, 1, 7, 8, 3, 6, 1, 4, 2, 2, 9, 4, 7, 5, 3, 5, 1, 2])
 
 
-def _shishin_slag(edit=lambda text: text, T=1500.0):
-    return _mqmqa_at(edit(_dat_text("Shishin_Fe-Sb-O-S_slag.dat")), *SHISHIN_SLAG, T=T)
+def _shishin_slag(edit=lambda text: text, T=1500.0, P=1e5):
+    return _mqmqa_at(edit(_dat_text("Shishin_Fe-Sb-O-S_slag.dat")), *SHISHIN_SLAG, T=T, P=P)
 
 
 def _add_shishin_slag_excess(text, record):
@@ -1417,10 +1417,10 @@ def _add_shishin_slag_excess(text, record):
     return text.replace(end, "   3\n" + record + end)
 
 
-def _excess_record(code, const, exponents, additional=(0, 0), L=-30000.0):
+def _excess_record(code, const, exponents, additional=(0, 0), L=-30000.0, metadata=(0.0,) * 12):
     return (f" {code}   {'   '.join(map(str, const))}   {'   '.join(map(str, exponents))}\n"
-            " 0.00000000       0.00 0.00000000       0.00 0.00000000       0.00\n"
-            " 0.00000000       0.00 0.00000000       0.00 0.00000000       0.00\n"
+            f" {'   '.join(map(str, metadata[:6]))}\n"
+            f" {'   '.join(map(str, metadata[6:]))}\n"
             f"   {additional[0]}   {additional[1]} {L}     0.00000000     0.00000000     0.00000000\n"
             " 0.00000000     0.00000000\n")
 
@@ -1465,6 +1465,35 @@ def test_MQMQA_unsupported_excess_parameters_raise_when_building_the_phase(code,
     with pytest.raises(NotImplementedError):
         ModelMQMQA(dbf, ["FE", "SB", "O", "S", "VA"], "SLAG-LIQ")
 
+
+
+@pytest.mark.parametrize("metadata, term", [
+    ({6: 1.0, 7: 99}, lambda T, P: np.log(T)),
+    ({8: 1e-6, 9: 2}, lambda T, P: 1e-6 * T**2),
+    ({10: 1.0, 11: 0.5}, lambda T, P: np.sqrt(T)),
+    ({6: 1e6, 7: -2}, lambda T, P: 1e6 / T**2),
+    ({0: 1e-3, 1: 2.0}, lambda T, P: 1e-3 * (P / 1e5 - 1)),
+    ({2: 1e-3, 3: 2.0}, lambda T, P: 1e-3 * (P / 1e5 - 1) * T),
+    ({4: 1e-3, 5: 2.0}, lambda T, P: 1e-3 * (P / 1e5 - 1) * T * np.log(T)),
+])
+def test_MQMQA_excess_metadata_terms(metadata, term):
+    """The 12 metadata of an excess record are six (coefficient, exponent) pairs: (P - 1 bar)(a + bT + cT ln T) from
+    the first three, whose exponents are ignored, and coefficient*T^exponent (99: ln T) from the last three."""
+    T, P = 1500.0, 11e5
+    def with_term(L, metadata={}):
+        record = _excess_record("Q", (1, 2, 4, 4), (1, 0, 0, 0), L=L, metadata=[metadata.get(i, 0.0) for i in range(12)])
+        return _shishin_slag(lambda t: _add_shishin_slag_excess(t, record), T=T, P=P)[0]
+    assert np.isclose(with_term(-30000.0, metadata), with_term(-30000.0 + term(T, P)), rtol=0, atol=1e-6)
+
+
+def test_MQMQA_pair_coefficients_3_to_5_raise_in_reciprocal_phases():
+    """Pair coefficients 3-5 act only when both sublattices mix, in a form not known."""
+    text = _dat_text("Shishin_Fe-Sb-O-S_slag.dat")
+    FeO = "  1.00000      1.00000     0.000000     0.000000     0.000000\n  1.37700\n"
+    dbf = Database.from_string(text.replace(FeO, FeO.replace("0.000000\n", "1.000000\n"), 1), fmt="dat")
+    with pytest.raises(NotImplementedError, match="pair coefficients"):
+        ModelMQMQA(dbf, ["FE", "SB", "O", "S", "VA"], "SLAG-LIQ")
+    ModelMQMQA(dbf, ["FE", "SB", "O", "VA"], "SLAG-LIQ")
 
 # ClAlNa (Thermochimica data): Na, Al, Al2 // Cl, Va; uneven reciprocal configuration
 CLALNA_MSSOLN = (["AL", "CL", "NA", "VA"], "MSSOLN", ["NA+1.0", "AL+3.0", "AL2+6.0"], ["CL-1.0", "VA-1.0"],

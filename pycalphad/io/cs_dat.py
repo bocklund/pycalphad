@@ -606,6 +606,14 @@ class SUBQExcessQuadruplet:
         energy = S.Zero
         # Add fixed energy terms
         energy += sum([C*EXCESS_TERMS[i] for C, i in zip(self.excess_coeffs, indices)])
+        # The metadata are six (coefficient, exponent) pairs. The first three add (P - 1 bar)*(a + b*T + c*T*ln(T)),
+        # ignoring their exponents, and the last three add coefficient-exponent terms.
+        a, b, c = self.metadata[0:6:2]
+        if a != 0 or b != 0 or c != 0:
+            energy += (v.P/1e5 - 1)*(a + b*v.T + c*v.T*log(v.T))
+        for coefficient, exponent in zip(self.metadata[6::2], self.metadata[7::2]):
+            if coefficient != 0:
+                energy += AdditionalCoefficientPair(coefficient, exponent).expr()
         return energy
 
     def insert(self, dbf: Database, phase_name: str, As: List[str], Xs: List[str], excess_coeff_indices: List[int]):
@@ -979,7 +987,8 @@ def parse_endmember_aqueous(toks: TokenParser, num_pure_elements: int, num_gibbs
 
 def parse_endmember_subq(toks: TokenParser, num_pure_elements, num_gibbs_coeffs, zeta=None):
     em = parse_endmember(toks, num_pure_elements, num_gibbs_coeffs)
-    # The first two entries are the stoichiometry of the pair (the cation and anion). It's unclear to what the last three are for.
+    # The numbers of cations and anions in the pair, then A, B, C of a pair term A + B*T + C*T*ln(T) that acts only in
+    # reciprocal phases, in a form not known
     stoichiometry_quadruplet = toks.parseN(5, float)
     if zeta is None:
         # This is SUBQ we need to parse it. If zeta is passed, that means we're in SUBG mode
@@ -997,7 +1006,7 @@ def parse_subq_excess(toks, mixing_type, num_excess_coeffs):
     mixing_code = toks.parse(str)
     mixing_const = toks.parseN(4, int)
     mixing_exponents = toks.parseN(4, int)
-    metadata = toks.parseN(12, float)  # TODO: not sure what this metadata is - could it be more parameters? They are usually all zeros.
+    metadata = toks.parseN(12, float)
     additional_cation_mixing_const = toks.parse(int)
     additional_anion_mixing_exponent = toks.parse(int)
     excess_coeffs = toks.parseN(num_excess_coeffs, float)
