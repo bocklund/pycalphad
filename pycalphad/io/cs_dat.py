@@ -795,6 +795,18 @@ class Phase_SUBQ(PhaseBase):
                               f"({A.name}, {X.name}) with {nu_A:g}:{nu_X:g} ions, but its quadruplet coordination numbers "
                               f"imply {Z_X:g}:{Z_A:g}. Records fill the pair-index columns in order, whatever their names.")
 
+    def _in_index_order(self, records, quadruplet_idxs):
+        """Records whose constituent indices do not decrease within a sublattice, as Thermochimica keeps them."""
+        kept = []
+        for record in records:
+            i, j, k, l = quadruplet_idxs(record)
+            if i > j or k > l:
+                warnings.warn(f"Ignoring the record for quadruplet {i} {j} {k} {l} of phase {self.phase_name}: its "
+                              f"constituent indices decrease within a sublattice.")
+            else:
+                kept.append(record)
+        return kept
+
     def insert(self, dbf: Database, pure_elements: List[str], gibbs_coefficient_idxs: List[int], excess_coefficient_idxs: List[int]):
         # First: get the pair and quadruplet species added to the database:
         # Here we rename the species names according to their charges, to avoid creating duplicate pairs/quadruplets
@@ -845,11 +857,11 @@ class Phase_SUBQ(PhaseBase):
             endmember.insert(dbf, self.phase_name, [[cations[i-1]], [anions[j-1]]], gibbs_coefficient_idxs)
 
         # Fourth: add parameters for coordinations
-        for quadruplet in self.quadruplets:
+        for quadruplet in self._in_index_order(self.quadruplets, lambda q: q.quadruplet_idxs):
             quadruplet.insert(dbf, self.phase_name, cations, anions)
 
         # Fifth: add excess parameters
-        for excess_param in self.excess_parameters:
+        for excess_param in self._in_index_order(self.excess_parameters, lambda x: x.mixing_const):
             excess_param.insert(dbf, self.phase_name, cations, anions, excess_coefficient_idxs)
 
         # Chemical group overrides: how each binary of a ternary extrapolates towards the third constituent
