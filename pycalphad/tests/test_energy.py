@@ -4,9 +4,11 @@ correct abstract syntax tree for the energy.
 """
 
 import pytest
+from importlib.resources import files
 from symengine import S
 from pycalphad import Database, Model, ReferenceState
 from pycalphad.tests.fixtures import select_database, load_database
+import pycalphad.tests.databases
 from pycalphad.core.errors import DofError
 import pycalphad.variables as v
 import numpy as np
@@ -1326,6 +1328,81 @@ def test_MQMQA_SUBQ_Q_mixing_Fe2_Fe3_Sb_O(load_database):
     assert np.isclose(float(mod.moles("FE").subs(subs_dict)), 3.0000E-01, 1e-5)
     assert np.isclose(float(mod.moles("SB").subs(subs_dict)), 0.13333333, 1e-5)
     assert np.isclose(float(mod.moles("O").subs(subs_dict)), 0.56666667, 1e-5)
+
+
+# Shishin slag (Fe2+, Fe3+, Sb3+ // O, S; one cation and one anion chemical group) at an uneven
+# reciprocal configuration, as (cation i, cation j, anion k, anion l, weight) with indices into the lists below.
+SHISHIN_SLAG_CONFIG = [(a, b, x, y, w) for (a, b), ws in zip(((0, 0), (1, 1), (2, 2), (0, 1), (0, 2), (1, 2)),
+                                                              ((3, 1, 7), (2, 9, 4), (5, 1, 2), (8, 3, 6), (1, 4, 2), (7, 5, 3)))
+                       for (x, y), w in zip(((0, 0), (1, 1), (0, 1)), ws)]
+
+
+def _add_shishin_slag_excess(text, record):
+    """Append an excess record (lines after the record type) to the SLAG-LIQ excess list."""
+    end = "   0\n Sb2O3"
+    assert text.count(end) == 1
+    return text.replace(end, "   3\n" + record + end)
+
+
+def _ternary_record(code, exponents, additional, L=-30000.0):
+    return (f" {code}   1   2   4   4   {'   '.join(map(str, exponents))}\n"
+            " 0.00000000       0.00 0.00000000       0.00 0.00000000       0.00\n"
+            " 0.00000000       0.00 0.00000000       0.00 0.00000000       0.00\n"
+            f"   {additional[0]}   {additional[1]} {L}     0.00000000     0.00000000     0.00000000\n"
+            " 0.00000000     0.00000000\n")
+
+
+def _shishin_slag_GM(edit=lambda text: text, T=1500.0):
+    """GM of the (edited) Shishin slag at SHISHIN_SLAG_CONFIG, and the quadruplet fractions used."""
+    text = files(pycalphad.tests.databases).joinpath("Shishin_Fe-Sb-O-S_slag.dat").read_text()
+    dbf = Database.from_string(edit(text), fmt="dat")
+    mod = ModelMQMQA(dbf, ["FE", "SB", "O", "S", "VA"], "SLAG-LIQ")
+    sp = {s.name: s for s in mod.cations + mod.anions}
+    cats, ans = [sp["FE2++2.0"], sp["FE3++3.0"], sp["SB3++3.0"]], [sp["O-2.0"], sp["S-2.0"]]
+    total = sum(w for *_, w in SHISHIN_SLAG_CONFIG)
+    quads = {(a, b, x, y): w / total for a, b, x, y, w in SHISHIN_SLAG_CONFIG}
+    subs = {mod._X_ijkl(cats[a], cats[b], ans[x], ans[y]): q for (a, b, x, y), q in quads.items()}
+    subs.update({v.T: T, v.P: 1e5})
+    return float(mod.GM.xreplace(subs)), quads
+
+
+def test_MQMQA_additional_constituent_naming_a_pair_member_is_ignored():
+    """An additional-constituent index naming a member of the term's own pair is ignored (Piao 2013 has one)."""
+    base, _ = _shishin_slag_GM()
+    pair_member, _ = _shishin_slag_GM(lambda t: t.replace("   0   0 -20957.656", "   0   2 -20957.656", 1))
+    assert np.isclose(pair_member, base, rtol=0, atol=1e-6)
+
+
+def test_MQMQA_additional_constituent_slots_are_equivalent():
+    """Either integer of the additional-constituent record names the ternary constituent; r is the third exponent."""
+    slot1, _ = _shishin_slag_GM(lambda t: _add_shishin_slag_excess(t, _ternary_record("Q", (0, 0, 2, 0), (3, 0))))
+    slot2, _ = _shishin_slag_GM(lambda t: _add_shishin_slag_excess(t, _ternary_record("Q", (0, 0, 2, 0), (0, 3))))
+    fourth_exponent, _ = _shishin_slag_GM(lambda t: _add_shishin_slag_excess(t, _ternary_record("Q", (0, 0, 2, 3), (0, 3))))
+    assert np.isclose(slot2, slot1, rtol=0, atol=1e-6)
+    assert np.isclose(fourth_exponent, slot1, rtol=0, atol=1e-6)
+
+
+@pytest.mark.parametrize("r", [1, 2, 3])
+def test_MQMQA_ternary_factor_without_chemical_group_asymmetry(r):
+    """Ternary factor (Y_m/k / Y_k) (1 - (Y_A/k + Y_B/k) / Y_k)^(r-1) of a Q term in a reciprocal phase."""
+    base, quads = _shishin_slag_GM()
+    binary, _ = _shishin_slag_GM(lambda t: _add_shishin_slag_excess(t, _ternary_record("Q", (0, 0, 0, 0), (0, 0))))
+    ternary, _ = _shishin_slag_GM(lambda t: _add_shishin_slag_excess(t, _ternary_record("Q", (0, 0, r, 0), (3, 0))))
+    # closed form from the quadruplet fractions: Fe2+ (0) - Fe3+ (1) on O (0), additional Sb3+ (2)
+    Y_O = sum(q * ((x == 0) + (y == 0)) / 2 for (a, b, x, y), q in quads.items())
+    Y_pair = lambda i: sum(q * ((a == i) + (b == i)) * ((x == 0) + (y == 0)) / 4 for (a, b, x, y), q in quads.items())
+    factor = Y_pair(2) / Y_O * (1 - (Y_pair(0) + Y_pair(1)) / Y_O) ** (r - 1)
+    assert np.isclose((ternary - base) / (binary - base), factor, rtol=1e-10)
+
+
+def test_MQMQA_unsupported_additional_constituent_layouts_raise():
+    """Layouts with no known meaning raise rather than evaluate a guess."""
+    with pytest.raises(NotImplementedError):  # third exponent zero
+        _shishin_slag_GM(lambda t: _add_shishin_slag_excess(t, _ternary_record("Q", (0, 0, 0, 2), (3, 0))))
+    with pytest.raises(NotImplementedError):  # two additional constituents
+        _shishin_slag_GM(lambda t: _add_shishin_slag_excess(t, _ternary_record("Q", (0, 0, 2, 0), (3, 5))))
+    with pytest.raises(NotImplementedError):  # anion as the additional constituent of a cation-mixing term
+        _shishin_slag_GM(lambda t: _add_shishin_slag_excess(t, _ternary_record("Q", (0, 0, 2, 0), (0, 5))))
 
 
 @select_database("Kaye_Pd-Ru-Tc-Mo.dat")

@@ -652,6 +652,8 @@ class ModelMQMQA(Model):
                 else:
                     raise ValueError(f"Unknown mixing code {mixing_code} for parameter {param}")
                 if m != v.Species(None):
+                    if m not in cations:
+                        raise NotImplementedError(f"Additional constituent {m} of cation-mixing parameter {param} is not a cation")
                     # Poschmann Eq. 25 and 26 ternary term (same for both mixing codes)
                     Xi_ijk = self._Xi_mix(dbe, A, B, X, X)
                     Xi_jik = self._Xi_mix(dbe, B, A, X, X)
@@ -663,7 +665,8 @@ class ModelMQMQA(Model):
                     elif m in nu:
                         mixing_term *= Y_mk / Xi_ijk * (1 - self._Y_ik(A, X) / Xi_ijk)**(r_alpha - 1)
                     else:  # not in nu or gamma
-                        mixing_term *= Y_mk * (1 - Xi_ijk - Xi_jik)**(r_alpha - 1)
+                        Y_X = self._Y_i(X)
+                        mixing_term *= Y_mk / Y_X * (1 - (Xi_ijk + Xi_jik) / Y_X)**(r_alpha - 1)
             elif A == B and X != Y:
                 if mixing_code == "G":
                     # Poschmann Eq. 23 (anions mixing)
@@ -677,6 +680,8 @@ class ModelMQMQA(Model):
                 else:
                     raise ValueError(f"Unknown mixing code {mixing_code} for parameter {param}")
                 if m != v.Species(None):
+                    if m not in anions:
+                        raise NotImplementedError(f"Additional constituent {m} of anion-mixing parameter {param} is not an anion")
                     # Poschmann Eq. 25 and 26 ternary term (same for both mixing codes)
                     Xi_ikl = self._Xi_mix(dbe, A, A, X, Y)
                     Xi_ilk = self._Xi_mix(dbe, A, A, Y, X)
@@ -688,7 +693,8 @@ class ModelMQMQA(Model):
                     elif m in nu:
                         mixing_term *= Y_im / Xi_ikl * (1 - self._Y_ik(A, X) / Xi_ikl)**(r_alpha - 1)
                     else:  # not in nu or gamma
-                        mixing_term *= Y_im * (1 - Xi_ikl - Xi_ilk)**(r_alpha - 1)
+                        Y_A = self._Y_i(A)
+                        mixing_term *= Y_im / Y_A * (1 - (Xi_ikl + Xi_ilk) / Y_A)**(r_alpha - 1)
             elif A != B and X != Y:
                 # Reciprocal mixing
                 if mixing_code != "R":
