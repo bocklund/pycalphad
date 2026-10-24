@@ -1564,6 +1564,34 @@ def test_MQMQA_reciprocal_excess_terms(exponents, additional, term):
     assert np.isclose(with_R - base, L * term(quads[0, 1, 0, 1], quads[0, 0, 0, 0]), rtol=1e-10, atol=1e-12)
 
 
+
+# Piao et al. (2013) slag: Al3+, Si4+, Ca2+ // O2-, S2- (SUBG); uneven reciprocal configuration
+PIAO_SLAG = (["AL", "CA", "SI", "O", "S", "VA"], "SLAG", ["AL+3.0", "SI+4.0", "CA+2.0"], ["O-2.0", "S-2.0"],
+             [5, 2, 1, 3, 1, 2, 4, 2, 1, 6, 1, 3, 2, 3, 1, 4, 2, 2])
+PIAO_R = "   0   0 -7112.8000     0.00000000     0.00000000     0.00000000"  # R 2 3 4 5 (Si, Ca // O, S)
+
+
+def _piao_without_R(text):
+    assert text.count(PIAO_R) == 2  # the slag is listed twice
+    return text.replace(PIAO_R, PIAO_R.replace("-7112.8000", "0.00000000"))
+
+
+def test_MQMQA_reciprocal_term_without_additional_constituents_Piao_2013():
+    """Piao's R term on Si, Ca // O, S has no additional constituents and adds L X_SiCa/OS."""
+    text = _dat_text("Piao_Al-Ca-O-S-Si.dat")
+    _, G, quads = _mqmqa_at(text, *PIAO_SLAG)
+    G_without_R = _mqmqa_at(_piao_without_R(text), *PIAO_SLAG)[1]
+    assert np.isclose(G - G_without_R, -7112.8 * quads[1, 2, 0, 1], rtol=1e-10)
+
+
+@pytest.mark.parametrize("T, GM", [(1800.0, -346955.30035895144), (2000.0, -362239.3748377643)])
+def test_MQMQA_Piao_2013_slag_without_R_terms(T, GM):
+    """Reciprocal SUBG slag with binary and ternary Q terms, one naming a member of its own pair, R terms zeroed.
+
+    Thermochimica 0c35c8d at pycalphad's R, which ignores R terms; it agrees to 2e-4 J/mol, the written
+    coordination numbers being charge-neutral only to 8 digits."""
+    assert np.isclose(_mqmqa_at(_piao_without_R(_dat_text("Piao_Al-Ca-O-S-Si.dat")), *PIAO_SLAG, T=T)[0], GM, rtol=0, atol=1e-3)
+
 @pytest.mark.parametrize("T, GM", [(1000.0, -199336.9094164812), (1400.0, -236685.61974774176)])
 def test_MQMQA_SUBG_pair_entropy_uses_zeta(T, GM):
     """The SUBG phase zeta weights the pair entropy as in SUBQ, which matters in reciprocal phases.
