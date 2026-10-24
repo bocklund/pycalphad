@@ -1199,9 +1199,11 @@ def parse_phase_cef(toks, phase_name, phase_type, num_pure_elements, num_gibbs_c
     elif sanitized_phase_type in ('RKMP', 'SUBL'):
         # SUBL will have no excess parameters, but it will have the "0" terminator like it has excess parameters so we can use the excess parameter parsing to process it all the same.
         excess_parameters = []
-        if is_magnetic_phase_type:
-            excess_parameters.extend(parse_excess_magnetic_parameters(toks))
-        excess_parameters.extend(parse_excess_parameters(toks, num_excess_coeffs))
+        # A SUBL phase with a single species has no excess list at all, not even the "0" terminator
+        if not (phase_type == 'SUBL' and num_const == 1):
+            if is_magnetic_phase_type:
+                excess_parameters.extend(parse_excess_magnetic_parameters(toks))
+            excess_parameters.extend(parse_excess_parameters(toks, num_excess_coeffs))
     elif sanitized_phase_type in ('QKTO',):
         excess_parameters = parse_excess_qkto(toks, num_excess_coeffs)
     return Phase_CEF(phase_name, phase_type, endmembers, subl_ratios, constituent_array, endmember_constituent_idxs, excess_parameters, magnetic_afm_factor=magnetic_afm_factor, magnetic_structure_factor=magnetic_structure_factor)

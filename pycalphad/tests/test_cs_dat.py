@@ -1,9 +1,10 @@
 from importlib.resources import files
 
+import numpy as np
 import pytest
 
 import pycalphad.tests.databases
-from pycalphad import Database
+from pycalphad import Database, Model, variables as v
 from pycalphad.io.cs_dat import TokenParser, TokenParserError, parse_header
 
 
@@ -94,3 +95,15 @@ def test_text_after_a_species_name_is_ignored():
     original = Database.from_string(text, fmt="dat")
     assert edited.phases["SLAG-LIQ"].constituents == original.phases["SLAG-LIQ"].constituents
     assert len(edited._parameters) == len(original._parameters)
+
+
+def test_single_species_SUBL_phase_has_no_excess_list():
+    """A SUBL phase with one species ends after its constituent indices (Q, the CaS solid of Piao et al. 2013)."""
+    dbf = _load("Piao_Al-Ca-O-S-Si.dat")
+    assert dbf.phases["Q"].constituents == (frozenset({v.Species("CA")}), frozenset({v.Species("S")}))
+    assert "AL2O3_CORUNDUM(ALPHA(S4)" in dbf.phases  # the record after Q starts the next phase
+    T = 1000.0
+    G_CaS = (-480855.73 + 312.51950*T - 53.598408*T*np.log(T) - 0.18538933E-02*T**2 + 0.10228598E-06*T**3
+             - 88809.180/T - 2750.1453*np.log(T))
+    GM = Model(dbf, ["CA", "S"], "Q").GM.subs({v.T: T, v.Y("Q", 0, "CA"): 1, v.Y("Q", 1, "S"): 1})
+    assert np.isclose(float(GM), G_CaS / 2, rtol=1e-12)
