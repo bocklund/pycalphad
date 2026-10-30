@@ -58,6 +58,48 @@ def test_model_pickle(load_database):
     assert test_model == new_model
 
 
+@select_database("alnipt.tdb")
+def test_model_pickle_expression_integrity(load_database):
+    """Test that Model pickle preserves symengine expression structure.
+
+    Regression test for pycalphad#601: ODR violation in symengine's cereal
+    serialization can corrupt expression trees during pickle round-trip.
+    Checks that expressions evaluate to the same values before and after
+    pickling, catching coefficient corruption and structural changes.
+    The corruption is intermittent (roughly 1 in 10 round-trips on Windows
+    with symengine 0.14), so the round-trip is repeated.
+    """
+    dbf = load_database()
+    test_model = Model(dbf, ['NI', 'PT', 'VA'], 'FCC_L12')
+    for attempt in range(50):
+        new_model = pickle.loads(pickle.dumps(test_model))
+
+        # Check 1: Basic equality (same as test_model_pickle)
+        assert test_model == new_model, f"Model equality failed after pickle round-trip (attempt {attempt})"
+
+        # Check 2: Expression structure preservation
+        # Compare string representations of all model contributions
+        for attr in ['GM', 'HM', 'SM', 'CPM']:
+            orig_expr = getattr(test_model, attr, None)
+            new_expr = getattr(new_model, attr, None)
+            if orig_expr is not None and new_expr is not None:
+                assert str(orig_expr) == str(new_expr), \
+                    f"Expression string mismatch for {attr} after pickle round-trip (attempt {attempt})"
+
+        # Check 3: Database parameter expressions survive round-trip
+        orig_params = test_model._dbe._parameters.all()
+        new_params = new_model._dbe._parameters.all()
+        assert len(orig_params) == len(new_params), \
+            f"Parameter count mismatch after pickle round-trip (attempt {attempt})"
+
+        for orig_p, new_p in zip(orig_params, new_params):
+            if 'parameter' in orig_p and 'parameter' in new_p:
+                orig_val = orig_p['parameter']
+                new_val = new_p['parameter']
+                assert str(orig_val) == str(new_val), \
+                    f"Parameter expression mismatch: {orig_val} != {new_val} (attempt {attempt})"
+
+
 @select_database("alcrni.tdb")
 def test_custom_model_contributions(load_database):
     "Building a custom model using contributions."
