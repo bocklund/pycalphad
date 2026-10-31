@@ -270,6 +270,21 @@ def unpack_components(components: "Sequence[Component | Species | str]", dbf: Op
     return desired_components
 
 
+def _uncached_state_variable(cls, args, state):
+    """Construct a StateVariable that bypasses the __new__ cache, then apply instance attributes from state.
+
+    Used for copies and for unpickling objects with overridden display_units, so
+    that mutations or restored attributes never reach the shared cached object.
+    """
+    # Access the uncached __new__ via the __wrapped__ attribute
+    # that lru_cache provides
+    newobj = cls.__new__.__wrapped__(cls, *args)
+    # Run __init__ to set up instance attributes
+    newobj.__init__(*args)
+    newobj.__dict__.update(state)
+    return newobj
+
+
 class StateVariable(Symbol):
     """
     State variables are symbols with built-in assumptions of being real.
@@ -362,6 +377,15 @@ class StateVariable(Symbol):
     def __reduce__(self):
         return self.__class__, (self.name,)
 
+    def __reduce_ex__(self, protocol):
+        # Subclasses implement __reduce__, which reconstructs through the __new__ cache.
+        # A display_units override (e.g. from __getitem__) has to be restored on an
+        # uncached object, otherwise unpickling would apply it to the shared cached object.
+        cls, args = self.__reduce__()
+        if 'display_units' in self.__dict__:
+            return _uncached_state_variable, (cls, args, {'display_units': self.display_units})
+        return cls, args
+
     def __eq__(self, other):
         """Two species are the same if their names are the same."""
         if isinstance(other, self.__class__):
@@ -388,27 +412,15 @@ class StateVariable(Symbol):
         return the same cached object, causing mutations on the 'copy'
         to affect the original.
         """
-        # Access the uncached __new__ via the __wrapped__ attribute
-        # that lru_cache provides
-        cls = self.__class__
-        wrapped_new = cls.__new__.__wrapped__
-
         # Get the args needed to reconstruct this object from __reduce__
-        reduce_result = self.__reduce__()
-        _, args = reduce_result[0], reduce_result[1]
-
-        # Create new object bypassing the cache
-        newobj = wrapped_new(cls, *args)
-
-        # Run __init__ to set up instance attributes
-        newobj.__init__(*args)
-
+        cls, args = self.__reduce__()
         # Copy any instance-level attribute overrides (like display_units)
-        # StateVariable subclasses may have __dict__ even though Symbol uses __slots__
-        if hasattr(self, '__dict__'):
-            newobj.__dict__.update(self.__dict__)
+        return _uncached_state_variable(cls, args, self.__dict__)
 
-        return newobj
+    def __deepcopy__(self, memo):
+        # Without this, deepcopy reconstructs through __reduce_ex__ and returns the
+        # cached object, so mutating the 'copy' would mutate e.g. the global v.T
+        return copy(self)
 
 class SiteFraction(StateVariable):
     """
