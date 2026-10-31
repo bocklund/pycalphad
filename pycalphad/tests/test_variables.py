@@ -150,5 +150,4 @@ def test_issue557_state_variable_unit_changes_survive_roundtrip_pickle():
     assert T2.display_units == T2_roundtrip.display_units
     T3 = pickle.loads(pickle.dumps(v.T["degC"]))
     assert T2.display_units == T3.display_units
-    # Neither modifying the copy nor unpickling it may leak the units into the cached v.T
     assert v.T.display_units == original_units
