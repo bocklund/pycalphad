@@ -12,7 +12,6 @@ from pycalphad.core.minimizer import site_fraction_differential, state_variable_
     fixed_component_differential, chemical_potential_differential
 import numpy as np
 from copy import copy
-from operator import getitem
 
 
 class Component(object):
@@ -363,11 +362,16 @@ class StateVariable(Symbol):
     def __reduce__(self):
         return self.__class__, (self.name,)
 
+    @classmethod
+    @lru_cache(maxsize=10000)
+    def _with_display_units(cls, args, display_units):
+        "Unpickle a display_units override without allocating each time; StateVariable objects are never freed (gh-656)"
+        return cls(*args)[display_units]
+
     def __reduce_ex__(self, protocol):
         cls, args = self.__reduce__()
         if 'display_units' in self.__dict__:
-            # Unpickle through __getitem__ so the units are set on a copy, not on the cached object
-            return getitem, (cls(*args), self.display_units)
+            return cls._with_display_units, (args, self.display_units)
         return cls, args
 
     def __eq__(self, other):

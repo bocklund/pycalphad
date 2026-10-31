@@ -65,24 +65,13 @@ def test_component_and_species_repr_str_methods():
 
 def test_deepcopy():
     '''
-    Tests that deepcopy of variables produce the same variables
+    Tests that deepcopy and pickling of variables produce the same variables
     This addresses an unreported issue where copying the chemical potential
     would use the name attribute rather than the species (this resulted in deepcopy(v.MU('A')) -> v.MU(v.MU('A')))
     '''
-    assert copy.deepcopy(v.NP('*')) == v.NP('*')
-    assert copy.deepcopy(v.NP('A')) == v.NP('A')
-
-    assert copy.deepcopy(v.X('B')) == v.X('B')
-    assert copy.deepcopy(v.X('A','B')) == v.X('A','B')
-
-    assert copy.deepcopy(v.W('B')) == v.W('B')
-    assert copy.deepcopy(v.W('A','B')) == v.W('A','B')
-
-    assert copy.deepcopy(v.Y('A',0,'B')) == v.Y('A',0,'B')
-    assert copy.deepcopy(v.T) == v.T
-    assert copy.deepcopy(v.P) == v.P
-    assert copy.deepcopy(v.MU('A')) == v.MU('A')
-    assert copy.deepcopy(v.T) is v.T
+    for var in [v.NP('*'), v.NP('A'), v.X('B'), v.X('A','B'), v.W('B'), v.W('A','B'), v.Y('A',0,'B'), v.T, v.P, v.MU('A')]:
+        assert copy.deepcopy(var) is var
+        assert pickle.loads(pickle.dumps(var)) == var
     assert copy.deepcopy(v.T['degC']).display_units == 'degC'
 
 
@@ -151,4 +140,5 @@ def test_issue557_state_variable_unit_changes_survive_roundtrip_pickle():
     assert T2.display_units == T2_roundtrip.display_units
     T3 = pickle.loads(pickle.dumps(v.T["degC"]))
     assert T2.display_units == T3.display_units
+    assert pickle.loads(pickle.dumps(T2)) is T2_roundtrip
     assert v.T.display_units == original_units
