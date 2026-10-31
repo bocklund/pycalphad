@@ -419,7 +419,8 @@ class StateVariable(Symbol):
         return newobj
 
     def __deepcopy__(self, memo):
-        return copy(self)
+        # StateVariable objects are never freed (gh-656), so deepcopy must not allocate. Use copy to mutate.
+        return self
 
 class SiteFraction(StateVariable):
     """

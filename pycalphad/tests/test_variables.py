@@ -82,6 +82,8 @@ def test_deepcopy():
     assert copy.deepcopy(v.T) == v.T
     assert copy.deepcopy(v.P) == v.P
     assert copy.deepcopy(v.MU('A')) == v.MU('A')
+    assert copy.deepcopy(v.T) is v.T
+    assert copy.deepcopy(v.T['degC']).display_units == 'degC'
 
 
 def test_copy_with_cached_new():
@@ -141,8 +143,7 @@ def test_getitem_units_does_not_mutate_original():
 
 def test_issue557_state_variable_unit_changes_survive_roundtrip_pickle():
     original_units = v.T.display_units
-    T2 = copy.deepcopy(v.T)
-    assert T2 is not v.T, "deepcopy of T should be a different object"
+    T2 = copy.copy(v.T)
     T2.display_units = 'degC'
     T2_roundtrip = pickle.loads(pickle.dumps(T2))
     print(f'T2: {T2.display_units}')
