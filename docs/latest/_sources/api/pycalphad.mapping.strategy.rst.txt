@@ -52,6 +52,14 @@ pycalphad.mapping.strategy.ternary\_strategy module
    :show-inheritance:
    :undoc-members:
 
+pycalphad.mapping.strategy.tieline\_strategy module
+---------------------------------------------------
+
+.. automodule:: pycalphad.mapping.strategy.tieline_strategy
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 Module contents
 ---------------
 
