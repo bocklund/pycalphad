@@ -172,11 +172,12 @@ class Solver(SolverBase):
         prescribed_mole_amount_rhs = np.array(prescribed_mole_amount_rhs, dtype=np.float64)
 
         # MU conditions (keyed by ChemicalPotential objects or 'MU_<NAME>' strings).
-        # A pure-element MU fixes that element's chemical potential by index (works under any
-        # basis; the basis only reinterprets amount conditions, not element potentials).
-        # MU(component) for a genuine multi-element or multiplied component (e.g. CL2) fixes a
-        # linear combination of element chemical potentials, sum_e constituents[e]*mu_e = value,
-        # added as a constraint row; the element chemical potentials stay free and solved.
+        # A single-element MU fixes that element's chemical potential by index, scaled by its
+        # multiplicity (MU(CL2) = 2*MU(CL)); this works under any basis, since the basis only
+        # reinterprets amount conditions, not element potentials.
+        # MU(component) for a multi-element component fixes a linear combination of element
+        # chemical potentials, sum_e constituents[e]*mu_e = value, added as a constraint row;
+        # the element chemical potentials stay free and solved.
         fixed_chempot_coefs = []
         fixed_chempot_rhs = []
         fixed_chemical_potential_indices = []
@@ -187,10 +188,11 @@ class Solver(SolverBase):
                 continue
             value = float(np.asarray(cond_value).flat[0])
             constituents = {el: mult for el, mult in key.species.constituents.items() if el != 'VA'}
-            if len(constituents) == 1 and np.isclose(next(iter(constituents.values())), 1.0):
-                el_index = nonvacant_elements.index(next(iter(constituents)))
+            if len(constituents) == 1:
+                (el, multiplicity), = constituents.items()
+                el_index = nonvacant_elements.index(el)
                 fixed_chemical_potential_indices.append(el_index)
-                chemical_potentials[el_index] = value
+                chemical_potentials[el_index] = value / multiplicity
             else:
                 row = np.zeros(num_components)
                 for el, mult in constituents.items():

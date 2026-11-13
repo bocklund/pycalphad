@@ -361,16 +361,20 @@ cdef void fill_equilibrium_system(double[::1,:] equilibrium_matrix, double[::1] 
 
     # MU(component) constraint rows: sum_e coef[e]*mu_e = rhs. Element chemical potentials
     # are solved absolutely (see solve_state), so the row places the constituent coefficients
-    # in the free-chemical-potential columns with the prescribed value as RHS.
+    # in the free-chemical-potential columns, and fixed element potentials move to the RHS.
     cdef int num_chempot_conditions = spec.fixed_chempot_rhs.shape[0]
     cdef int chempot_row_offset = amount_row_offset + num_mole_amount_conditions
-    cdef int chempot_cond_idx, free_chempot_i, free_chempot_el
+    cdef int chempot_cond_idx, free_chempot_i, free_chempot_el, fixed_chempot_i, fixed_chempot_el
     for chempot_cond_idx in range(num_chempot_conditions):
         for free_chempot_i in range(spec.free_chemical_potential_indices.shape[0]):
             free_chempot_el = spec.free_chemical_potential_indices[free_chempot_i]
             equilibrium_matrix[chempot_row_offset + chempot_cond_idx, free_chempot_i] = \
                 spec.fixed_chempot_coefs[chempot_cond_idx, free_chempot_el]
         equilibrium_rhs[chempot_row_offset + chempot_cond_idx] = spec.fixed_chempot_rhs[chempot_cond_idx]
+        for fixed_chempot_i in range(spec.fixed_chemical_potential_indices.shape[0]):
+            fixed_chempot_el = spec.fixed_chemical_potential_indices[fixed_chempot_i]
+            equilibrium_rhs[chempot_row_offset + chempot_cond_idx] -= \
+                spec.fixed_chempot_coefs[chempot_cond_idx, fixed_chempot_el] * state.chemical_potentials[fixed_chempot_el]
 
 
 cdef class SystemSpecification:

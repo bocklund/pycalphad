@@ -466,3 +466,37 @@ def test_mu_multi_element_component_condition_trivial_basis(load_database):
     mu_al = float(np.squeeze(test.get('MU(AL)')))
     mu_zn = float(np.squeeze(test.get('MU(ZN)')))
     np.testing.assert_allclose(mu_al + mu_zn, mu_target, atol=1e-3)
+
+
+# ---------------------------------------------------------------------------
+# MU(component) conditions as fixed potentials
+# ---------------------------------------------------------------------------
+
+@select_database("ao2_b2o3_fictitious.tdb")
+def test_fixed_multi_element_mu_with_fixed_element_mu(load_database):
+    """MU(B2O3) and MU(O2) together reproduce the liquid they were taken from."""
+    dbf = load_database()
+    AO2 = v.Component('AO2', {'A': 1, 'O': 2})
+    B2O3 = v.Component('B2O3', {'B': 2, 'O': 3})
+    O2 = v.Component('O2', {'O': 2})
+    comps = [AO2, B2O3, O2, 'VA']
+    phases = ['GAS', 'LIQUID', 'ALPHA', 'BETA']
+    base = {v.T: 1700, v.P: 1e5, v.N: 1, v.MU(O2): -600000}
+    ref = Workspace(dbf, comps, phases, {**base, v.X(AO2): 0.5})
+    wks = Workspace(dbf, comps, phases, {**base, v.MU(B2O3): float(np.squeeze(ref.get(v.MU(B2O3))))})
+    _assert_props_match(wks, ref, ['GM', 'MU(A)', 'MU(B)', 'MU(O)', v.X(AO2)], atol=1e-4)
+
+
+@select_database("Ocadiz-Flores.dat")
+def test_fixed_mu_f2_two_compounds_kf_nif2(load_database):
+    """NiF2 + KNiF3 at fixed MU(F2) does not start from a phase-rule-violating assemblage."""
+    dbf = load_database()
+    NIF2 = v.Component('NIF2', {'NI': 1.0, 'F': 2.0})
+    KF = v.Component('KF', {'K': 1.0, 'F': 1.0})
+    F2 = v.Component('F2', {'F': 2.0})
+    phases = ['NIF2_S1(S)', 'NIKF3_S1(S)', 'NI_SOLID_FCC(S)', 'LIQUID', 'F2(G)']
+    wks = Workspace(dbf, [NIF2, KF, F2, 'VA'], phases,
+                    {v.T: 800, v.P: 1e5, v.N: 1, v.X(KF): 0.3, v.MU(F2): -500000})
+    np_values = {cs.phase_record.phase_name: cs.NP for cs in wks.get_composition_sets()}
+    assert sorted(np_values) == ['NIF2_S1(S)', 'NIKF3_S1(S)']
+    np.testing.assert_allclose(np_values['NIKF3_S1(S)'], 5 / 9, atol=1e-8)

@@ -1,0 +1,49 @@
+$ Fictitious AO2-B2O3 oxide system for testing component bases and MU(component) conditions.
+$
+$ Every condensed phase has one sublattice of the oxide species AO2 and B2O3, so all
+$ condensed phases (and their tie-lines) lie on the AO2-B2O3 join, which is a simple
+$ eutectic: LIQUID with ALPHA (AO2-rich) and BETA (B2O3-rich) solid solutions. The ideal
+$ GAS of A, B and O2 is the oxygen reference state; it is unstable for MU(O2) below the
+$ O2 gas Gibbs energy (P(O2) < 1 bar).
+
+ TYPE_DEFINITION % SEQ * !
+
+ ELEMENT /-   ELECTRON_GAS              0.0          0.0      0.0    !
+ ELEMENT VA   VACUUM                    0.0          0.0      0.0    !
+ ELEMENT A    BLANK                     50.0         0.0      0.0    !
+ ELEMENT B    BLANK                     10.0         0.0      0.0    !
+ ELEMENT O    1/2_MOLE_O2(GAS)          15.999       4341.0   102.52 !
+
+ SPECIES AO2    A1O2  !
+ SPECIES B2O3   B2O3  !
+ SPECIES O2     O2    !
+
+ $ Gibbs energies of the solid oxides and O2 gas per formula unit
+ FUNCTION GAO2     298.15 -900000+170*T;     6000 N !
+ FUNCTION GB2O3    298.15 -1400000+280*T;    6000 N !
+ FUNCTION GO2GAS   298.15 -8000-230*T;       6000 N !
+
+ PHASE GAS:G % 1 1 !
+ CONSTITUENT GAS:G :A,B,O2: !
+ PARAMETER G(GAS,A;0)    298.15 +500000-100*T+R*T*LN(1E-05*P); 6000 N !
+ PARAMETER G(GAS,B;0)    298.15 +500000-100*T+R*T*LN(1E-05*P); 6000 N !
+ PARAMETER G(GAS,O2;0)   298.15 +GO2GAS+R*T*LN(1E-05*P);       6000 N !
+
+ $ Melting points: AO2 2000 K, B2O3 1600 K
+ PHASE LIQUID % 1 1 !
+ CONSTITUENT LIQUID :AO2,B2O3: !
+ PARAMETER G(LIQUID,AO2;0)       298.15 +GAO2+60000-30*T;   6000 N !
+ PARAMETER G(LIQUID,B2O3;0)      298.15 +GB2O3+48000-30*T;  6000 N !
+ PARAMETER L(LIQUID,AO2,B2O3;0)  298.15 -10000;             6000 N !
+
+ PHASE ALPHA % 1 1 !
+ CONSTITUENT ALPHA :AO2,B2O3: !
+ PARAMETER G(ALPHA,AO2;0)        298.15 +GAO2;              6000 N !
+ PARAMETER G(ALPHA,B2O3;0)       298.15 +GB2O3+30000;       6000 N !
+ PARAMETER L(ALPHA,AO2,B2O3;0)   298.15 +20000;             6000 N !
+
+ PHASE BETA % 1 1 !
+ CONSTITUENT BETA :AO2,B2O3: !
+ PARAMETER G(BETA,AO2;0)         298.15 +GAO2+30000;        6000 N !
+ PARAMETER G(BETA,B2O3;0)        298.15 +GB2O3;             6000 N !
+ PARAMETER L(BETA,AO2,B2O3;0)    298.15 +20000;             6000 N !

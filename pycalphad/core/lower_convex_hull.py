@@ -9,6 +9,47 @@ from pycalphad.core.errors import ConditionError
 import numpy as np
 
 
+def _chemical_potential_hull_basis(chempot_conds, components):
+    """
+    Basis H (rows over components) in which every chemical potential condition is an axis.
+
+    The hyperplane fixes potentials along composition axes only. MU(c) fixes s_c . mu, where
+    s_c is the stoichiometry of c, so each condition replaces one row of the identity with its
+    (normalized) stoichiometry. In hull coordinates y = x H^-1 the potentials are mu_H = H mu,
+    and MU(c) fixes mu_H at that row. Driving forces and the hull solution do not depend on
+    the other rows; only the starting simplex of fictitious points (the free elements) does.
+    Pure elements and their multiples (e.g. O2) keep H = I.
+
+    Returns
+    -------
+    (ndarray, dict)
+        H, and a map from str(condition) to (row, scale) with mu_H[row] = value / scale.
+    """
+    num_comps = len(components)
+    hull_basis = np.eye(num_comps)
+    cond_rows = {}
+    stoichiometries = []
+    for cond in chempot_conds:
+        stoichiometry = np.zeros(num_comps)
+        for el, amount in cond.species.constituents.items():
+            if el != 'VA':
+                stoichiometry[components.index(el)] = amount
+        stoichiometries.append((cond, stoichiometry))
+    # Single-element conditions first, so that they claim their own element's row
+    stoichiometries.sort(key=lambda cs: np.count_nonzero(cs[1]) > 1)
+    for cond, stoichiometry in stoichiometries:
+        coords = stoichiometry @ np.linalg.inv(hull_basis)
+        candidates = [row for row in range(num_comps)
+                      if row not in [r for r, _ in cond_rows.values()] and abs(coords[row]) > 1e-12]
+        if len(candidates) == 0:
+            raise ConditionError(f'{cond} is linearly dependent on the other chemical potential conditions')
+        row = max(candidates, key=lambda r: abs(coords[r]))
+        scale = stoichiometry.sum() if np.count_nonzero(stoichiometry) == 1 else 1.0
+        hull_basis[row] = stoichiometry / scale
+        cond_rows[str(cond)] = (row, scale)
+    return hull_basis, cond_rows
+
+
 def lower_convex_hull(global_grid, state_variables, conds_keys, phase_record_factory, result_array):
     """
     Find the simplices on the lower convex hull satisfying the specified
@@ -75,6 +116,14 @@ def lower_convex_hull(global_grid, state_variables, conds_keys, phase_record_fac
                 f"conditions must be expressed in terms of basis components.")
         return basis_component_index[name]
 
+    hull_basis, mu_cond_rows = _chemical_potential_hull_basis(
+        [c for c in conds_keys if isinstance(c, ChemicalPotential)], list(result_array.coords['component']))
+    use_hull_basis = not np.array_equal(hull_basis, np.eye(num_comps))
+    if use_hull_basis:
+        hull_basis_inv = np.linalg.inv(hull_basis)
+        hull_grid_X_values = {}
+    idx_fixed_chempot_indices = np.array(sorted(row for row, _ in mu_cond_rows.values()), dtype=np.uintp)
+
     it = np.nditer(result_array_GM_values, flags=['multi_index'])
 
     while not it.finished:
@@ -97,14 +146,14 @@ def lower_convex_hull(global_grid, state_variables, conds_keys, phase_record_fac
         idx_global_grid_GM_values = global_grid_GM_values[grid_index]
         idx_result_array_MU_values = result_array_MU_values[it.multi_index]
         idx_result_array_MU_values[:] = 0
+        # Chemical potentials in the hull basis; fixed rows are set from the MU conditions
+        idx_hull_MU_values = np.zeros(num_comps)
         idx_fixed_lincomb_molefrac_coefs = []
         idx_fixed_lincomb_molefrac_rhs = []
-        idx_fixed_chempot_indices = []
         # Extensive (amount) conditions are collected here and converted, after the loop,
         # into a simplex-closure row plus (k-1) scale-invariant ratio rows.
         idx_amount_coefs = []
         idx_amount_rhs = []
-        mu_placeholder_used = False
 
         for coord_idx, str_cond_key in enumerate(sorted(result_array.coords.keys())):
             try:
@@ -119,27 +168,8 @@ def lower_convex_hull(global_grid, state_variables, conds_keys, phase_record_fac
                 # Already handled above in construction of grid_index
                 continue
             elif isinstance(cond_key, ChemicalPotential):
-                mu_constituents = {el: mult for el, mult in cond_key.species.constituents.items()
-                                   if el != 'VA'}
-                if len(mu_constituents) == 1 and np.isclose(next(iter(mu_constituents.values())), 1.0):
-                    # Pure-element MU fixes that element's chemical potential (any basis)
-                    component_idx = result_array.coords['component'].index(next(iter(mu_constituents)))
-                    idx_fixed_chempot_indices.append(component_idx)
-                    idx_result_array_MU_values[component_idx] = rhs
-                else:
-                    # MU(component) is a linear-combination chemical-potential constraint,
-                    # which the hyperplane (axis-aligned fixed chempots) cannot express
-                    # directly; the Newton solver enforces the true MU(component) via its
-                    # constraint row. For the starting point: if the component is part of a
-                    # redefined basis, start with zero amount of it (e.g. on the stoichiometric
-                    # join for MU(CL2) over a chloride basis), which is consistent with the
-                    # other composition conditions. Otherwise add no row; any remaining
-                    # composition freedom is pinned at a feasible interior point below.
-                    if str(cond_key.species) in basis_component_index:
-                        idx_fixed_lincomb_molefrac_coefs.append(
-                            component_basis_inv_T[basis_row(cond_key.species)].copy())
-                        idx_fixed_lincomb_molefrac_rhs.append(0.0)
-                    mu_placeholder_used = True
+                row, scale = mu_cond_rows[str(cond_key)]
+                idx_hull_MU_values[row] = rhs / scale
             elif isinstance(cond_key, MassFraction):
                 # W(c) = k <=> (MW(c)*(S^T)^-1[c,:] - k*mass_elem) . x_elem = 0.
                 # For a pure-element basis this is (1-k)*MW_A*x_A - k*MW_B*x_B - ... = 0.
@@ -211,37 +241,26 @@ def lower_convex_hull(global_grid, state_variables, conds_keys, phase_record_fac
             idx_fixed_lincomb_molefrac_coefs.append(ratio_row)
             idx_fixed_lincomb_molefrac_rhs.append(0.0)
 
-        if mu_placeholder_used:
-            # A MU(component) placeholder direction can be linearly dependent with the other
-            # amount conditions (e.g. an equiatomic component alongside total N), leaving the
-            # starting composition underdetermined. Pin the leftover degrees of freedom at the
-            # projection of the uniform composition onto the solution set; the Newton solver
-            # then moves the composition to satisfy the true MU(component) constraint.
-            condition_matrix = np.atleast_2d(idx_fixed_lincomb_molefrac_coefs)
-            condition_rhs = np.atleast_1d(idx_fixed_lincomb_molefrac_rhs)
-            _, singular_values, vt = np.linalg.svd(condition_matrix)
-            rank = int(np.sum(singular_values > max(condition_matrix.shape) * np.finfo(np.float64).eps * singular_values[0]))
-            if rank < num_comps:
-                particular, *_ = np.linalg.lstsq(condition_matrix, condition_rhs, rcond=None)
-                nullspace = vt[rank:]
-                uniform = np.full(num_comps, 1.0 / num_comps)
-                pinned = particular + nullspace.T @ (nullspace @ (uniform - particular))
-                # Replace the (rank-deficient, possibly zero-row) system with the equivalent
-                # full-rank square system vt . x = vt . pinned
-                idx_fixed_lincomb_molefrac_coefs = [vt[i] for i in range(vt.shape[0])]
-                idx_fixed_lincomb_molefrac_rhs = [float(vt[i] @ pinned) for i in range(vt.shape[0])]
-
         idx_fixed_lincomb_molefrac_coefs = np.atleast_2d(idx_fixed_lincomb_molefrac_coefs)
         idx_fixed_lincomb_molefrac_rhs = np.atleast_1d(idx_fixed_lincomb_molefrac_rhs)
-        idx_fixed_chempot_indices = np.array(idx_fixed_chempot_indices, dtype=np.uintp)
 
         idx_result_array_NP_values = result_array_NP_values[it.multi_index]
         idx_result_array_points_values = result_array_points_values[it.multi_index]
 
+        if use_hull_basis:
+            # Hull-basis coordinates y = x H^-1, so a condition row c.x = r becomes (c H^T).y = r
+            if grid_index not in hull_grid_X_values:
+                hull_grid_X_values[grid_index] = np.ascontiguousarray(idx_global_grid_X_values @ hull_basis_inv)
+            hull_X_values = hull_grid_X_values[grid_index]
+            idx_fixed_lincomb_molefrac_coefs = np.ascontiguousarray(idx_fixed_lincomb_molefrac_coefs @ hull_basis.T)
+        else:
+            hull_X_values = idx_global_grid_X_values
         result_array_GM_values[it.multi_index] = \
-            hyperplane(idx_global_grid_X_values, idx_global_grid_GM_values,
-                       idx_result_array_MU_values, idx_fixed_chempot_indices, idx_fixed_lincomb_molefrac_coefs, idx_fixed_lincomb_molefrac_rhs,
+            hyperplane(hull_X_values, idx_global_grid_GM_values,
+                       idx_hull_MU_values, idx_fixed_chempot_indices, idx_fixed_lincomb_molefrac_coefs, idx_fixed_lincomb_molefrac_rhs,
                        idx_result_array_NP_values, idx_result_array_points_values)
+        # Hull-basis chemical potentials are mu_H = H mu
+        idx_result_array_MU_values[:] = np.linalg.solve(hull_basis, idx_hull_MU_values) if use_hull_basis else idx_hull_MU_values
         # Copy phase values out
         points = result_array_points_values[it.multi_index]
         result_array_Phase_values[it.multi_index][:num_comps] = global_grid_Phase_values[grid_index].take(points, axis=0)[:num_comps]
