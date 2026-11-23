@@ -236,19 +236,6 @@ class ModelMQMQA(Model):
         X_ik = self._n_ik(i, k) / sum(self._n_ik(a, x) for a, x in self._pairs)
         return X_ik
 
-    def _X_ik_star(self, i: v.Species, k: v.Species):
-        """
-        Return the endmember fraction, X^*_i/k, for a the pair i/k.
-
-        Follows Lambotte JCT 2011 Eq. A.5, but this is simply Poschmann Eq. 6
-        with n^*_ik instead of n_ik.
-
-        This term is only used in the pair part of the entropy and as a
-        sub-expression of F_i (also part of the pair part of the entropy).
-        """
-        X_ik = self._n_ik_star(i, k) / sum(self._n_ik_star(a, x) for a, x in self._pairs)
-        return X_ik
-
     def _n_i(self, dbe, species):
         """
         Return the mass of the species following Poschmann Eq. 7 and 8.
@@ -292,120 +279,52 @@ class ModelMQMQA(Model):
                 Y_i += self._X_ijkl(a, b, x, y) * ((x == k) + (y == k)) / 2
         return Y_i
 
-    def _F_i(self, species: v.Species):
-        """
-        Return the coordination-equivalent fraction of species, Poschmann Eq. 13 and 14.
-        """
-        soln_type = self._dbe.phases[self.phase_name].model_hints["mqmqa"]["type"]
-        F_i = S.Zero
-        if species in self.cations:
-            i = species
-            for a, x in self._pairs:
-                if soln_type == "SUBG":
-                    F_i += int(a == i) * self._X_ik(a, x)
-                elif soln_type == "SUBQ":
-                    F_i += int(a == i) * self._X_ik_star(a, x)
-        else:
-            assert species in self.anions
-            k = species
-            for a, x in self._pairs:
-                if soln_type == "SUBG":
-                    F_i += int(x == k) * self._X_ik(a, x)
-                elif soln_type == "SUBQ":
-                    F_i += int(x == k) * self._X_ik_star(a, x)
-        return F_i
-
-
-    def _chemical_group_filter(self, dbe, symmetric_species, asymmetric_species, sublattice):
+    def _chemical_group_filter(self, dbe, symmetric_species, asymmetric_species, common_ion, sublattice):
         """
         Return a function ``f(m)`` that returns ``True`` if m is symmetric with
-        the symmetric_species and asymmetric with the asymmetric_species.
+        the symmetric_species and asymmetric with the asymmetric_species, for
+        the binary mixing around common_ion.
         """
         # sublattice should be "cations" or "anions"
         hints = dbe.phases[self.phase_name].model_hints["mqmqa"]
         chem_group_dict = hints["chemical_groups"][sublattice]
         pair = frozenset((symmetric_species, asymmetric_species))
         def _f(species):
-            if species == symmetric_species:
-                return False
-            elif species == asymmetric_species:
+            if species in pair:
                 return False
             for override in hints.get("chemical_group_overrides", []):
-                if override["ternary"] == pair | {species} and pair in override["binaries"]:
+                if override["common_ion"] == common_ion and override["ternary"] == pair | {species} and pair in override["binaries"]:
                     # Kohler (None): the third constituent mixes with neither; Toop: it mixes with the Toop constituent
                     return override["binaries"][pair] == symmetric_species
-            if chem_group_dict[species] == chem_group_dict[symmetric_species] and chem_group_dict[species] != chem_group_dict[asymmetric_species]:
-                return True  # This chemical group should be mixed
-            else:
-                return False
+            return chem_group_dict[species] == chem_group_dict[symmetric_species] and chem_group_dict[species] != chem_group_dict[asymmetric_species]
         return _f
 
     def _Chi_mix(self, dbe, i, j, k, l):
         """
         (:math:`\\chi_{ij/k}`) following Poschmann Eq. 21 (SUBG-type model) or Eq. 22 (SUBQ-type models), respectively.
+
+        Cations i, j mix around the anion k = l, or anions k, l mix around the cation i = j.
         """
-        cations = self.cations
-        anions = self.anions
-        X_ijkl = self._X_ijkl
+        if (i != j) == (k != l):
+            raise ValueError(f"Chi_mix needs mixing on exactly one sublattice. Got quadruplet {(i, j, k, l)}")
         soln_type = dbe.phases[self.phase_name].model_hints["mqmqa"]["type"]
+        cation_mixing = i != j
+        a, b, common_ion = (i, j, k) if cation_mixing else (k, l, i)
+        sublattice, constituents = ("cations", self.cations) if cation_mixing else ("anions", self.anions)
+        nu = list(filter(self._chemical_group_filter(dbe, a, b, common_ion, sublattice), constituents))
+        gamma = list(filter(self._chemical_group_filter(dbe, b, a, common_ion, sublattice), constituents))
 
-        mixing_term_numerator = S.Zero
-        mixing_term_denominator = S.Zero
-
-        if i == j and k == l:
-            raise ValueError(f"Excess energies for pairs are not defined. Got quadruplet {(i, j, k, l)}")
-        elif i != j and k == l:  # Mixing on first sublattice
-            # Chi_{ij/kk} type
-            nu = list(filter(self._chemical_group_filter(dbe, i, j, "cations"), cations))
-            gamma = list(filter(self._chemical_group_filter(dbe, j, i, "cations"), cations))
-            for idx, a in enumerate([i] + nu):  # enumerate to avoid double counting
-                for b in ([i] + nu)[idx:]:
-                    if soln_type == "SUBG":
-                        mixing_term_numerator += X_ijkl(a, b, k, k)
-                    elif soln_type == "SUBQ":
-                        # Eq. 22 loop over anion pairs, each quadruplet once
-                        for x, y in itertools.combinations_with_replacement(anions, 2):
-                            mixing_term_numerator += X_ijkl(a, b, x, y) * ((k == x) + (k == y)) / 2
-                    else:
-                        raise ValueError(f"Unknown solution type: {soln_type}")
-            for idx, a in enumerate([i, j] + nu + gamma):  # enumerate to avoid double counting
-                for b in ([i, j] + nu + gamma)[idx:]:
-                    if soln_type == "SUBG":
-                        mixing_term_denominator += X_ijkl(a, b, k, k)
-                    elif soln_type == "SUBQ":
-                        # Eq. 22 loop over anion pairs, each quadruplet once
-                        for x, y in itertools.combinations_with_replacement(anions, 2):
-                            mixing_term_denominator += X_ijkl(a, b, x, y) * ((k == x) + (k == y)) / 2
-                    else:
-                        raise ValueError(f"Unknown solution type: {soln_type}")
-            return mixing_term_numerator / mixing_term_denominator
-        elif i == j and k != l: # Mixing on second sublattice
-            # Chi_{ii/kl} type
-            nu = list(filter(self._chemical_group_filter(dbe, k, l, "anions"), anions))
-            gamma = list(filter(self._chemical_group_filter(dbe, l, k, "anions"), anions))
-            for idx, x in enumerate([k] + nu):  # enumerate to avoid double counting
-                for y in ([k] + nu)[idx:]:
-                    if soln_type == "SUBG":
-                        mixing_term_numerator += X_ijkl(i, i, x, y)
-                    elif soln_type == "SUBQ":
-                        # Eq. 22 loop over cation pairs, each quadruplet once
-                        for a, b in itertools.combinations_with_replacement(cations, 2):
-                            mixing_term_numerator += X_ijkl(a, b, x, y) * ((i == a) + (i == b)) / 2
-                    else:
-                        raise ValueError(f"Unknown solution type: {soln_type}")
-            for idx, x in enumerate([k, l] + nu + gamma):  # enumerate to avoid double counting
-                for y in ([k, l] + nu + gamma)[idx:]:
-                    if soln_type == "SUBG":
-                        mixing_term_denominator += X_ijkl(i, i, x, y)
-                    elif soln_type == "SUBQ":
-                        # Eq. 22 loop over cation pairs, each quadruplet once
-                        for a, b in itertools.combinations_with_replacement(cations, 2):
-                            mixing_term_denominator += X_ijkl(a, b, x, y) * ((i == a) + (i == b)) / 2
-                    else:
-                        raise ValueError(f"Unknown solution type: {soln_type}")
-            return mixing_term_numerator / mixing_term_denominator
-        else:
-            raise ValueError(f"Computing Chi_mix is not supported for reciprocal quadruplets. Got quadruplet {(i, j, k, l)}.")
+        def quadruplet_sum(group):
+            # Quadruplets mixing two members of group, weighted by their share of the common ion (Eq. 22); SUBG
+            # only counts those with the common ion twice (Eq. 21)
+            total = S.Zero
+            for A, B, X, Y in self._quadruplets:
+                mixing, other = ((A, B), (X, Y)) if cation_mixing else ((X, Y), (A, B))
+                n_common = other.count(common_ion)
+                if mixing[0] in group and mixing[1] in group and (n_common == 2 or soln_type == "SUBQ"):
+                    total += self._X_ijkl(A, B, X, Y) * n_common / 2
+            return total
+        return quadruplet_sum([a] + nu) / quadruplet_sum([a, b] + nu + gamma)
 
     def _Y_ik(self, i, k):
         """
@@ -422,21 +341,13 @@ class ModelMQMQA(Model):
         """
         # For mixing in cations (i != j, k == l), nu are cations (nu != i, nu != j) where i and nu have the same
         # chemical group and j has a different chemical group.
-        mixing_term = S.Zero
-        if i == j and k == l:
-            raise ValueError(f"Computing Xi_mix is not supported for pair quadruplets (there must be mixing among cations or anions). Got quadruplet {(i, j, k, l)}.")
-        elif i != j and k == l:  # Mixing on first sublattice
-            nu = list(filter(self._chemical_group_filter(dbe, i, j, "cations"), self.cations))
-            for a in [i] + nu:
-                mixing_term += self._Y_ik(a, k)
-            return mixing_term
-        elif i == j and k != l:  # Mixing on second sublattice
-            nu = list(filter(self._chemical_group_filter(dbe, k, l, "anions"), self.anions))
-            for x in [k] + nu:
-                mixing_term += self._Y_ik(i, x)
-            return mixing_term
-        else:
-            raise ValueError(f"Computing Xi_mix is not supported for reciprocal quadruplets (there can only be mixing among cations _or_ anions). Got quadruplet {(i, j, k, l)}.")
+        if (i != j) == (k != l):
+            raise ValueError(f"Xi_mix needs mixing on exactly one sublattice. Got quadruplet {(i, j, k, l)}")
+        if i != j:  # Mixing on first sublattice
+            nu = filter(self._chemical_group_filter(dbe, i, j, k, "cations"), self.cations)
+            return sum((self._Y_ik(a, k) for a in [i, *nu]), S.Zero)
+        nu = filter(self._chemical_group_filter(dbe, k, l, i, "anions"), self.anions)
+        return sum((self._Y_ik(i, x) for x in [k, *nu]), S.Zero)
 
     def _calc_Z(self, dbe, species, A, B, X, Y):
         # In derivations of the MQMQA, charges are written as if they have the same sign. The absolute values of the charges are used here.
@@ -527,14 +438,15 @@ class ModelMQMQA(Model):
 
         Divide by this normalization factor to convert from J/mole-formula to J/mole-atoms
         """
-        return sum(self._n_i(self._dbe, i) * i.number_of_atoms for i in self.cations + self.anions)
+        return sum(self._n_i(self._dbe, i) * i.number_of_atoms for i in self.cations + self.anions if i.number_of_atoms)
 
     def moles(self, species, per_formula_unit=False):
         "Number of moles of an element, counting the stoichiometry of each constituent (e.g. two Al per Al2)."
         element = list(v.Species(species).constituents.keys())[0]
         result = S.Zero
         for i in self.cations + self.anions:
-            result += self._n_i(self._dbe, i) * i.constituents.get(element, 0)
+            if element in i.constituents:
+                result += self._n_i(self._dbe, i) * i.constituents[element]
         if per_formula_unit:
             return result
         else:
@@ -564,9 +476,7 @@ class ModelMQMQA(Model):
         Returns energies contributed by pairs.
 
         The reference of quadruplet AB/XY averages its four pair energies weighted by the anion charges and the
-        quadruplet's coordination numbers (Pelton, Phase Diagrams and Thermodynamic Modeling of Solutions, Eq. 17.38),
-        as in Thermochimica. It differs from weighting each pair energy by 1/Z_A of the quadruplet only
-        when an ion's coordination numbers differ between quadruplets, e.g. a cation towards Cl and Va.
+        quadruplet's coordination numbers (Pelton, Phase Diagrams and Thermodynamic Modeling of Solutions, Eq. 17.38).
         """
         pair_query = (
             (where("phase_name") == self.phase_name) & \
@@ -593,9 +503,7 @@ class ModelMQMQA(Model):
         # notational niceties
         n_i = partial(self._n_i, dbe)
         X_i = partial(self._X_i, dbe)
-        X_ik = self._X_ik
         Y_i = self._Y_i
-        F_i = self._F_i
         X_ijkl = self._X_ijkl
         soln_type = dbe.phases[self.phase_name].model_hints["mqmqa"]["type"]
         if soln_type == "SUBG":
@@ -604,6 +512,12 @@ class ModelMQMQA(Model):
         elif soln_type == "SUBQ":
             pow_X_ik = 0.75
             pow_Y_i = 0.5
+        X_ik = {(i, k): self._X_ik(i, k) for i, k in self._pairs}
+        # Pair amounts and fractions weighted by zeta (Lambotte JCT 2011 Eq. A.3 and A.5) and the coordination-equivalent
+        # fractions (Poschmann Eq. 13 and 14); SUBG phases have a single zeta, which only matters in reciprocal phases
+        n_star = {(i, k): self._n_ik_star(i, k) for i, k in self._pairs}
+        X_star = {ik: n / sum(n_star.values()) for ik, n in n_star.items()}
+        F = {s: sum(x for ik, x in X_star.items() if s in ik) for s in self.cations + self.anions}
 
         Sid = S.Zero
         # Individual constituents
@@ -611,14 +525,47 @@ class ModelMQMQA(Model):
             Sid += n_i(A) * log(X_i(A))
         for X in self.anions:
             Sid += n_i(X) * log(X_i(X))
-        # Pairs, weighted by zeta in SUBG as in SUBQ (Thermochimica); this only matters in reciprocal phases
-        for i, k in self._pairs:
-            Sid += self._n_ik_star(i, k) * log(self._X_ik_star(i, k) / (F_i(i) * F_i(k)))
+        # Pairs
+        for (i, k), n in n_star.items():
+            Sid += n * log(X_star[i, k] / (F[i] * F[k]))
         # Quadruplets
         for i, j, k, l in self._quadruplets:
             C_ijkl = (2 - (i == j)) * (2 - (k == l))
-            Sid += X_ijkl(i, j, k, l) * log(X_ijkl(i, j, k, l) / (C_ijkl * (X_ik(i, k) * X_ik(i, l) * X_ik(j, k) * X_ik(j, l))**pow_X_ik / (Y_i(i) * Y_i(j) * Y_i(k) * Y_i(l))**pow_Y_i))
+            Sid += X_ijkl(i, j, k, l) * log(X_ijkl(i, j, k, l) / (C_ijkl * (X_ik[i, k] * X_ik[i, l] * X_ik[j, k] * X_ik[j, l])**pow_X_ik / (Y_i(i) * Y_i(j) * Y_i(k) * Y_i(l))**pow_Y_i))
         return Sid * v.T * v.R
+
+    def _one_sublattice_mixing(self, dbe, A, B, X, Y, mixing_code, p, q, r, m):
+        """
+        Mixing term of a G, Q or B parameter on the cations A, B around the anion X = Y, or on the anions X, Y around
+        the cation A = B (Poschmann Eq. 23-26), with the ternary factor of an additional constituent m.
+        """
+        if A != B:
+            i, j, common_ion, sublattice, constituents = A, B, X, "cations", self.cations
+            ij, ji, pair_fraction = (A, B, X, X), (B, A, X, X), lambda s: self._Y_ik(s, X)
+        else:
+            i, j, common_ion, sublattice, constituents = X, Y, A, "anions", self.anions
+            ij, ji, pair_fraction = (A, A, X, Y), (A, A, Y, X), lambda s: self._Y_ik(A, s)
+        xi_i, xi_j = self._Xi_mix(dbe, *ij), self._Xi_mix(dbe, *ji)
+        if mixing_code == "G":
+            term = self._Chi_mix(dbe, *ij)**p * self._Chi_mix(dbe, *ji)**q
+        elif mixing_code == "Q":
+            term = xi_i**p * xi_j**q / (xi_i + xi_j)**(p + q)
+        elif mixing_code == "B":
+            # Bragg-Williams: random pair probabilities with Kohler/Toop exponents
+            term = (pair_fraction(i) * pair_fraction(j) / self._Y_i(common_ion)
+                    * (xi_i / (xi_i + xi_j))**p * (xi_j / (xi_i + xi_j))**q)
+        else:
+            raise ValueError(f"Unknown mixing code {mixing_code}")
+        if m is None:
+            return term
+        nu = list(filter(self._chemical_group_filter(dbe, i, j, common_ion, sublattice), constituents))
+        gamma = list(filter(self._chemical_group_filter(dbe, j, i, common_ion, sublattice), constituents))
+        if m in gamma:
+            return term * pair_fraction(m) / xi_j * (1 - pair_fraction(j) / xi_j)**(r - 1)
+        if m in nu:
+            return term * pair_fraction(m) / xi_i * (1 - pair_fraction(i) / xi_i)**(r - 1)
+        Y_k = self._Y_i(common_ion)
+        return term * pair_fraction(m) / Y_k * (1 - (xi_i + xi_j) / Y_k)**(r - 1)
 
     def excess_mixing_energy(self, dbe):
         params = dbe._parameters.search(
@@ -629,6 +576,7 @@ class ModelMQMQA(Model):
 
         cations = self.cations
         anions = self.anions
+        phase_cations, phase_anions = dbe.phases[self.phase_name].constituents
 
         X_ijkl = self._X_ijkl
         Z = partial(self.Z, dbe)
@@ -639,106 +587,38 @@ class ModelMQMQA(Model):
             exponents = param["exponents"]
             mixing_code = param["mixing_code"]
             m = param["additional_mixing_constituent"]
-            p_alpha = exponents[0]
-            q_alpha = exponents[1]
-            r_alpha = param["additional_mixing_exponent"]
+            m = None if m == v.Species(None) else m
+            r = param["additional_mixing_exponent"]
             if mixing_code == "H":
                 raise NotImplementedError(f"MQMQA excess parameters with code H are not supported: {param}")
-            if mixing_code != "R" and isinstance(m, list):
-                raise NotImplementedError(f"MQMQA excess parameter with two additional constituents: {param}")
-            if mixing_code in ("G", "Q") and m != v.Species(None) and r_alpha == 0:
-                raise NotImplementedError(f"MQMQA ternary excess parameter with a zero third exponent: {param}")
-            # Poschmann Eq. 23-26
-            mixing_term = S.Zero
-            if A != B and X == Y:
-                if mixing_code == "G":
-                    # Poschmann Eq. 23 (cations mixing)
-                    mixing_term += self._Chi_mix(dbe, A, B, X, X)**p_alpha * self._Chi_mix(dbe, B, A, X, X)**q_alpha
-                elif mixing_code == "Q":
-                    # Poschmann Eq. 19 and 20 (cations mixing)
-                    Xi_ijk = self._Xi_mix(dbe, A, B, X, X)
-                    Xi_jik = self._Xi_mix(dbe, B, A, X, X)
-                    # Poschmann Eq. 24
-                    mixing_term += Xi_ijk**p_alpha * Xi_jik**q_alpha / (Xi_ijk + Xi_jik)**(p_alpha + q_alpha)
-                elif mixing_code == "B":
-                    # Bragg-Williams: random pair probabilities Y_A/X Y_B/X / Y_X with Kohler/Toop exponents
-                    Xi_ijk = self._Xi_mix(dbe, A, B, X, X)
-                    Xi_jik = self._Xi_mix(dbe, B, A, X, X)
-                    mixing_term += (self._Y_ik(A, X) * self._Y_ik(B, X) / self._Y_i(X)
-                                    * (Xi_ijk / (Xi_ijk + Xi_jik))**p_alpha * (Xi_jik / (Xi_ijk + Xi_jik))**q_alpha)
-                else:
-                    raise ValueError(f"Unknown mixing code {mixing_code} for parameter {param}")
-                if m != v.Species(None):
-                    if m not in cations:
-                        raise NotImplementedError(f"Additional constituent {m} of cation-mixing parameter {param} is not a cation")
-                    # Poschmann Eq. 25 and 26 ternary term (same for both mixing codes)
-                    Xi_ijk = self._Xi_mix(dbe, A, B, X, X)
-                    Xi_jik = self._Xi_mix(dbe, B, A, X, X)
-                    Y_mk = self._Y_ik(m, X)
-                    nu = list(filter(self._chemical_group_filter(dbe, A, B, "cations"), cations))
-                    gamma = list(filter(self._chemical_group_filter(dbe, B, A, "cations"), cations))
-                    if m in gamma:
-                        mixing_term *= Y_mk / Xi_jik * (1 - self._Y_ik(B, X) / Xi_jik)**(r_alpha - 1)
-                    elif m in nu:
-                        mixing_term *= Y_mk / Xi_ijk * (1 - self._Y_ik(A, X) / Xi_ijk)**(r_alpha - 1)
-                    else:  # not in nu or gamma
-                        Y_X = self._Y_i(X)
-                        mixing_term *= Y_mk / Y_X * (1 - (Xi_ijk + Xi_jik) / Y_X)**(r_alpha - 1)
-            elif A == B and X != Y:
-                if mixing_code == "G":
-                    # Poschmann Eq. 23 (anions mixing)
-                    mixing_term += self._Chi_mix(dbe, A, A, X, Y)**p_alpha * self._Chi_mix(dbe, A, A, Y, X)**q_alpha
-                elif mixing_code == "Q":
-                    # Poschmann Eq. 19 and 20 (anions mixing)
-                    Xi_ikl = self._Xi_mix(dbe, A, A, X, Y)
-                    Xi_ilk = self._Xi_mix(dbe, A, A, Y, X)
-                    # Poschmann Eq. 24
-                    mixing_term += Xi_ikl**p_alpha * Xi_ilk**q_alpha / (Xi_ikl + Xi_ilk)**(p_alpha + q_alpha)
-                elif mixing_code == "B":
-                    # Bragg-Williams: random pair probabilities Y_A/X Y_A/Y / Y_A with Kohler/Toop exponents
-                    Xi_ikl = self._Xi_mix(dbe, A, A, X, Y)
-                    Xi_ilk = self._Xi_mix(dbe, A, A, Y, X)
-                    mixing_term += (self._Y_ik(A, X) * self._Y_ik(A, Y) / self._Y_i(A)
-                                    * (Xi_ikl / (Xi_ikl + Xi_ilk))**p_alpha * (Xi_ilk / (Xi_ikl + Xi_ilk))**q_alpha)
-                else:
-                    raise ValueError(f"Unknown mixing code {mixing_code} for parameter {param}")
-                if m != v.Species(None):
-                    if m not in anions:
-                        raise NotImplementedError(f"Additional constituent {m} of anion-mixing parameter {param} is not an anion")
-                    # Poschmann Eq. 25 and 26 ternary term (same for both mixing codes)
-                    Xi_ikl = self._Xi_mix(dbe, A, A, X, Y)
-                    Xi_ilk = self._Xi_mix(dbe, A, A, Y, X)
-                    Y_im = self._Y_ik(A, m)
-                    nu = list(filter(self._chemical_group_filter(dbe, X, Y, "anions"), anions))
-                    gamma = list(filter(self._chemical_group_filter(dbe, Y, X, "anions"), anions))
-                    if m in gamma:
-                        mixing_term *= Y_im / Xi_ilk * (1 - self._Y_ik(A, Y) / Xi_ilk)**(r_alpha - 1)
-                    elif m in nu:
-                        mixing_term *= Y_im / Xi_ikl * (1 - self._Y_ik(A, X) / Xi_ikl)**(r_alpha - 1)
-                    else:  # not in nu or gamma
-                        Y_A = self._Y_i(A)
-                        mixing_term *= Y_im / Y_A * (1 - (Xi_ikl + Xi_ilk) / Y_A)**(r_alpha - 1)
-            elif A != B and X != Y:
-                # Reciprocal mixing: with additional constituents m, n the term is
-                # 1/2 L X_AB/XY X_mm/nn^e, e from the first exponent only; without them it is L X_AB/XY
-                # for zero exponents and nothing for a nonzero first exponent.
+            if A != B and X != Y:
+                # Reciprocal: 1/2 L X_AB/XY X_mm/nn^r with additional constituents m, n; L X_AB/XY without them and
+                # with zero exponents; nothing otherwise
                 if mixing_code != "R":
                     raise ValueError(f"Unknown mixing code {mixing_code} for parameter {param}. Expected 'R'.")
-                if m == v.Species(None):
-                    if any(exponents[1:]):
-                        raise NotImplementedError(f"Reciprocal excess parameter with these exponents is not supported: {param}")
-                    if exponents[0] == 0:
+                if not isinstance(m, list):
+                    if m is None and not any(exponents):
                         energy += param["parameter"] * X_ijkl(A, B, X, Y)
                     continue
-                if not isinstance(m, list):
-                    raise NotImplementedError(f"Reciprocal excess parameter with one additional constituent: {param}")
-                pos_m = [spec for spec in m if spec.charge > 0][0]
-                neg_m = [spec for spec in m if spec.charge < 0][0]
-                mixing_term += X_ijkl(pos_m, pos_m, neg_m, neg_m) ** exponents[0]
-            else:
+                m, n = sorted(m, key=lambda s: s.charge, reverse=True)
+                mixing_term = (X_ijkl(m, m, n, n) if m in cations and n in anions else S.Zero)**r
+            elif A == B and X == Y:
                 if mixing_code == "B":
                     raise ValueError(f"Bragg-Williams parameter {param} needs mixing on one sublattice")
                 mixing_term = S.One  # No mixing, this is a modification to the formation energy of this quadruplet
+            else:
+                if exponents[3] != 0:
+                    raise NotImplementedError(f"MQMQA excess parameter with a nonzero fourth exponent: {param}")
+                if r == 0:
+                    m = None  # without a third exponent the term is binary
+                if isinstance(m, list):
+                    raise NotImplementedError(f"MQMQA excess parameter with two additional constituents: {param}")
+                if m is not None:
+                    if m not in (phase_cations if A != B else phase_anions):
+                        raise NotImplementedError(f"Additional constituent {m} of {param} is on the other sublattice")
+                    if m not in cations + anions:
+                        continue  # the term vanishes with its inactive additional constituent
+                mixing_term = self._one_sublattice_mixing(dbe, A, B, X, Y, mixing_code, exponents[0], exponents[1], r, m)
             g = param["parameter"] * mixing_term
             if mixing_code == "B":
                 energy += g  # per mole of quadruplets, not distributed over quadruplets like G and Q

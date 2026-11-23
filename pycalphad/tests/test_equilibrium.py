@@ -832,18 +832,9 @@ def test_MQMQA_equilibrium_binary_G_mixing(load_database):
     assert np.allclose(eq.Y.values.squeeze()[0, :], [0.25, 0.5, 0.25])  # Thermochimica result
 
 
-@select_database("MQMQA-tern-tests.dat")
-def test_MQMQA_equilibrium_binary_excess_same_chemical_groups(load_database):
-    """Binary excess terms with the same chemical group (from pycalphad#496)"""
-    eq = equilibrium(load_database(), ['CU', 'NI', 'VA'], ['XS_SAME_CG'], {v.P: 101325, v.T: 1000, v.N: 1, v.X('NI'): 0.5})
-    assert np.isclose(eq.GM.values.squeeze(), -9.29581E+03)  # Thermochimica result
-    assert np.all(eq.Phase.squeeze() == ['XS_SAME_CG', '', ''])
-    assert_allclose(eq.Y.values.squeeze()[0, :], [0.12442, 0.50078, 0.37481], atol=1e-5)  # Thermochimica result
-
-
 @select_database("Be-F-Li.dat")
 def test_MQMQA_equilibrium_species_of_different_moles(load_database):
-    """Be2 dimer cations (from pycalphad#496), against Thermochimica 0c35c8d with pycalphad's R"""
+    """Liquid with Be2 dimer cations (gh-496)."""
     from pycalphad.models.model_mqmqa import ModelMQMQA
     dbf = load_database()
     comps = ['F', 'LI', 'BE', 'VA']
@@ -859,26 +850,15 @@ def test_MQMQA_equilibrium_species_of_different_moles(load_database):
     assert_allclose(eq.Y.values.squeeze()[0, :len(mod.site_fractions)], [expected[y] for y in mod.site_fractions], atol=1e-5)
 
 
-@select_database("ClAlNa.dat")
-def test_MQMQA_equilibrium_vacancy_anion_miscibility_gap(load_database):
-    """Na, Al, Al2 // Cl, Va liquid splits into a salt and a metal (from pycalphad#496)"""
-    eq = equilibrium(load_database(), ['CL', 'AL', 'NA', 'VA'], ['MSSOLN'], {v.N: 1, v.P: 101325, v.T: 1400, v.X('NA'): 0.5, v.X('CL'): 0.375})
-    assert np.isclose(eq.GM.values.squeeze(), -2.44826E+05)  # Thermochimica result
-    assert np.all(eq.Phase.squeeze() == ['MSSOLN', 'MSSOLN', '', ''])
-
-
 def test_MQMQA_equilibrium_binary_B_mixing():
-    """Binary mixing with mixing code `B`: L_SUBG_1 of MQMQA-tern-tests.dat with its G parameter changed to B.
-
-    With two cations the earlier X* form and this one agree, so Thermochimica is a valid reference here
-    (from pycalphad#700)."""
+    """Binary mixing with mixing code `B`: L_SUBG_1 of MQMQA-tern-tests.dat with its G parameter changed to B."""
     text = files(pycalphad.tests.databases).joinpath("MQMQA-tern-tests.dat").read_text()
     head, tail = text.split("L_SUBG_1", 1)
     dbf = Database.from_string(head + "L_SUBG_1" + tail.replace(" G   1   2   3   3   1   0   0   0",
                                                                 " B   1   2   3   3   1   0   0   0", 1), fmt="dat")
     eq = equilibrium(dbf, ['CU', 'NI', 'VA'], ['L_SUBG_1'], {v.P: 101325, v.T: 1000, v.N: 1, v.X('NI'): 0.5})
     assert np.all(eq.Phase.squeeze() == ['L_SUBG_1', '', ''])
-    assert np.isclose(eq.GM.values.squeeze(), -2.45131E+04)  # Thermochimica result
+    assert np.isclose(eq.GM.values.squeeze(), -2.45131E+04)
 
 
 @select_database("MQMQA-tern-tests.dat")

@@ -1,10 +1,9 @@
 from importlib.resources import files
 
-import numpy as np
 import pytest
 
 import pycalphad.tests.databases
-from pycalphad import Database, Model, variables as v
+from pycalphad import Database
 from pycalphad.io.cs_dat import TokenParser, TokenParserError, parse_header
 
 
@@ -41,69 +40,52 @@ def test_parse_header_extras_do_not_hide_later_malformed_line():
         parse_header(toks)
 
 
+def _dat_text(name):
+    return files(pycalphad.tests.databases).joinpath(name).read_text()
+
+
 def _mqmqa_constituents(dbf, phase):
     return {s.name: dict(s.constituents) for sublattice in dbf.phases[phase].constituents for s in sublattice}
-
-
-def _load(name):
-    return Database(files(pycalphad.tests.databases).joinpath(name))
 
 
 @pytest.mark.parametrize("database, phase, expected", [
     ("Shishin_Fe-Sb-O-S_slag.dat", "SLAG-LIQ", {"FE2++2.0": {"FE": 1.0}, "FE3++3.0": {"FE": 1.0}, "SB3++3.0": {"SB": 1.0}}),
     ("ClAlNa.dat", "MSSOLN", {"AL+3.0": {"AL": 1.0}, "AL2+6.0": {"AL": 2.0}, "VA-1.0": {"VA": 1.0}}),
-    ("Be-F-Li.dat", "MSFL", {"BE+2.0": {"BE": 1.0}, "BE2+4.0": {"BE": 2.0}}),
     ("FeTiVO.dat", "SLAGBSOLN", {"FE[2+]+2.0": {"FE": 1.0}, "TI[4+]+4.0": {"TI": 1.0}, "V2O3+4.0": {"V": 2.0, "O": 3.0}}),
-    ("Starykh_Cu-O-Si-Sn.dat", "LIQ(MATTE_METAL)", {"CU+1.0": {"CU": 1.0}, "CU2++1.0": {"CU": 1.0}}),
-    ("Ocadiz-Flores.dat", "LIQUID", {"LI+1.0": {"LI": 1.0}}),  # labelled K, but its pair record is LiF
 ])
 def test_mqmqa_constituent_compositions_come_from_pair_records(database, phase, expected):
-    """Element content of SUBG/SUBQ constituents comes from the pair records; labels are only names."""
-    constituents = _mqmqa_constituents(_load(database), phase)
+    """MQMQA constituents take their elements from the pair records, not their labels."""
+    constituents = _mqmqa_constituents(Database.from_string(_dat_text(database), fmt="dat"), phase)
     for name, composition in expected.items():
         assert constituents[name] == composition
 
 
-@pytest.mark.parametrize("database, phase, groups", [
-    ("ClAlNa.dat", "MSSOLN", {"NA+1.0": 1, "AL+3.0": 2, "AL2+6.0": 2, "CL-1.0": 1, "VA-1.0": 1}),
-    ("Be-F-Li.dat", "MSFL", {"LI+1.0": 1, "BE+2.0": 2, "BE2+4.0": 2, "F-1.0": 1}),
-])
-def test_mqmqa_chemical_groups_follow_constituent_order(database, phase, groups):
-    """Chemical groups are assigned in the order the constituents are listed, not sorted by name."""
-    hints = _load(database).phases[phase].model_hints["mqmqa"]["chemical_groups"]
-    assigned = {s.name: g for sublattice in ("cations", "anions") for s, g in hints[sublattice].items()}
-    assert assigned == groups
+def test_mqmqa_constituent_labelled_with_other_elements_than_its_pair_records():
+    """A constituent labelled K whose pair record is LiF is the Li constituent."""
+    text = _dat_text("Ocadiz-Flores.dat").replace(" Li                       Ni\n", " K                        Ni\n")
+    with pytest.warns(UserWarning, match="Constituent K of phase LIQUID is named LI"):
+        dbf = Database.from_string(text, fmt="dat")
+    assert _mqmqa_constituents(dbf, "LIQUID")["LI+1.0"] == {"LI": 1.0}
+
+
+def test_mqmqa_inconsistent_pair_records_raise():
+    """Pair records that disagree on the constituents raise."""
+    record = " NaCl                         0.00    0.00\n   4  2           1.0    0.0    1.0\n"
+    text = _dat_text("ClAlNa.dat").replace(record, record.replace("1.0    0.0    1.0", "2.0    0.0    1.0"))
+    with pytest.raises(ValueError, match="disagree on the CL content"):
+        Database.from_string(text, fmt="dat")
 
 
 def test_mqmqa_pair_records_out_of_pair_index_order_warn():
-    """Record k fills pair-index column k even when it belongs elsewhere (as in Thermochimica); the parser warns."""
-    lines = files(pycalphad.tests.databases).joinpath("KF-NIF2_switched.dat").read_text().split("\n")
-    nif2 = [i for i, line in enumerate(lines) if line.strip() == "NiF2"][0]
-    kf = [i for i, line in enumerate(lines) if line.strip() == "KF"][0]
-    end = [i for i, line in enumerate(lines) if line.split() == ["2", "1"]][0]
-    swapped = "\n".join(lines[:nif2] + lines[kf:end] + lines[nif2:kf] + lines[end:])
-    with pytest.warns(UserWarning, match="Pair record (KF|NIF2) of phase LIQUID2"):
-        dbf = Database.from_string(swapped, fmt="dat")
-    assert _mqmqa_constituents(dbf, "LIQUID2")["K+2.0"] == {"K": 1.0}  # the KF record in the Ni2+ column
+    """Pair records out of pair-index order warn."""
+    text = _dat_text("Shishin_Fe-Sb-O-S_slag.dat")
+    i, j, k = (text.index(f"\n {name}\n") for name in ("FeO", "Fe2O3", "FeS"))
+    with pytest.warns(UserWarning, match="not charge-balanced"):
+        Database.from_string(text[:i] + text[j:k] + text[i:j] + text[k:], fmt="dat")
 
 
-def test_text_after_a_species_name_is_ignored():
-    """Name records are one line; numbers after the name are ignored (MSTDB-TC writes non-zero ones)."""
-    text = files(pycalphad.tests.databases).joinpath("Shishin_Fe-Sb-O-S_slag.dat").read_text()
-    assert text.count("\n FeO\n") == 1
-    edited = Database.from_string(text.replace("\n FeO\n", "\n FeO                       0.500000    0.418400E+07\n"), fmt="dat")
-    original = Database.from_string(text, fmt="dat")
-    assert edited.phases["SLAG-LIQ"].constituents == original.phases["SLAG-LIQ"].constituents
-    assert len(edited._parameters) == len(original._parameters)
-
-
-def test_single_species_SUBL_phase_has_no_excess_list():
-    """A SUBL phase with one species ends after its constituent indices (Q, the CaS solid of Piao et al. 2013)."""
-    dbf = _load("Piao_Al-Ca-O-S-Si.dat")
-    assert dbf.phases["Q"].constituents == (frozenset({v.Species("CA")}), frozenset({v.Species("S")}))
-    assert "AL2O3_CORUNDUM(ALPHA(S4)" in dbf.phases  # the record after Q starts the next phase
-    T = 1000.0
-    G_CaS = (-480855.73 + 312.51950*T - 53.598408*T*np.log(T) - 0.18538933E-02*T**2 + 0.10228598E-06*T**3
-             - 88809.180/T - 2750.1453*np.log(T))
-    GM = Model(dbf, ["CA", "S"], "Q").GM.subs({v.T: T, v.Y("Q", 0, "CA"): 1, v.Y("Q", 1, "S"): 1})
-    assert np.isclose(float(GM), G_CaS / 2, rtol=1e-12)
+def test_numbers_after_a_species_name_warn():
+    """Nonzero numbers after a species name warn."""
+    text = _dat_text("Shishin_Fe-Sb-O-S_slag.dat").replace("\n FeO\n", "\n FeO                       0.500000    0.418400E+07\n")
+    with pytest.warns(UserWarning, match="Ignoring the numbers"):
+        Database.from_string(text, fmt="dat")

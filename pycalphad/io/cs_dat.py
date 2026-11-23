@@ -624,41 +624,16 @@ class SUBQExcessQuadruplet:
         exponents = self.mixing_exponents
         expr = self.expr(excess_coeff_indices)
 
-        addtl_cation_mixing_const = linear_species[self.additional_cation_mixing_const]
-        addtl_anion_mixing_const = linear_species[self.additional_anion_mixing_const]
-        if mixing_code != "R":
-            # Both integers are constituent indices on either sublattice; 0 and members of the term's own
-            # quadruplet are ignored and the ternary exponent is always the third.
-            addtl = [linear_species[i] for i in (self.additional_cation_mixing_const, self.additional_anion_mixing_const)
-                     if i != 0 and i not in self.mixing_const]
-            addtl_mixing_const = (addtl if len(addtl) > 1 else addtl[0]) if addtl else None
-            addtl_mixing_expon = exponents[2] if addtl else 0
-        elif addtl_cation_mixing_const is not None and addtl_anion_mixing_const is not None:
-            addtl_mixing_const = [addtl_cation_mixing_const, addtl_anion_mixing_const]
-            addtl_mixing_expon = exponents
-        elif addtl_cation_mixing_const is not None:
-            addtl_mixing_const = addtl_cation_mixing_const
-            addtl_mixing_expon = exponents[2]
-        elif addtl_anion_mixing_const is not None:
-            addtl_mixing_const = addtl_anion_mixing_const
-            addtl_mixing_expon = exponents[3]
-        else:
-            addtl_mixing_const = None
-            addtl_mixing_expon = 0
+        # Both integers name additional constituents by index on either sublattice. Their exponent is the first for
+        # R parameters and the third for the others, whose own constituents are not additional.
         species_dict = {s.name: s for s in dbf.species}
-        if addtl_mixing_const is not None:
-            if not isinstance(addtl_mixing_const, list):
-                additional_mixing_constituent = species_dict.get(addtl_mixing_const.upper(), v.Species(addtl_mixing_const))
-            else:
-                additional_mixing_constituent = [species_dict.get(spec.upper(), v.Species(spec)) for spec in addtl_mixing_const]
-        else:
-            additional_mixing_constituent = v.Species(None)
-
+        additional = [species_dict[linear_species[i].upper()] for i in (self.additional_cation_mixing_const, self.additional_anion_mixing_const)
+                      if i != 0 and (mixing_code == "R" or i not in self.mixing_const)]
         dbf.add_parameter(
             "MQMX", phase_name, constituent_array, param_order=None, param=expr,
             mixing_code=mixing_code, exponents=exponents,
-            additional_mixing_constituent=additional_mixing_constituent,
-            additional_mixing_exponent=addtl_mixing_expon,
+            additional_mixing_constituent=(additional if len(additional) > 1 else additional[0]) if additional else v.Species(None),
+            additional_mixing_exponent=exponents[0] if mixing_code == "R" else exponents[2],
             force_insert=False,
             )
 
@@ -678,7 +653,7 @@ def _element_hints(label: str, pure_elements: List[str]) -> set:
     return found
 
 
-def _mqmqa_constituent_compositions(labels, pair_idxs, pairs, pure_elements):
+def _mqmqa_constituent_compositions(phase_name, labels, pair_idxs, pairs, pure_elements):
     """Element amounts of each MQMQA sublattice constituent from the pair records (labels are only names).
 
     Pair record k fills pair-index column k, so nu_c c_i + nu_a a_j = s_k for each element. Amounts
@@ -692,6 +667,8 @@ def _mqmqa_constituent_compositions(labels, pair_idxs, pairs, pure_elements):
     for k, ((i, j), pair) in enumerate(zip(pair_idxs, pairs)):
         M[k, i - 1], M[k, n_cat + j - 1] = pair.stoichiometry_quadruplet[:2]
     null = np.linalg.svd(M)[2][np.linalg.matrix_rank(M):]
+    if len(null) > 1:
+        raise ValueError(f"MQMQA constituent compositions of {flat} are not determined by their pair records")
     hints = [_element_hints(label, pure_elements) for label in flat]
     compositions = [{} for _ in flat]
     for e, el in enumerate(pure_elements):
@@ -699,26 +676,25 @@ def _mqmqa_constituent_compositions(labels, pair_idxs, pairs, pure_elements):
         if not rhs.any():
             continue
         x = np.linalg.lstsq(M, rhs, rcond=None)[0]
-        if len(null) == 1:
-            g = null[0]
-            candidates = [x] + [x - x[t] / g[t] * g for t in range(len(g)) if abs(g[t]) > 1e-12]
-            x = max(candidates, key=lambda c: (np.sum(np.abs(c) < 1e-9),
-                                               sum(abs(c[t]) > 1e-9 and el in hints[t] for t in range(len(c))),
-                                               -np.sum(c < -1e-9)))
-        elif len(null) > 1:
-            raise ValueError(f"MQMQA constituent compositions of {flat} are not determined by their pair records")
+        candidates = [x] + [x - x[t] / g[t] * g for g in null for t in range(len(g)) if abs(g[t]) > 1e-12]
+        x = max(candidates, key=lambda c: (np.all(c > -1e-9), np.sum(np.abs(c) < 1e-9),
+                                           sum(abs(c[t]) > 1e-9 and el in hints[t] for t in range(len(c)))))
+        if not np.allclose(M @ x, rhs, atol=1e-6) or np.any(x < -1e-9):
+            raise ValueError(f"The pair records of phase {phase_name} disagree on the {el} content of its constituents {flat}")
         for t, amount in enumerate(x):
             if abs(amount) > 1e-9:
                 compositions[t][el] = round(float(amount), 9)
     return compositions[:n_cat], compositions[n_cat:]
 
 
-def _mqmqa_species(label, charge, composition, pure_elements):
+def _mqmqa_species(phase_name, label, charge, composition, pure_elements):
     """Species named after its label, unless the label names other elements than the pair records give it."""
     if not composition:  # no element in any pair record: a vacancy, whatever its label
         return v.Species(rename_element_charge(label, charge), constituents={"VA": 1.0}, charge=charge)
     if _element_hints(label, pure_elements) != set(composition):
-        label = "".join(el + (f"{n:g}" if n != 1 else "") for el, n in composition.items())
+        formula = "".join(el + (f"{n:g}" if n != 1 else "") for el, n in composition.items())
+        warnings.warn(f"Constituent {label} of phase {phase_name} is named {formula}, the composition its pair records give.")
+        label = formula
     return v.Species(rename_element_charge(label, charge), constituents=composition, charge=charge)
 
 
@@ -805,7 +781,7 @@ class Phase_SUBQ(PhaseBase):
         return SUBQQuadrupletCoordinations(quadruplet.quadruplet_idxs, [Z_A, Z_A, Z_X_neutral, Z_X_neutral])
 
     def _in_index_order(self, records, quadruplet_idxs):
-        """Records whose constituent indices do not decrease within a sublattice, as Thermochimica keeps them."""
+        """Records whose constituent indices do not decrease within a sublattice; the others have no effect."""
         kept = []
         for record in records:
             i, j, k, l = quadruplet_idxs(record)
@@ -835,9 +811,9 @@ class Phase_SUBQ(PhaseBase):
         # collisions within the Database.
         # The element content of each constituent comes from the pair records, not from its label
         cation_compositions, anion_compositions = _mqmqa_constituent_compositions(
-            [self.subl_1_const, self.subl_2_const], self.subl_const_idx_pairs, self.endmembers, pure_elements)
-        cation_species = [_mqmqa_species(el, chg, comp, pure_elements) for (el, chg), comp in zip(cation_el_chg_pairs, cation_compositions)]
-        anion_species = [_mqmqa_species(el, chg, comp, pure_elements) for (el, chg), comp in zip(anion_el_chg_pairs, anion_compositions)]
+            self.phase_name, [self.subl_1_const, self.subl_2_const], self.subl_const_idx_pairs, self.endmembers, pure_elements)
+        cation_species = [_mqmqa_species(self.phase_name, el, chg, comp, pure_elements) for (el, chg), comp in zip(cation_el_chg_pairs, cation_compositions)]
+        anion_species = [_mqmqa_species(self.phase_name, el, chg, comp, pure_elements) for (el, chg), comp in zip(anion_el_chg_pairs, anion_compositions)]
         cations = [sp.name for sp in cation_species]
         anions = [sp.name for sp in anion_species]
         dbf.species.update(cation_species + anion_species)
@@ -873,7 +849,8 @@ class Phase_SUBQ(PhaseBase):
         for excess_param in self._in_index_order(self.excess_parameters, lambda x: x.mixing_const):
             excess_param.insert(dbf, self.phase_name, cations, anions, excess_coefficient_idxs)
 
-        # Chemical group overrides: how each binary of a ternary extrapolates towards the third constituent
+        # Chemical group overrides: how each binary of a ternary extrapolates towards the third constituent, around
+        # one ion of the other sublattice
         linear_species = [None] + cation_species + anion_species
         overrides = []
         for override_string in self.chemical_group_overrides:
@@ -883,7 +860,7 @@ class Phase_SUBQ(PhaseBase):
                 pair = frozenset(linear_species[i] for i in binary["interacting_element_indices"])
                 binaries[pair] = linear_species[binary.get("toop_element_index", 0)]  # None for Kohler
             overrides.append({"ternary": frozenset(linear_species[i] for i in override["ternary_element_indices"]),
-                              "binaries": binaries})
+                              "binaries": binaries, "common_ion": linear_species[override["non_mixing_element_index"]]})
         model_hints["mqmqa"]["chemical_group_overrides"] = overrides
 
 
@@ -956,9 +933,12 @@ def parse_interval_heat_capacity(toks: TokenParser, num_gibbs_coeffs, H298, S298
 
 def parse_endmember(toks: TokenParser, num_pure_elements, num_gibbs_coeffs, is_stoichiometric=False):
     species_name = toks.parse(str)
-    # The name record is one line and everything after the name is ignored: a status flag such as "#",
-    # or numbers (zeros in FactSage exports, other values in e.g. MSTDB-TC)
+    # The rest of the name record is a status flag such as "#", or two numbers that are usually zero
+    numbers = [float(t) for t in toks._tokens_deque if t != "#"]
     toks._discard_remaining_tokens()
+    if any(numbers):
+        warnings.warn(f"Ignoring the numbers {numbers} after species {species_name}, which pycalphad does not support. "
+                      "The energies of this species may differ from those intended by the database.")
     gibbs_eq_type = toks.parse(int)
     # Determine how to parse the type of thermodynamic option
     has_magnetic = gibbs_eq_type > 12
@@ -1008,8 +988,8 @@ def parse_endmember_aqueous(toks: TokenParser, num_pure_elements: int, num_gibbs
 
 def parse_endmember_subq(toks: TokenParser, num_pure_elements, num_gibbs_coeffs, zeta=None):
     em = parse_endmember(toks, num_pure_elements, num_gibbs_coeffs)
-    # The numbers of cations and anions in the pair, then A, B, C of a pair term A + B*T + C*T*ln(T) that acts only in
-    # reciprocal phases, in a form not known
+    # The numbers of cations and anions in the pair, then three numbers that act only in reciprocal phases, in a form
+    # that is not supported
     stoichiometry_quadruplet = toks.parseN(5, float)
     if zeta is None:
         # This is SUBQ we need to parse it. If zeta is passed, that means we're in SUBG mode
