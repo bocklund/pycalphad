@@ -861,7 +861,8 @@ class Phase_SUBQ(PhaseBase):
                 binaries[pair] = linear_species[binary.get("toop_element_index", 0)]  # None for Kohler
             overrides.append({"ternary": frozenset(linear_species[i] for i in override["ternary_element_indices"]),
                               "binaries": binaries, "common_ion": linear_species[override["non_mixing_element_index"]]})
-        model_hints["mqmqa"]["chemical_group_overrides"] = overrides
+        if overrides:
+            model_hints["mqmqa"]["chemical_group_overrides"] = overrides
 
 
 # TODO: not yet supported
