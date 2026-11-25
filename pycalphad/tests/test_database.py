@@ -166,7 +166,7 @@ def test_symbol_names_are_propagated_through_symbols_and_parameters():
     """A map of old symbol names to new symbol names should propagate through symbol and parameter SymPy expressions"""
     tdb_propagate_str = """$ Mangled function names should propagate through other symbols and parameters
     ELEMENT A PH 0 0 0 !
-    FUNCTION FN1  298.15 -42; 6000 N !
+    FUNCTION FN1  298.15 -42; 6000 N REF1 !
     FUNCTION FN2 298.15 FN1#; 6000 N !
     PARAMETER G(PH,A;0) 298.15 FN1# + FN2#; 6000 N !
     """
@@ -175,8 +175,83 @@ def test_symbol_names_are_propagated_through_symbols_and_parameters():
     _apply_new_symbol_names(test_dbf, rename_map)
     assert 'RENAMED_FN1' in test_dbf.symbols
     assert 'FN1' not in test_dbf.symbols # check that the old key was removed
+    assert test_dbf.symbol_references == {'RENAMED_FN1': 'REF1'}
     assert test_dbf.symbols['RENAMED_FN2'] == Piecewise((Symbol('RENAMED_FN1'), And(v.T < 6000.0, v.T >= 298.15)), (0, True))
     assert test_dbf._parameters.all()[0]['parameter'] == Piecewise((Symbol('RENAMED_FN1')+Symbol('RENAMED_FN2'), And(v.T < 6000.0, v.T >= 298.15)), (0, True))
+
+def test_tdb_references_roundtrip():
+    "Reference keys of FUNCTION and PARAMETER commands and reference texts are read and written."
+    TDB = """
+    ELEMENT VA VACUUM 0 0 0 !
+    ELEMENT AL FCC_A1 26.982 4577.3 28.322 !
+    FUNCTION GHSERAL 298.15 -7976.15+137.093038*T-24.3671976*T*LN(T)-.001884662*T**2
+      -8.77664E-07*T**3+74092*T**(-1); 700 Y -11276.24+223.048446*T-38.5844296*T*LN(T)
+      +.018531982*T**2-5.764227E-06*T**3+74092*T**(-1); 933.47 Y -11278.378+188.684153*T
+      -31.748192*T*LN(T)-1.230524E+28*T**(-9); 2900 N REF:283 !
+    FUNCTION GLIQAL 298.15 +11005.029-11.841867*T+7.934E-20*T**7+GHSERAL#; 933.47 Y
+      -795.996+177.430178*T-31.748192*T*LN(T); 2900 N !
+    TYPE_DEFINITION % SEQ * !
+    PHASE FCC_A1 % 2 1 1 !
+    CONSTITUENT FCC_A1 : AL : VA : !
+    PHASE LIQUID % 1 1 !
+    CONSTITUENT LIQUID : AL : !
+    PARAMETER G(FCC_A1,AL:VA;0) 298.15 +GHSERAL#; 2900 N REF_SGTE-91 !
+    PARAMETER G(LIQUID,AL;0) 298.15 +GLIQAL#; 2900 N !
+    LIST_OF_REFERENCES
+    NUMBER  SOURCE
+      REF:283  'Alan Dinsdale, SGTE Data for Pure Elements,
+               Calphad Vol 15(1991) p 317-425'
+      REF0
+    !
+    ADD_REFERENCES ref_sgte-91 'A.T. Dinsdale, Calphad 15 (1991) 317-425; SGTE unary database' !
+    """
+    dbf = Database(TDB)
+    assert dbf.symbol_references == {'GHSERAL': 'REF:283'}
+    references = {p['phase_name']: p['reference'] for p in dbf._parameters.all()}
+    assert references == {'FCC_A1': 'REF_SGTE-91', 'LIQUID': None}
+    assert dbf.references == {
+        'REF:283': 'Alan Dinsdale, SGTE Data for Pure Elements, Calphad Vol 15(1991) p 317-425',
+        'REF_SGTE-91': 'A.T. Dinsdale, Calphad 15 (1991) 317-425; SGTE unary database',
+    }
+    assert Database.from_string(dbf.to_string(fmt='tdb'), fmt='tdb') == dbf
+
+def test_tdb_reference_lists_in_other_formats_are_skipped():
+    "A reference list that is not made of keys and quoted texts does not stop a TDB from loading."
+    TDB = """
+    ELEMENT CR BCC_A2 51.996 4050 23.56 !
+    PARAMETER G(BCC_A2,CR;0) 298.15 -8856.94+157.48*T-26.908*T*LN(T); 2180 N REF1 !
+    LIST_OF_REFERENCES
+    REF1 SGTE database
+    REF2 Andersson and Sundman (1987)
+    !
+    """
+    dbf = Database(TDB)
+    assert dbf.references == {}
+    assert dbf._parameters.all()[0]['reference'] == 'REF1'
+
+def test_write_tdb_raises_for_references_it_cannot_write():
+    "Writing a reference that a TDB cannot hold raises instead of writing a TDB that cannot be read."
+    dbf = Database.from_string("ELEMENT AL FCC_A1 26.982 4577.3 28.322 !", fmt='tdb')
+    dbf.references['ONE91'] = "H.St.C. O'Neill, Am. Mineral. 76 (1991)"
+    with pytest.raises(DatabaseExportError, match='ONE91'):
+        dbf.to_string(fmt='tdb')
+    dbf.references.clear()
+    dbf.add_parameter('G', 'FCC_A1', [['AL']], 0, S(-7976.15), ref='Dinsdale 1991')
+    with pytest.raises(DatabaseExportError, match='Dinsdale 1991'):
+        dbf.to_string(fmt='tdb')
+
+def test_tdb_expression_can_start_with_n():
+    "A temperature range whose expression starts with a name beginning with N is read, e.g. as written by write_tdb."
+    TDB = """
+    ELEMENT NI FCC_A1 58.69 4787 29.796 !
+    ELEMENT TI HCP_A3 47.88 4810 30.648 !
+    FUNCTION NI2TI2 298.15 -142412+48.2*T; 6000 N !
+    FUNCTION GTI2NI2 298.15 NI2TI2#; 1000 Y NI2TI2#+0.5*T; 6000 N !
+    """
+    dbf = Database(TDB)
+    assert dbf.symbols['GTI2NI2'] == Piecewise((Symbol('NI2TI2'), And(v.T >= 298.15, v.T < 1000.0)),
+                                               (Symbol('NI2TI2') + 0.5*v.T, And(v.T >= 1000.0, v.T < 6000.0)), (0, True))
+    assert Database.from_string(dbf.to_string(fmt='tdb'), fmt='tdb') == dbf
 
 def test_tdb_content_after_line_end_is_neglected():
     """Any characters after the line ending '!' are neglected as in commercial software."""
@@ -818,6 +893,29 @@ def test_write_tdb_breaks_long_expressions_at_binary_operators(command, expr):
     written = dbf.to_string(fmt='tdb')
     assert all(len(line) <= 78 for line in written.splitlines())
     assert Database.from_string(written, fmt='tdb') == dbf
+
+def test_write_tdb_does_not_break_lines_at_signs_in_names():
+    "Database: charged species, reference keys and reference texts are not split at their + or - sign when reflowing lines."
+    TDB = """
+    ELEMENT VA VACUUM 0 0 0 !
+    ELEMENT AL FCC_A1 26.982 4577.3 28.322 !
+    ELEMENT FE BCC_A2 55.847 4489.0 27.28 !
+    ELEMENT O 1/2_MOLE_O2(G) 15.999 4341.0 102.52 !
+    SPECIES AL+3 AL1/+3 !
+    SPECIES ALO3/2 AL1O1.5 !
+    SPECIES FE+2 FE1/+2 !
+    SPECIES FEO3/2 FE1O1.5 !
+    SPECIES O-2 O1/-2 !
+    TYPE_DEFINITION % SEQ * !
+    PHASE IONIC_LIQ:Y % 2 1 1 !
+    CONSTITUENT IONIC_LIQ:Y :AL+3,FE+2: O-2,VA,ALO3/2,FEO3/2: !
+    PARAMETER G(IONIC_LIQ,AL+3:O-2,VA;0) 298.15 -829000+106*T; 6000 N REF-15LIN !
+    LIST_OF_REFERENCES REF-15LIN 'G. Lindwall et al., J. Phase Equilib. Diffus. 36 (2015) 3-18; Al-Fe-O' !
+    """
+    dbf = Database(TDB)
+    # sweep the line width to put a line break at every character near the end of the long lines
+    for maxlen in range(50, 79):
+        assert Database.from_string(dbf.to_string(fmt='tdb', maxlen=maxlen), fmt='tdb') == dbf
 
 # TODO: when the new database-as-files test fixture is merged, replace with unary 50 proper.
 def test_long_constituent_line_writes_correctly():

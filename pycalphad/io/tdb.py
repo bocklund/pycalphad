@@ -4,10 +4,11 @@ Thermo-Calc TDB format.
 """
 
 from pyparsing import CaselessKeyword, CharsNotIn, Group
-from pyparsing import LineEnd, MatchFirst, OneOrMore, Optional, SkipTo
+from pyparsing import LineEnd, MatchFirst, OneOrMore, Optional, QuotedString, Regex, SkipTo
 from pyparsing import ZeroOrMore, Suppress, White, Word, alphanums, alphas, nums
 from pyparsing import DelimitedList, ParseException
 import re
+import textwrap
 from symengine.lib.symengine_wrapper import UniversalSet, Union, Complement
 from symengine import sympify, And, Or, Not, EmptySet, Interval, Piecewise, Add, Mul, Pow
 from symengine import Float, Symbol, LessThan, StrictLessThan, S, E
@@ -173,6 +174,9 @@ class TCCommand(CaselessKeyword): #pylint: disable=R0903
             pass
         raise ParseException(instring, loc, self.errmsg, self)
 
+# Thermo-Calc's examples of reference keys include REF:250, REF_002 and REF-SGTE
+_REFERENCE_KEY_CHARS = alphanums + ':_-'
+
 def _tdb_grammar(): #pylint: disable=R0914
     """
     Convenience function for getting the pyparsing grammar of a TDB file.
@@ -183,16 +187,17 @@ def _tdb_grammar(): #pylint: disable=R0914
     ref_phase_name = symbol_name = Word(alphanums+'_-:()/', min=1)
     # species name, e.g., CO2, AL, FE3+
     species_name = Word(alphanums+'+-*/_.', min=1) + Optional(Suppress('%'))
-    reference_key = Word(alphanums+':_-')('reference_key')
+    reference_key = Word(_REFERENCE_KEY_CHARS)
     # constituent arrays are colon-delimited
     # each subarray can be comma- or space-delimited
     constituent_array = Group(DelimitedList(Group(OneOrMore(Optional(Suppress(',')) + species_name)), ':'))
     param_types = MatchFirst([TCCommand(param_type) for param_type in TDB_PARAM_TYPES])
     # Let symengine do heavy arithmetic / algebra parsing for us
     # a convenience function will handle the piecewise details
+    # The N that ends the temperature ranges is a word on its own, unlike the N that starts an expression like NI2TI2#
     func_expr = (float_number | ZeroOrMore(',').set_parse_action(lambda t: 0.01)) + OneOrMore(SkipTo(';') \
         + Suppress(';') + ZeroOrMore(Suppress(',')) + Optional(float_number) + \
-        Suppress(Optional(Word('Yy', exact=1))), stop_on=Word('Nn', exact=1)) + Suppress(Optional(Word('Nn', exact=1)))
+        Suppress(Optional(Word('Yy', exact=1))), stop_on=Regex(r'[Nn](?!\S)')) + Suppress(Optional(Word('Nn', exact=1)))
     # ELEMENT
     cmd_element = TCCommand('ELEMENT') + Word(alphas+'/-', min=1, max=2) + ref_phase_name + \
         float_number + float_number + float_number + LineEnd()
@@ -204,7 +209,7 @@ def _tdb_grammar(): #pylint: disable=R0914
     # FUNCTION
     cmd_function = TCCommand('FUNCTION') + symbol_name + \
         func_expr.set_parse_action(_make_piecewise_ast) + \
-        Optional(Suppress(reference_key)) + LineEnd()
+        Optional(reference_key, default=None) + LineEnd()
     # ASSESSED_SYSTEMS
     cmd_ass_sys = TCCommand('ASSESSED_SYSTEMS') + SkipTo(LineEnd())
     # DEFINE_SYSTEM_DEFAULT
@@ -217,10 +222,12 @@ def _tdb_grammar(): #pylint: disable=R0914
     cmd_version_date = TCCommand('VERSION_DATE') + SkipTo(LineEnd())
     # REFERENCE_FILE
     cmd_reference_file = TCCommand('REFERENCE_FILE') + SkipTo(LineEnd())
-    # ADD_REFERENCES
-    cmd_add_ref = TCCommand('ADD_REFERENCES') + SkipTo(LineEnd())
-    # LIST_OF_REFERENCES
-    cmd_lor = TCCommand('LIST_OF_REFERENCES') + SkipTo(LineEnd())
+    # ADD_REFERENCES and LIST_OF_REFERENCES: keys with optional quoted texts. Thermo-Calc also writes keys
+    # without texts, e.g. the NUMBER SOURCE header. Reference lists in other formats are skipped.
+    reference_list = ZeroOrMore(Group(reference_key + Optional(QuotedString("'", multiline=True), default=''))) + LineEnd() | \
+        Suppress(SkipTo(LineEnd()))
+    cmd_add_ref = TCCommand('ADD_REFERENCES') + reference_list
+    cmd_lor = TCCommand('LIST_OF_REFERENCES') + reference_list
     # TEMPERATURE_LIMITS
     cmd_templim = TCCommand('TEMPERATURE_LIMITS') + SkipTo(LineEnd())
     # PHASE
@@ -239,7 +246,7 @@ def _tdb_grammar(): #pylint: disable=R0914
         Suppress(',') + constituent_array + \
         Optional(Suppress(';') + int_number, default=0) + \
         Suppress(')') + func_expr.set_parse_action(_make_piecewise_ast) + \
-        Optional(Suppress(reference_key)) + LineEnd()
+        Optional(reference_key, default=None) + LineEnd()
     # ZEROVOLUME_SPECIES
     cmd_zerovolume = TCCommand('ZEROVOLUME_SPECIES') + SkipTo(LineEnd())
     # DIFFUSION
@@ -515,24 +522,35 @@ def _process_reference_state(db, el, refphase, mass, H298, S298):
         'S298': S298,
     }
 
-def _setitem_raise_duplicates(dictionary, key, value):
-    if key in dictionary:
-        raise ValueError("TDB contains duplicate FUNCTION {}".format(key))
-    dictionary[key] = value
+def _process_function(db, name, expr, ref):
+    if name in db.symbols:
+        raise ValueError("TDB contains duplicate FUNCTION {}".format(name))
+    db.symbols[name] = expr
+    if ref is not None:
+        db.symbol_references[name] = ref
+
+def _process_references(db, *references):
+    """
+    Process the ADD_REFERENCES and LIST_OF_REFERENCES commands.
+    """
+    for key, text in references:
+        text = ' '.join(text.split())  # join the lines of the text
+        if text:
+            db.references[key.upper()] = text
 
 _TDB_PROCESSOR = {
     'ELEMENT': lambda db, el, ref_phase, mass, h, s: (db.elements.add(el), _process_reference_state(db, el, ref_phase, mass, h, s), _process_species(db, el, [el, 1], 0)),
     'SPECIES': _process_species,
     'TYPE_DEFINITION': lambda db, typechar, line: db._typedefs_queue.append((typechar, line)),
-    'FUNCTION': lambda db, name, sym: _setitem_raise_duplicates(db.symbols, name, sym),
+    'FUNCTION': _process_function,
     'DEFINE_SYSTEM_DEFAULT': _unimplemented,
     'ASSESSED_SYSTEMS': _unimplemented,
     'DEFAULT_COMMAND': _unimplemented,
     'DATABASE_INFO': _unimplemented,
     'VERSION_DATE': _unimplemented,
     'REFERENCE_FILE': _unimplemented,
-    'ADD_REFERENCES': _unimplemented,
-    'LIST_OF_REFERENCES': _unimplemented,
+    'ADD_REFERENCES': _process_references,
+    'LIST_OF_REFERENCES': _process_references,
     'TEMPERATURE_LIMITS': _unimplemented,
     'PHASE': _process_phase,
     'CONSTITUENT': \
@@ -695,8 +713,9 @@ def reflow_text(text, linewidth=80):
     """
     lines = text.split("\n")
     linebreak_chars = [" ", "$"]
-    # Binary addition/subtraction follows an operand, unlike exponent and unary signs: '6.14599E-07', 'T**(-3)', 'LOG(-3)'
-    binary_add_sub = re.compile(r'(?<=[\w.)])(?<![0-9.][Ee])[+-]')
+    # Binary addition/subtraction follows an operand, unlike exponent and unary signs: '6.14599E-07', 'T**(-3)', 'LOG(-3)'.
+    # It precedes the ';' that ends its expression, unlike signs in names: 'O-2' in a CONSTITUENT, 'N REF-SGTE !'
+    binary_add_sub = re.compile(r'(?<=[\w.)])(?<![0-9.][Ee])[+-](?=.*;)')
     output_lines = []
     for line in lines:
         if len(line) <= linewidth:
@@ -734,6 +753,7 @@ def _apply_new_symbol_names(dbf, symbol_name_map):
     """
     # first apply the rename to the keys
     dbf.symbols = {symbol_name_map.get(name, name): expr for name, expr in dbf.symbols.items()}
+    dbf.symbol_references = {symbol_name_map.get(name, name): ref for name, ref in dbf.symbol_references.items()}
     # then propagate through to the symbol SymEngine expression values
     dbf.symbols = {name: S(expr).xreplace({Symbol(s): Symbol(v) for s, v in symbol_name_map.items()}) for name, expr in dbf.symbols.items()}
     # finally propagate through to the parameters
@@ -792,6 +812,29 @@ def _diffusion_command(phase_name, diffusion):
         for species, value in coefficients:
             arguments.append(f'{keyword}={value}' if species is None else f'{keyword}&{species.name}={value}')
     return 'DIFFUSION {} !\n'.format(' '.join(arguments))
+
+def _reference_suffix(ref):
+    """
+    Return the reference key to write after a FUNCTION or PARAMETER expression, or before a reference text.
+    """
+    if not ref:
+        return ''
+    if not set(ref) <= set(_REFERENCE_KEY_CHARS):
+        raise DatabaseExportError(f"The reference key {ref!r} cannot be written to a TDB. Reference keys may only contain letters, digits and ':_-'.")
+    return ' ' + ref
+
+def _list_of_references(references, linewidth):
+    """
+    Return the LIST_OF_REFERENCES command for reference texts indexed by key.
+    """
+    lines = ['LIST_OF_REFERENCES', 'NUMBER SOURCE']
+    for key, text in sorted(references.items()):
+        if not set(text).isdisjoint("'!$"):
+            raise DatabaseExportError(f"The text of the reference {key} cannot be written to a TDB because it contains ', ! or $: {text!r}")
+        # Break lines only at spaces, because reflow_text also breaks at hyphens
+        lines.append(textwrap.fill(f"{_reference_suffix(key)} '{text}'", linewidth, subsequent_indent='   ',
+                                   break_long_words=False, break_on_hyphens=False))
+    return '\n'.join(lines) + ' !\n'
 
 
 def write_tdb(dbf, fd, groupby='subsystem', if_incompatible='warn', maxlen=78):
@@ -900,6 +943,7 @@ def write_tdb(dbf, fd, groupby='subsystem', if_incompatible='warn', maxlen=78):
         expr = TCPrinter().doprint(expr).upper()
         if ';' not in expr:
             expr += '; N'
+        expr += _reference_suffix(dbf.symbol_references.get(name))
         output += "FUNCTION {0} {1} !\n".format(name.upper(), expr)
     output += "\n"
     # Boilerplate code
@@ -1001,7 +1045,6 @@ def write_tdb(dbf, fd, groupby='subsystem', if_incompatible='warn', maxlen=78):
     def write_parameter(param_to_write):
         constituents = ':'.join([','.join(sorted([i.name.upper() for i in subl]))
                          for subl in param_to_write.constituent_array])
-        # TODO: Handle references
         paramx = param_to_write.parameter
         if not isinstance(paramx, Piecewise):
             # Non-piecewise parameters need to be wrapped to print correctly
@@ -1010,6 +1053,7 @@ def write_tdb(dbf, fd, groupby='subsystem', if_incompatible='warn', maxlen=78):
         exprx = TCPrinter(if_incompatible=if_incompatible).doprint(paramx).upper()
         if ';' not in exprx:
             exprx += '; N'
+        exprx += _reference_suffix(param_to_write.reference)
         if param_to_write.diffusing_species != Species(None):
             ds = "&" + param_to_write.diffusing_species.name
         else:
@@ -1053,6 +1097,8 @@ def write_tdb(dbf, fd, groupby='subsystem', if_incompatible='warn', maxlen=78):
                     output += write_parameter(parameter)
     else:
         raise ValueError('Unknown groupby attribute {}'.format(groupby))
+    if len(dbf.references) > 0:
+        output += '\n' + _list_of_references(dbf.references, maxlen)
     # Reflow text to respect character limit per line
     fd.write(reflow_text(output, linewidth=maxlen))
 
@@ -1068,7 +1114,7 @@ def read_tdb(dbf, fd):
     fd : file-like
         File descriptor.
     """
-    lines = fd.read().upper()
+    lines = fd.read()
     lines = lines.replace('\t', ' ')
     # Split the string by newlines
     splitlines = lines.split('\n')
@@ -1095,7 +1141,9 @@ def read_tdb(dbf, fd):
         if len(command) == 0:
             continue
         try:
-            tokens = grammar.parse_string(command)
+            tokens = grammar.parse_string(command.upper())
+            if tokens[0] in ('ADD_REFERENCES', 'LIST_OF_REFERENCES'):
+                tokens = grammar.parse_string(command)  # reference texts keep their case
             _TDB_PROCESSOR[tokens[0]](dbf, *tokens[1:])
         except ParseException as e:
             context = e.line + '\n' + (" " * (e.column - 1) + "^")

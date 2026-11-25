@@ -87,10 +87,12 @@ class Database(object): #pylint: disable=R0902
     """Phase objects indexed by their system-local name."""
     symbols: dict[str, Expr]
     """SymEngine objects indexed by their name (FUNCTIONs in Thermo-Calc)."""
+    symbol_references: dict[str, str]
+    """Reference keys of symbols indexed by symbol name. Parameters have their reference key in their ``'reference'`` field."""
     refstates: dict[str, ElementReferenceData]
     """Mapping of elements to their reference data"""
-    references: dict[str, Any]
-    """Reference objects indexed by their system-local identifier."""
+    references: dict[str, str]
+    """Reference texts indexed by their key, e.g. ``'REF283'`` (LIST_OF_REFERENCES in Thermo-Calc)."""
     _structure_dict: dict[str, Any]
 
     def __new__(cls, *args):
@@ -105,6 +107,7 @@ class Database(object): #pylint: disable=R0902
             obj._parameters = TinyDB(storage=MemoryStorage)
             obj._parameter_queue = []
             obj.symbols = {}
+            obj.symbol_references = {}
             obj.references = {}
             # Note: No public typedefs here (from TDB files)
             # Instead we put that information in the model_hint for phases
@@ -408,7 +411,7 @@ class Database(object): #pylint: disable=R0902
         param : object
             Abstract representation of the parameter, e.g., in SymEngine format.
         ref : str, optional
-            Reference for the parameter.
+            Reference key for the parameter.
         diffusing_species : str, optional
             (If kinetic parameter) Diffusing species for this parameter.
         force_insert : bool, optional
