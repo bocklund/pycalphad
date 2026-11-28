@@ -1493,3 +1493,14 @@ def test_eq_metastable_composition_set_at_bound_does_not_stall_stable_ones(load_
     # Same GM and phases as with all Al-Fe-O phases
     assert_allclose(eq.GM.values.squeeze(), -366417.873, atol=0.01)
     assert set(eq.Phase.values.ravel()) - {''} == {'GAS', 'IONIC_LIQ'}
+
+
+@pytest.mark.solver
+@pytest.mark.filterwarnings("ignore:Type definitions using IF/THEN logic is not supported:UserWarning")
+@select_database("Al-Fe-O_Lindwall2015.tdb")
+def test_eq_oxide_melt_flat_cation_sublattice_is_not_reflected(load_database):
+    "Al2O3-Fe2O3 melt: the roundoff-signed curvature of its nearly empty cation sublattice is not reflected."
+    dbf = load_database()
+    eq = equilibrium(dbf, ['AL', 'FE', 'O', 'VA'], ['IONIC_LIQ'],
+                     {v.N: 1, v.P: 101325, v.T: 2400, v.X('AL'): 0.26, v.X('O'): 0.6})
+    assert_allclose(eq.GM.values.squeeze(), -383025.89, atol=0.01)

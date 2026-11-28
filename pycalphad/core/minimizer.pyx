@@ -5,7 +5,7 @@ from pycalphad.core.composition_set cimport CompositionSet
 from pycalphad.core.constants import MIN_SITE_FRACTION
 cimport scipy.linalg.cython_lapack as cython_lapack
 from libc.stdlib cimport malloc, free
-from libc.math cimport isnan, sqrt, fabs, fmax, INFINITY
+from libc.math cimport isnan, sqrt, INFINITY
 from libc.float cimport DBL_EPSILON
 
 @cython.boundscheck(False)
@@ -70,13 +70,12 @@ cdef int num_negative_eigenvalues(double* factor, int* ipiv, int N) noexcept nog
 @cython.boundscheck(False)
 cdef void reflect_negative_curvature(double* matrix, int n, int m) noexcept nogil:
     """
-    In the phase matrix [[H, J^T], [J, 0]] (n + m square, C order), replace each negative eigenvalue lambda of the
-    reduced Hessian Z^T H Z by max(|lambda|, MIN_CURVATURE), so that Newton steps go down along its eigenvector as far
-    as they would have gone up. Z is an orthonormal basis of the null space of J (from the QR factorization of J^T).
-    Directions of positive curvature are unchanged.
+    In the phase matrix [[H, J^T], [J, 0]] (n + m square, C order), replace each eigenvalue lambda < -MIN_CURVATURE of
+    the reduced Hessian Z^T H Z by |lambda|, so that Newton steps go down along its eigenvector as far as they would have
+    gone up. Z is an orthonormal basis of the null space of J (from the QR factorization of J^T). Directions of positive
+    curvature are unchanged, and so are flat ones: the sign of an eigenvalue within MIN_CURVATURE of zero is roundoff.
     """
-    # J/mol in sqrt(y)-scaled site fractions, where ideal mixing gives RT: keeps a nearly flat direction from becoming a
-    # nearly singular one
+    # J/mol in sqrt(y)-scaled site fractions, where ideal mixing gives RT
     cdef double MIN_CURVATURE = 1.0
     cdef int N = n + m
     cdef int r = n - m
@@ -112,14 +111,14 @@ cdef void reflect_negative_curvature(double* matrix, int n, int m) noexcept nogi
     cython_lapack.dsyev(&jobz, &uplo, &r, reduced, &r, eigenvalues, work, &lwork, &info)
     # Eigenvalues ascend; eigenvector k is column k of reduced
     k = 0
-    while info == 0 and k < r and eigenvalues[k] < 0:
+    while info == 0 and k < r and eigenvalues[k] < -MIN_CURVATURE:
         for a in range(n):
             z[a] = 0
             for l in range(r):
                 z[a] += Q[(m + l) * n + a] * reduced[k * r + l]
         for a in range(n):
             for b in range(n):
-                matrix[a * N + b] += (fmax(fabs(eigenvalues[k]), MIN_CURVATURE) - eigenvalues[k]) * z[a] * z[b]
+                matrix[a * N + b] -= 2 * eigenvalues[k] * z[a] * z[b]
         k += 1
     free(Q)
 
