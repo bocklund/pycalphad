@@ -73,9 +73,11 @@ cdef void reflect_negative_curvature(double* matrix, int n, int m) noexcept nogi
     In the phase matrix [[H, J^T], [J, 0]] (n + m square, C order), replace each eigenvalue lambda < -MIN_CURVATURE of
     the reduced Hessian Z^T H Z by |lambda|, so that Newton steps go down along its eigenvector as far as they would have
     gone up. Z is an orthonormal basis of the null space of J (from the QR factorization of J^T). Directions of positive
-    curvature are unchanged, and so are flat ones: the sign of an eigenvalue within MIN_CURVATURE of zero is roundoff.
+    curvature are unchanged, and so are nearly flat ones, such as those of a sublattice with almost no sites: they
+    change the energy too little to make a saddle point that matters.
     """
-    # J/mol in sqrt(y)-scaled site fractions, where ideal mixing gives RT
+    # J/mol in sqrt(y)-scaled site fractions, where ideal mixing gives RT: well above the curvature of a nearly empty
+    # sublattice and below that of spinodals and ordering
     cdef double MIN_CURVATURE = 1.0
     cdef int N = n + m
     cdef int r = n - m

@@ -1499,7 +1499,7 @@ def test_eq_metastable_composition_set_at_bound_does_not_stall_stable_ones(load_
 @pytest.mark.filterwarnings("ignore:Type definitions using IF/THEN logic is not supported:UserWarning")
 @select_database("Al-Fe-O_Lindwall2015.tdb")
 def test_eq_oxide_melt_flat_cation_sublattice_is_not_reflected(load_database):
-    "Al2O3-Fe2O3 melt: the roundoff-signed curvature of its nearly empty cation sublattice is not reflected."
+    "Al2O3-Fe2O3 melt: the negligible curvature of its nearly empty cation sublattice is not reflected."
     dbf = load_database()
     eq = equilibrium(dbf, ['AL', 'FE', 'O', 'VA'], ['IONIC_LIQ'],
                      {v.N: 1, v.P: 101325, v.T: 2400, v.X('AL'): 0.26, v.X('O'): 0.6})
